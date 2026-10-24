@@ -721,7 +721,7 @@
 
 <div class="overlay" id="rankScreen" hidden>
   <div class="panel rank">
-    <h2 class="pick-title">排行榜</h2>
+    <h2 class="pick-title">排行榜・前 10 名</h2>
     <p class="muted" id="rankNote"></p>
     <div class="row nick-row" id="nickRow" hidden><label for="nickInput">排行榜上顯示的名稱</label><input id="nickInput" maxlength="12" placeholder="例如：火球大師"><button id="nickSave" type="button">儲存</button></div>
     <div class="rank-wrap"><table class="rank-table"><thead><tr><th>名次</th><th>玩家</th><th>職業</th><th>最深</th><th>等級</th><th>擊殺</th></tr></thead><tbody id="rankBody"></tbody></table></div>
@@ -5319,6 +5319,7 @@
   }
 
   let rankPrev = null;
+  const RANK_TOP = 10; // the board shows the top ten runs
   async function openRank() {
     rankPrev = mode;
     if (mode === 'play') mode = 'rank';
@@ -5335,7 +5336,7 @@
       } catch (e) { shared = false; }
     } else if (LB.sb) {
       try {
-        const r = await sbFetch(`scores?select=${SB_COLS}&order=diff.desc,depth.desc,kills.desc,lvl.desc&limit=200`);
+        const r = await sbFetch(`scores?select=${SB_COLS}&order=diff.desc,depth.desc,kills.desc,lvl.desc&limit=${RANK_TOP}`);
         const v = r.ok ? await r.json() : null;
         rows = (Array.isArray(v) ? v : []).map((d) => ({ ...d, id: d.pid }));
         shared = r.ok;
@@ -5358,7 +5359,7 @@
     $('nickInput').value = P && P.nick ? P.nick : '';
     const body = $('rankBody');
     if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="empty-row">還沒有紀錄。下到第 2 層以上，倒下或抵達新的最深樓層時就會留下成績。</td></tr>'; return; }
-    rows.slice(0, 50).forEach((r, i) => {
+    rows.slice(0, RANK_TOP).forEach((r, i) => {
       const tr = document.createElement('tr');
       if (shared && r.id === LB.uid) tr.className = 'me';
       const cells = [
