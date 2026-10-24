@@ -891,7 +891,7 @@
   const LEGENDS = [
     { key: 'chain', slot: 'weapon', name: '雷鳴之怒', desc: '攻擊有 25% 機率釋放連鎖閃電，在 3 個敵人之間彈跳' },
     { key: 'whirl', slot: 'weapon', cls: 'warrior', name: '旋風收割者', desc: '揮擊變成 360 度旋風斬' },
-    { key: 'split', slot: 'weapon', cls: 'mage', name: '星辰分光杖', desc: '魔法飛彈分裂成 3 道，每道 70% 傷害' },
+    { key: 'split', slot: 'weapon', cls: 'mage', name: '星辰分光杖', desc: '魔法飛彈分裂成 3 道：中間 100% 傷害，兩側各 60%' },
     { key: 'pierce', slot: 'weapon', cls: 'archer', name: '穿心者', desc: '箭矢穿透所有敵人' },
     { key: 'nova', slot: 'ring', name: '餘燼之環', desc: '擊殺敵人時引發爆炸，對周圍造成武器傷害 70% 的傷害' },
     { key: 'thorns', slot: 'armor', name: '荊棘守護', desc: '受到近戰攻擊時，反彈 150% 傷害給攻擊者' },
@@ -904,7 +904,7 @@
   const LEG = Object.fromEntries(LEGENDS.map((l) => [l.key, l]));
   const CLASSES = {
     warrior: {
-      name: '戰士', color: '#c8323c', cloak: '#7a2a2a', desc: '近戰揮砍，血厚耐打，適合衝進怪堆。', bonus: '生命 +25%、護甲 +10', basic: '揮砍：扇形近戰攻擊',
+      name: '戰士', color: '#c8323c', cloak: '#7a2a2a', desc: '近戰揮砍，血厚耐打，適合衝進怪堆。', bonus: '生命 +25%、受到的傷害最終 −10%', basic: '揮砍：扇形近戰攻擊',
       skills: [
         { id: 'whirlwind', name: '旋風斬', cd: 7, desc: '旋轉 1.5 秒，對周圍敵人連續造成 80% 傷害，每次普攻的時間內打 2 下（攻速越快打越多下）' },
         { id: 'leap', name: '震地衝鋒', cd: 8, desc: '衝向瞄準方向，落地造成 180% 範圍傷害並暈眩 1 秒' },
@@ -912,7 +912,7 @@
       ],
     },
     mage: {
-      name: '法師', color: '#6aa8ff', cloak: '#26407a', desc: '遠距離魔法，範圍傷害高，但比較脆弱。', bonus: '生命 −15%、暴擊率 +5%', basic: '魔法飛彈：直線飛行的魔法彈',
+      name: '法師', color: '#6aa8ff', cloak: '#26407a', desc: '遠距離魔法，範圍傷害高，但比較脆弱。', bonus: '生命 −5%、暴擊率 +5%', basic: '魔法飛彈：直線飛行的魔法彈',
       skills: [
         { id: 'fireball', name: '火球術', cd: 6, desc: '發射火球，命中或撞牆時爆炸，造成 200% 範圍傷害' },
         { id: 'frostnova', name: '冰霜新星', cd: 5, desc: '對周圍敵人造成 120% 傷害並冰凍 2 秒，同時獲得 12% 生命的護盾' },
@@ -924,7 +924,7 @@
       skills: [
         { id: 'multishot', name: '多重射擊', cd: 4, desc: '扇形射出 5 支箭，每支 90% 傷害' },
         { id: 'rain', name: '箭雨', cd: 9, desc: '在瞄準位置降下箭雨，2 秒內造成 6 次 55% 範圍傷害' },
-        { id: 'roll', name: '疾風翻滾', cd: 6, desc: '往後翻滾並無敵，接下來 4 秒攻擊速度 +60%' },
+        { id: 'roll', name: '疾風翻滾', cd: 6, desc: '往後翻滾並無敵，接下來 4 秒攻擊速度 +40%（加速結束後才開始計算冷卻）' },
       ],
     },
   };
@@ -1647,7 +1647,7 @@
     if (P && P.coll && P.coll.coins) { const cb = Math.floor(Object.keys(P.coll.coins).length / 10); s.goldFind += cb; s.magicFind += cb; }
     s.ranged = cls !== 'warrior';
     if (s.ranged && !equip.weapon) s.range = 320;
-    if (cls === 'warrior') { s.life = Math.round(s.life * 1.25); s.armor += 10; }
+    if (cls === 'warrior') { s.life = Math.round(s.life * 1.25); s.fTaken *= 0.9; }
     if (cls === 'mage') { s.life = Math.round(s.life * 0.95); s.crit += 5; }
     if (cls === 'archer') { s.movePct += 12; s.atkSpd += 10; }
     s.life = Math.round(s.life * (1 + s.lifePct / 100) * s.fLife);
@@ -1677,7 +1677,7 @@
       if (s.specials.has('souleater')) hit *= 1 + Math.min(0.3, 0.02 * (G.souls || 0));
     }
     let rate = 1 / s.period;
-    if (on) rate *= (P.hasteT > 0 ? 1.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1);
+    if (on) rate *= (P.hasteT > 0 ? 1.4 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1);
     const perAttack = 1 + (P && P.cls === 'mage' && talentSpecial('extraBolt') ? 0.6 : 0);
     const aura = s.specials.has('hellfire') ? 0.8 : 0; // 地獄之火: 40% every 0.5 s
     return hit * (rate * perAttack + aura);
@@ -2020,7 +2020,7 @@
     if (e.type === 'assassin') e.revealT = 2;
     if (own && S.specials.has('setFreeze') && Math.random() < 0.1 && e.type !== 'boss' && !(e.frzImm > G.time)) { e.frozen = Math.max(e.frozen || 0, 1.5); e.frzImm = G.time + 5.5; }
     if (own && S.specials.has('setRage')) { P.rage = Math.min(10, (P.rage || 0) + 1); P.rageT = 5; }
-    if (own && crit && S.specials.has('setRicochet') && P.cls === 'archer') P.skillCd[2] = 0;
+    if (own && crit && S.specials.has('setRicochet') && P.cls === 'archer') P.skillCd[2] = Math.max(0, P.skillCd[2] - 0.5);
     if (own && S.specials.has('setFireball') && !(P.setFbCd > 0) && Math.random() < 0.2 && !e.dead) {
       P.setFbCd = 2;
       firePlayerShot(Math.atan2(e.y - P.y, e.x - P.x), { kind: 'fireball', speed: 380, r: 9, mult: 2, range: 520, color: '#ff8a3d', chain: false });
@@ -2617,9 +2617,9 @@
   function attack() {
     if (P.atkCd > 0 || P.leap) return;
     P.facing = aimAngle(S.range + 120);
-    P.atkCd = S.period / ((P.hasteT > 0 ? 1.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1));
+    P.atkCd = S.period / ((P.hasteT > 0 ? 1.4 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1));
     if (P.cls === 'mage') {
-      if (S.specials.has('split') || (P.arcaneT > 0 && S.specials.has('setArcane'))) [-0.18, 0, 0.18].forEach((o) => firePlayerShot(P.facing + o, { kind: 'bolt', speed: 430, r: 6, mult: 0.7 }));
+      if (S.specials.has('split') || (P.arcaneT > 0 && S.specials.has('setArcane'))) [-0.18, 0, 0.18].forEach((o) => firePlayerShot(P.facing + o, { kind: 'bolt', speed: 430, r: 6, mult: o ? 0.6 : 1 }));
       else firePlayerShot(P.facing, { kind: 'bolt', speed: 430, r: 6 });
       if (talentSpecial('extraBolt')) firePlayerShot(P.facing + 0.16, { kind: 'bolt', speed: 430, r: 5, mult: 0.6 });
       sfx('magic');
@@ -2778,7 +2778,8 @@
   const arrowPierce = () => S.specials.has('pierce') || Math.random() * 100 < (S.pierceChance || 0);
 
   function updateSkills(dt) {
-    for (let i = 0; i < 3; i++) P.skillCd[i] = Math.max(0, P.skillCd[i] - dt);
+    // the roll's cooldown only runs once its haste has worn off, so the haste can never be kept up forever
+    for (let i = 0; i < 3; i++) if (!(i === 2 && P.cls === 'archer' && P.hasteT > 0)) P.skillCd[i] = Math.max(0, P.skillCd[i] - dt);
     P.buffT = Math.max(0, P.buffT - dt); P.hasteT = Math.max(0, P.hasteT - dt);
     P.critT = Math.max(0, (P.critT || 0) - dt);
     P.arcaneT = Math.max(0, (P.arcaneT || 0) - dt);
@@ -4098,7 +4099,7 @@
       }
     } else if (P.cls === 'archer') {
       const heavy = w && w.base === '重弩';
-      const draw = P.atkCd > 0 ? clamp(P.atkCd / (S.period / (P.hasteT > 0 ? 1.6 : 1)), 0, 1) : 0;
+      const draw = P.atkCd > 0 ? clamp(P.atkCd / (S.period / (P.hasteT > 0 ? 1.4 : 1)), 0, 1) : 0;
       const BR = { '短弓': 10, '獵弓': 12, '長弓': 14, '精靈長弓': 16 }[w ? w.base : '長弓'] || 14;
       const pull = (1 - draw) * 6;
       if (heavy) {
@@ -5859,11 +5860,11 @@
       b3: 'setSpin', b3d: '旋風斬持續時間 +1 秒，旋轉時受到的傷害 −30%',
       b4: 'setRage', b4d: '每次命中疊 1 層「狂怒」（最多 10 層，每層最終傷害 +4%；5 秒沒有命中就清空）' },
     { id: 'arcane', name: '秘法賢者', cls: 'mage', slots: ['weapon', 'armor', 'amulet', 'ring'], b2: { fSkill: 20, cdr: 10 }, b2d: '技能最終傷害 +20%、技能冷卻 −10%',
-      b3: 'setArcane', b3d: '施放技能後 4 秒內，魔法飛彈分裂成 3 道（每道 70% 傷害）',
+      b3: 'setArcane', b3d: '施放技能後 4 秒內，魔法飛彈分裂成 3 道（中間 100%、兩側各 60% 傷害）',
       b4: 'setArcaneShield', b4d: '受到任何傷害（攻擊、爆炸、陷阱、中毒、燃燒地面）時立刻獲得吸收 20% 最大生命的奧術護盾（5 秒，12 秒冷卻）；護盾存在時技能傷害 +30%' },
     { id: 'ranger', name: '遊俠之魂', cls: 'archer', slots: ['weapon', 'ring', 'belt', 'amulet'], b2: { fAtk: 12, movePct: 10 }, b2d: '最終攻擊速度 +12%、移動速度 +10%',
       b3: 'setVolley', b3d: '每第 5 次普通攻擊自動施放「多重射擊」',
-      b4: 'setRicochet', b4d: '箭矢命中後 25% 機率彈射到附近另一個敵人；暴擊時重置疾風翻滾的冷卻' },
+      b4: 'setRicochet', b4d: '箭矢命中後 25% 機率彈射到附近另一個敵人；暴擊時疾風翻滾冷卻 −0.5 秒' },
   ];
 
 
