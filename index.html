@@ -7759,10 +7759,9 @@
     if (R.t <= 0) { const got = R.earned; G.goldRealm = null; enterCamp(`金幣秘境的時間到了，共獲得 ${got.toLocaleString()} 金幣`); return; }
     R.spawnT -= dt;
     if (R.spawnT <= 0) {
-      // refill quickly: up to 3 new monsters every 0.15 s until the plaza is full again
-      R.spawnT = 0.15;
-      const missing = GOLD_REALM_MOBS - G.enemies.filter((e) => !e.dead).length;
-      for (let k = 0; k < Math.min(3, missing); k++) goldRealmSpawn(false);
+      // one new monster every 0.25 s until the plaza is full again
+      R.spawnT = 0.25;
+      if (G.enemies.filter((e) => !e.dead).length < GOLD_REALM_MOBS) goldRealmSpawn(false);
     }
   }
   // every kill pays: hell-difficulty gold, five times over, at the deepest floor reached
