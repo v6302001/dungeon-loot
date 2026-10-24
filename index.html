@@ -1666,7 +1666,7 @@
     try {
       localStorage.setItem(slotKey(saveSlot), JSON.stringify({
         cls: P.cls, lvl: P.lvl, xp: P.xp, gold: P.gold, potions: P.potions, equip: P.equip, bag: P.bag,
-        tps: 0, checkpoint: P.checkpoint, best: P.best, kills: P.kills || 0, stash: [], stashGold: 0, resume: P.resume || 0,
+        tps: 0, gmapGift: P.gmapGift || 0, checkpoint: P.checkpoint, best: P.best, kills: P.kills || 0, stash: [], stashGold: 0, resume: P.resume || 0,
         runBest: P.runBest || 0, runKills: P.runKills || 0, runId: P.runId,
         talents: P.talents || {}, runes: P.runes || {}, diff: P.diff || 0, diffUnlock: P.diffUnlock || 0, stats: P.stats || {}, ach: P.ach || {},
         title: P.title || '', cape: P.cape || null, nick: P.nick || '', coll: P.coll || {}, codex: P.codex || {}, elix: P.elix || {}, campLv: P.campLv || {}, pet: P.pet || null,
@@ -1695,6 +1695,7 @@
     if (P.elix) for (const k of Object.keys(P.elix)) P.elix[k] = Math.min(5, P.elix[k] || 0);
     if (P.tps === undefined) P.tps = 2;
     if (P.tps > 0) { stackInto(P.bag, makeScroll(P.tps), BAG_MAX); P.tps = 0; }
+    if (!P.gmapGift) { P.gmapGift = 1; if (!stackInto(P.bag, makeGoldMap(1), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeGoldMap(1), 9999); } }
     { const sh = loadShared(); P.stash = sh.stash || []; P.stashGold = sh.stashGold || 0; }
     refreshStats();
     P.hp = P.hpMax;
@@ -7708,7 +7709,7 @@
   }
 
   // ---------- gold realm: endless monsters with fixed health, lots of gold, three minutes ----------
-  const GOLD_REALM_T = 180, GOLD_REALM_HP = 100000, GOLD_REALM_MOBS = 50;
+  const GOLD_REALM_T = 180, GOLD_REALM_HP = 100000, GOLD_REALM_MOBS = 120;
   const goldMapCount = () => [...P.bag, ...(P.stash || [])].reduce((n, x) => n + (x.slot === 'gmap' ? x.qty || 1 : 0), 0);
   function takeGoldMap() {
     for (const arr of [P.bag, P.stash || []]) {
@@ -7726,8 +7727,9 @@
     // the layout comes from a normal-sized floor; gold is paid at the deepest floor reached
     let d = Math.min(best, 40); if (d % 5 === 0) d = Math.max(1, d - 1);
     genFloor(d);
-    G.enemies = []; G.boss = null; G.bossFloor = false; G.traps = []; G.event = null; G.merchant = null; G.npcs = []; G.hazards = [];
-    G.props = G.props.filter((p) => p.type === 'urn' || p.type === 'barrel' || p.type === 'chest');
+    buildArena(); // one wide open plaza instead of rooms and corridors
+    $('log').innerHTML = '';
+    G.boss = null; G.bossFloor = false;
     G.goldRealm = { t: GOLD_REALM_T, depth: best, earned: 0, spawnT: 0, types: goldRealmTypes(d) };
     for (let i = 0; i < GOLD_REALM_MOBS; i++) goldRealmSpawn(true);
     $('bossBox').hidden = true;
@@ -7741,11 +7743,13 @@
     return pool.filter((t) => EDEF[t]);
   }
   function goldRealmSpawn(anywhere) {
-    const rooms = G.rooms.filter((r) => anywhere || r !== G.start);
-    for (let tries = 0; tries < 12; tries++) {
-      const r = pick(rooms), x = (ri(r.x, r.x + r.w - 1) + 0.5) * TILE, y = (ri(r.y, r.y + r.h - 1) + 0.5) * TILE;
-      if (Math.hypot(x - P.x, y - P.y) < 260) continue;
-      spawnEnemy(pick(G.goldRealm.types), x, y, false);
+    const r = G.rooms[0];
+    for (let tries = 0; tries < 16; tries++) {
+      const x = (ri(r.x, r.x + r.w - 1) + 0.5) * TILE, y = (ri(r.y, r.y + r.h - 1) + 0.5) * TILE;
+      if (solidAt(x, y) || Math.hypot(x - P.x, y - P.y) < (anywhere ? 200 : 240)) continue;
+      const e = spawnEnemy(pick(G.goldRealm.types), x, y, false);
+      e.aggro = true;
+      if (!anywhere) smoke(x, y, 3, 'rgba(255,211,77,');
       return;
     }
   }
@@ -7755,8 +7759,10 @@
     if (R.t <= 0) { const got = R.earned; G.goldRealm = null; enterCamp(`金幣秘境的時間到了，共獲得 ${got.toLocaleString()} 金幣`); return; }
     R.spawnT -= dt;
     if (R.spawnT <= 0) {
-      R.spawnT = 0.35;
-      if (G.enemies.filter((e) => !e.dead).length < GOLD_REALM_MOBS) goldRealmSpawn(false);
+      // refill quickly: up to 3 new monsters every 0.15 s until the plaza is full again
+      R.spawnT = 0.15;
+      const missing = GOLD_REALM_MOBS - G.enemies.filter((e) => !e.dead).length;
+      for (let k = 0; k < Math.min(3, missing); k++) goldRealmSpawn(false);
     }
   }
   // every kill pays: hell-difficulty gold, five times over, at the deepest floor reached
