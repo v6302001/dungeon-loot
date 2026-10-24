@@ -1548,16 +1548,40 @@
   const uid = () => `i${Date.now().toString(36)}${(uidN++).toString(36)}`;
 
   // ================= items =================
+  // base chance per item at normal difficulty with no magic find: [legendary, set, rare]
+  // 1 = monsters, urns and barrels; 2 = small chests; 3 = big chests, elites, goblins, vaults, events; 4 = a boss's extra drops
+  const RARITY_BASE = {
+    1: [0.001, 0.0015, 0.06],
+    2: [0.0025, 0.0035, 0.15],
+    3: [0.005, 0.0075, 0.25],
+    4: [0.01, 0.015, 0.35],
+  };
   function rollRarity(bonus = 1) {
     const mf = 1 + ((S ? S.magicFind : 0) + (shrineOn('fortune') ? 100 : 0) + diffOf().mf) / 100;
     const x = Math.random();
-    if (x < 0.004 * mf * bonus) return 'legendary';
-    if (x < 0.01 * mf * bonus) return 'set';
-    if (x < 0.09 * mf * bonus) return 'rare';
+    const t = RARITY_BASE[bonus];
+    if (!t) { // anything else (the merchant's mystery items) keeps the older curve
+      if (x < 0.004 * mf * bonus) return 'legendary';
+      if (x < 0.01 * mf * bonus) return 'set';
+      if (x < 0.09 * mf * bonus) return 'rare';
+    } else {
+      if (x < t[0] * mf) return 'legendary';
+      if (x < (t[0] + t[1]) * mf) return 'set';
+      if (x < (t[0] + t[1] + t[2]) * mf) return 'rare';
+    }
     if (x < 0.36 * mf * Math.sqrt(bonus)) return 'magic';
     return 'common';
   }
 
+  // legendary and set pieces carry four affixes rolled in the upper part of each range
+  const AFF_COUNT = { common: () => 0, magic: () => ri(1, 2), rare: () => ri(3, 4), legendary: () => 4, set: () => 4 };
+  const AFF_FLOOR = { legendary: 0.5, set: 0.4 };
+  function rollAffixes(it, ilvl, rarity) {
+    it.aff = {};
+    const n = (AFF_COUNT[rarity] || AFF_COUNT.common)(), q = AFF_FLOOR[rarity] || 0;
+    const pool = AFFIXES.filter((a) => a.slots.includes(it.slot)).sort(() => Math.random() - 0.5);
+    for (const a of pool.slice(0, n)) { const [lo, hi] = affRange(a, ilvl); it.aff[a.k] = ri(Math.floor(lo + (hi - lo) * q), hi); }
+  }
   function makeItem(ilvl, rarity, slot, baseName, forCls) {
     let setDef = null;
     if (rarity === 'set') {
@@ -1590,9 +1614,7 @@
       const opts = LEGENDS.filter((l) => l.slot === slot && (!l.cls || l.cls === (wcls || curCls())) && (!l.diff || ((P && P.diff) || 0) >= l.diff));
       if (opts.length) legend = pick(opts); else rarity = it.rarity = 'rare';
     }
-    const n = { common: 0, magic: ri(1, 2), rare: ri(3, 4), legendary: 3, set: 3 }[rarity];
-    const pool = AFFIXES.filter((a) => a.slots.includes(slot)).sort(() => Math.random() - 0.5);
-    pool.slice(0, n).forEach((a) => { it.aff[a.k] = a.roll(ilvl); });
+    rollAffixes(it, ilvl, rarity);
     if (setDef) { it.set = setDef.id; it.name = `${setDef.name}的${SLOT_NAME[slot]}`; }
     else if (legend) { it.special = legend.key; it.name = legend.name; }
     else if (rarity === 'rare') it.name = pick(RARE_A) + '之' + pick(RARE_B[slot]);
@@ -2010,7 +2032,7 @@
     // items
     if (e.type === 'boss') {
       // the boss's signature drop: a chance at legendary or set, otherwise a rare
-      { const q = Math.random(); dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, q < 0.3 ? 'legendary' : q < 0.55 ? 'set' : 'rare') }); }
+      { const q = Math.random(); dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, q < 0.2 ? 'legendary' : q < 0.45 ? 'set' : 'rare') }); }
       for (let i = 0; i < 3; i++) dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, rollRarity(4)) });
       dropAt(e.x, e.y, { kind: 'potion' }); dropAt(e.x, e.y, { kind: 'potion' });
       G.boss = null;
@@ -5032,7 +5054,7 @@
   function reforged(old, rarity) {
     const it = makeItem(old.ilvl, rarity === 'set' ? 'rare' : rarity, old.slot, old.base);
     it.id = old.id; if (old.sockets) it.sockets = old.sockets;
-    if (old.set) { it.set = old.set; it.rarity = 'set'; it.name = old.name; }
+    if (old.set) { it.set = old.set; it.rarity = 'set'; it.name = old.name; rollAffixes(it, it.ilvl, 'set'); }
     stat('forges'); sfx('forge');
     if (old.special && rarity === 'legendary') { it.special = old.special; it.name = old.name; }
     return it;
@@ -5872,8 +5894,8 @@
     let n = 0;
     if (it.rarity === 'magic') n = r < 0.15 ? 1 : 0;
     if (it.rarity === 'rare') n = r < 0.1 ? 2 : r < 0.45 ? 1 : 0;
-    if (it.rarity === 'legendary') n = r < 0.4 ? 2 : 1;
-    if (it.rarity === 'set') n = 1;
+    if (it.rarity === 'legendary') n = 2;
+    if (it.rarity === 'set') n = r < 0.4 ? 2 : 1;
     if (n && SOCKET_SLOTS.has(it.slot)) it.sockets = Array(n).fill(null);
   }
   function applyGems(s, equip) {
@@ -7607,9 +7629,9 @@
       if (Math.random() < 0.5) dropAt(p.x, p.y, { kind: 'item', item: randomGem() });
     }
     if (p.realm) {
-      // the secret realm's chest: at least one legendary and one set piece, plus a handful of gems
-      dropAt(p.x, p.y, { kind: 'item', item: guaranteedLegendary(lootDepth() + 1) });
-      dropAt(p.x, p.y, { kind: 'item', item: makeItem(lootDepth() + 1, 'set') });
+      // the secret realm's chest: one likely legendary or set piece, one rare or better, plus a handful of gems
+      // one guaranteed piece: 45% legendary, 45% set, otherwise rare
+      { const q = Math.random(); dropAt(p.x, p.y, { kind: 'item', item: q < 0.45 ? guaranteedLegendary(lootDepth() + 1) : makeItem(lootDepth() + 1, q < 0.9 ? 'set' : 'rare') }); }
       dropAt(p.x, p.y, { kind: 'item', item: makeItem(lootDepth() + 1, atLeastRare(rollRarity(3))) });
       for (let i = 0; i < 4; i++) dropAt(p.x, p.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), realmGemTier()) });
       dropAt(p.x, p.y, { kind: 'gold', amount: Math.round(ri(40, 60) * goldDepth(G.depth)) });
@@ -7849,7 +7871,7 @@
     let h = '<div class="sub-h">古老卷軸碎片 → 秘境卷軸</div><div class="frag-row">' +
       FRAG_NAMES.map((n, i) => `<span class="frag${c.frag[i] ? ' has' : ''}" style="--fc:${FRAG_COLORS[i]}">${n}<b>${c.frag[i]}</b></span>`).join('') + '</div>' +
       `<div class="inv-actions"><button type="button" data-act="frag"${canFrag ? '' : ' disabled'}>集滿 5 種花紋：合成秘境卷軸</button><button class="primary" type="button" data-act="realm"${c.realm ? '' : ' disabled'}>進入秘境（持有卷軸 ${c.realm}）</button></div>` +
-      '<div class="sub">秘境：怪物更密集、菁英更多，限時 3 分鐘。出口旁的大寶箱保底一件傳說、一件套裝和 4 顆寶石，走樓梯離開。</div>';
+      '<div class="sub">秘境：怪物更密集、菁英更多，限時 3 分鐘。出口旁的大寶箱保底一件傳說或套裝（各 45%）、一件稀有以上和 4 顆寶石，走樓梯離開。</div>';
     h += '<div class="sub-h">魔王印記 → 挑戰鑰匙（3 個同種印記）</div><div class="sigil-list">' + BOSSES.map((b) => {
       const n = c.sigil[b.look] || 0, k = c.bkey[b.look] || 0;
       return `<div class="sigil-row"><span>${b.name}</span><small>印記 ${n}・鑰匙 ${k}</small><button type="button" data-sig="${b.look}"${n >= 3 ? '' : ' disabled'}>合成鑰匙</button><button class="primary" type="button" data-ch="${b.look}"${k ? '' : ' disabled'}>挑戰</button></div>`;
