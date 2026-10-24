@@ -3233,7 +3233,7 @@
     if (inParty()) for (const rp of visibleMates()) ents.push(rp);
     ents.sort((a, b) => a.y - b.y);
     for (const e of ents) {
-      if (e === P) drawPlayer(c);
+      if (e === P) { drawPlayer(c); if (mode !== 'title') drawHeadBar(c, P.x, P.y, P.hp, P.hpMax, P.shield); }
       else if (e.remote) drawMate(c, e);
       else if (e.prop) (e.type === 'tent' || e.type === 'crate' || e.type === 'anvil' ? drawDeco : e.type === 'cursed' || e.type === 'trial' ? drawEventProp : drawProp)(c, e);
       else if (e.npc) (e.kind && e.kind !== 'merchant' ? drawNpc : drawMerchant)(c, e);
@@ -5255,6 +5255,26 @@
   // one document per player at scores/<their id>, holding their best run
   const LB = { db: null, user: null, uid: null, mine: null, writing: false, pending: null, canWrite: true };
   const LOCAL_SCORES = 'dungeon-loot-scores-v1';
+  // outside Claude (e.g. on GitHub Pages) the board lives in Supabase; the publishable key is meant to be public
+  const SUPABASE_URL = 'https://tarynsakytwniwlnnvkm.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_kLXU07ECAhmvTl06Dj5D2g_KOvClPFm';
+  const PID_KEY = 'dungeon-loot-pid', PID_SECRET_KEY = 'dungeon-loot-pid-secret';
+  const rand36 = () => Math.floor(Math.random() * 2 ** 31).toString(36);
+  function playerId() {
+    try {
+      let id = localStorage.getItem(PID_KEY), sec = localStorage.getItem(PID_SECRET_KEY);
+      if (!id) { id = 'p' + Date.now().toString(36) + rand36(); localStorage.setItem(PID_KEY, id); }
+      if (!sec) { sec = rand36() + rand36() + rand36() + rand36(); localStorage.setItem(PID_SECRET_KEY, sec); }
+      LB.secret = sec;
+      return id;
+    } catch (e) { return null; }
+  }
+  const sbFetch = (path, opt = {}) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...opt, headers: { apikey: SUPABASE_KEY, 'Content-Type': 'application/json', ...(opt.headers || {}) } });
+  const SB_COLS = 'pid,name,cls,lvl,depth,kills,diff,at';
+  if (!window.claude && SUPABASE_URL && SUPABASE_KEY) {
+    LB.sb = true; LB.uid = playerId(); LB.canWrite = !!LB.uid;
+    if (LB.uid) sbFetch(`scores?select=${SB_COLS}&pid=eq.${LB.uid}`).then((r) => r.json()).then((v) => { if (Array.isArray(v) && v[0]) LB.mine = v[0]; }).catch(() => {});
+  }
   (async () => {
     if (!window.claude || !window.claude.use) return;
     try {
@@ -5282,13 +5302,17 @@
       list.sort((a, b) => (betterRun(a, b) ? -1 : 1));
       localStorage.setItem(LOCAL_SCORES, JSON.stringify(list.slice(0, 20)));
     } catch (e) { /* storage unavailable */ }
-    if (LB.db && LB.uid && LB.canWrite && betterRun(s, LB.mine)) { LB.mine = s; queueWrite(s); }
+    if ((LB.db || LB.sb) && LB.uid && LB.canWrite && betterRun(s, LB.mine)) { LB.mine = s; queueWrite(s); }
   }
   async function queueWrite(s) {
     if (LB.writing) { LB.pending = s; return; }
     LB.writing = true;
-    try { await LB.db.doc('scores/' + LB.uid).set(s); }
-    catch (e) { if (e && e.code === 'invalid_argument') { LB.canWrite = false; logMsg('你目前的權限無法上傳排行榜成績', '#ff6b6b'); } }
+    try {
+      if (LB.sb) {
+        const r = await sbFetch('rpc/submit_score', { method: 'POST', body: JSON.stringify({ p_pid: LB.uid, p_secret: LB.secret, p_name: s.name || '', p_cls: s.cls, p_lvl: s.lvl, p_depth: s.depth, p_kills: s.kills, p_diff: s.diff || 0 }) });
+        if (!r.ok) throw Object.assign(new Error('sb'), { code: r.status === 401 || r.status === 403 ? 'invalid_argument' : 'net' });
+      } else await LB.db.doc('scores/' + LB.uid).set(s);
+    } catch (e) { if (e && e.code === 'invalid_argument') { LB.canWrite = false; logMsg('你目前的權限無法上傳排行榜成績', '#ff6b6b'); } }
     LB.writing = false;
     if (LB.pending) { const n = LB.pending; LB.pending = null; queueWrite(n); }
   }
@@ -5308,6 +5332,13 @@
         rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
         shared = true;
       } catch (e) { shared = false; }
+    } else if (LB.sb) {
+      try {
+        const r = await sbFetch(`scores?select=${SB_COLS}&order=diff.desc,depth.desc,kills.desc,lvl.desc&limit=200`);
+        const v = r.ok ? await r.json() : null;
+        rows = (Array.isArray(v) ? v : []).map((d) => ({ ...d, id: d.pid }));
+        shared = r.ok;
+      } catch (e) { shared = false; }
     }
     if (!shared) {
       try { rows = JSON.parse(localStorage.getItem(LOCAL_SCORES) || '[]').map((r) => ({ ...r, id: 'local', local: true })); } catch (e) { rows = []; }
@@ -5316,7 +5347,9 @@
     let names = {};
     if (shared && LB.user && rows.length) { try { names = await LB.user.profiles(rows.map((r) => r.id)); } catch (e) { names = {}; } }
     $('rankNote').textContent = !shared
-      ? '連不到共享排行榜：通常是因為沒有登入 Claude，或用的瀏覽器不是 Claude 開啟的頁面。下面只顯示這台裝置上的紀錄。'
+      ? (window.claude ? '連不到共享排行榜：通常是因為沒有登入 Claude，或用的瀏覽器不是 Claude 開啟的頁面。下面只顯示這台裝置上的紀錄。'
+        : SUPABASE_KEY ? '連不到線上排行榜，請確認網路連線。下面只顯示這台裝置上的紀錄。' : '線上排行榜還沒有設定。下面只顯示這台裝置上的紀錄。')
+      : LB.sb ? '線上排行榜：每位玩家保留最好的一次冒險，先比難度，再比最深樓層和擊殺數。倒下或抵達新的最深樓層時會自動上傳。可以在下面設定顯示的名稱。'
       : !LB.uid ? '你可以看到共享排行榜，但這個帳號在這裡沒有身分，成績無法上傳。'
       : !LB.canWrite ? '你目前只有「檢視」權限，可以看排行榜，但成績無法上傳。請排行榜的擁有者在分享選單把你設為「參與者」以上。'
       : '每位玩家保留最好的一次冒險：先比難度，再比最深樓層和擊殺數。死亡時或抵達新的最深樓層時會自動上傳。';
@@ -5346,7 +5379,7 @@
     if (!P) return;
     P.nick = $('nickInput').value.trim().slice(0, 12);
     save();
-    if (LB.db && LB.uid && LB.canWrite && LB.mine) { LB.mine = { ...LB.mine, name: P.nick }; queueWrite(LB.mine); }
+    if ((LB.db || LB.sb) && LB.uid && LB.canWrite && LB.mine) { LB.mine = { ...LB.mine, name: P.nick }; queueWrite(LB.mine); }
     logMsg(P.nick ? `排行榜名稱設為「${P.nick}」` : '已清除排行榜名稱', '#e9b949');
     setTimeout(openRank, 600);
   });
@@ -6885,7 +6918,7 @@
 
   // ---------- moving saves between sites or browsers ----------
   const SAVE_PREFIX = 'DLSAVE1:';
-  const transferKeys = () => [...Array.from({ length: SLOT_COUNT }, (_, i) => slotKey(i)), SHARED_KEY, SLOT_KEY, SETTINGS_KEY, LOCAL_SCORES];
+  const transferKeys = () => [...Array.from({ length: SLOT_COUNT }, (_, i) => slotKey(i)), SHARED_KEY, SLOT_KEY, SETTINGS_KEY, LOCAL_SCORES, PID_KEY, PID_SECRET_KEY];
   function exportSave() {
     if (P && menuFromCamp) save();
     const data = {};
@@ -8195,18 +8228,25 @@
   const visibleMates = () => [...NET.players.values()].filter((rp) => rp.seed === G.netSeed && !rp.dead && rp.cls);
   // teammates reuse the player drawing with their own position, class and gear
   const MATE_SWAP = ['x', 'y', 'cls', 'equip', 'cape', 'facing', 'moving', 'walk', 'mvx', 'leap', 'invuln', 'dashT', 'spin', 'recall', 'hurt'];
+  // a small health bar over a character's head; blue marks any shield on top of health
+  function drawHeadBar(c, x, y, hp, hpMax, shield) {
+    const w = 36, k = clamp((hp || 0) / (hpMax || 1), 0, 1), sk = clamp((shield || 0) / (hpMax || 1), 0, 1 - k);
+    const bx = Math.round(x - w / 2), by = Math.round(y - 64);
+    c.fillStyle = '#000b'; c.fillRect(bx - 1, by - 1, w + 2, 7);
+    c.fillStyle = k > 0.5 ? '#4fd18b' : k > 0.25 ? '#f2c94c' : '#ff5a4a'; c.fillRect(bx, by, w * k, 5);
+    if (sk > 0) { c.fillStyle = '#9cd4ff'; c.fillRect(bx + w * k, by, w * sk, 5); }
+    c.fillStyle = '#ffffff33'; c.fillRect(bx, by, w * k, 2);
+  }
   function drawMate(c, rp) {
     const keep = {}; for (const k of MATE_SWAP) keep[k] = P[k];
     const sw = G.swing; G.swing = null;
     const lk = rp.look || {};
     Object.assign(P, { x: rp.x, y: rp.y, cls: rp.cls, equip: lk.eq || {}, cape: lk.cape || null, facing: rp.f || 0, moving: !!rp.m, walk: rp.w || 0, mvx: 0, leap: null, invuln: 0, dashT: 0, spin: 0, recall: null, hurt: 0 });
     try { drawPlayer(c); } finally { Object.assign(P, keep); G.swing = sw; }
-    const w = 34, hpk = clamp((rp.hp || 0) / (rp.hpMax || 1), 0, 1);
+    drawHeadBar(c, rp.x, rp.y, rp.hp, rp.hpMax, 0);
     c.save(); c.font = '600 12px "Noto Sans TC", sans-serif'; c.textAlign = 'center';
-    c.fillStyle = '#000a'; c.fillRect(rp.x - w / 2 - 1, rp.y - 54, w + 2, 6);
-    c.fillStyle = hpk > 0.3 ? '#4fd18b' : '#ff5a4a'; c.fillRect(rp.x - w / 2, rp.y - 53, w * hpk, 4);
-    c.lineWidth = 3; c.strokeStyle = '#000c'; c.strokeText(rp.name || '隊友', rp.x, rp.y - 58);
-    c.fillStyle = CLASSES[rp.cls] ? CLASSES[rp.cls].color : '#fff'; c.fillText(rp.name || '隊友', rp.x, rp.y - 58);
+    c.lineWidth = 3; c.strokeStyle = '#000c'; c.strokeText(rp.name || '隊友', rp.x, rp.y - 70);
+    c.fillStyle = CLASSES[rp.cls] ? CLASSES[rp.cls].color : '#fff'; c.fillText(rp.name || '隊友', rp.x, rp.y - 70);
     c.restore();
   }
 
