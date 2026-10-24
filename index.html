@@ -1365,12 +1365,18 @@
     P.arcShCd = 12; P.shield = Math.max(P.shield || 0, Math.round(P.hpMax * 0.2)); P.shieldT = Math.max(P.shieldT || 0, 5);
     addText('奧術護盾！', P.x, P.y - 34, '#9cd4ff', 14);
   }
+  // armour and damage reduction apply to poison and burning exactly as they do to hits
+  const hurtMul = () => {
+    const armor = S.armor * (P.buffT > 0 && P.buffKind !== 'rage' ? 1.5 : 1);
+    return 100 / (100 + armor) * (shrineOn('guard') ? 0.6 : 1) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1) * (S.fTaken || 1);
+  };
   function dot(amount, color) {
     if (mode !== 'play' || P.dashT > 0 || P.leap || G.goldRealm) return;
-    amount *= shrineOn('guard') ? 0.6 : 1;
+    amount *= hurtMul();
     arcaneShieldOnHurt();
     if (P.shield > 0) { const ab = Math.min(P.shield, amount); P.shield -= ab; amount -= ab; if (amount <= 0) return; }
     P.hp -= amount; P.dotAcc = (P.dotAcc || 0) + amount; P.dotColor = color;
+    if (P.hp <= 0 && S.specials.has('setUndying') && !(P.undyingCd > 0)) { P.hp = Math.round(P.hpMax * 0.5); P.invuln = 3; P.undyingCd = 60; P.poisonT = 0; logMsg('不朽守衛：你撐住了！', '#4fd18b'); levelFx(); }
     if (P.hp <= 0) die();
   }
   function poisonPlayer(t, dps) {
