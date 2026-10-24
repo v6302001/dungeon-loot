@@ -252,6 +252,11 @@
   .sigil-row small { color: var(--muted); }
   .sigil-row button, .scholar .inv-actions button { padding: 6px 10px; font-size: 13px; }
   .letter-card { max-width: 460px; }
+  .transfer { max-width: 560px; }
+  .transfer textarea { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 12px/1.4 monospace; resize: vertical; }
+  .transfer .file-pick { position: relative; overflow: hidden; display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .transfer .file-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  #transferMsg.ok { color: #6fd08c; } #transferMsg.bad { color: #ff6b6b; }
   .dragon-talk { max-width: 460px; border-color: #ff6b4d; box-shadow: 0 0 40px #ff3a1a55; }
   .dragon-talk .pick-title { color: #ff8a5a; }
   .dragon-line { font-family: var(--font-display); font-size: 22px; line-height: 1.7; color: #ffd8b8; text-align: center; margin: 14px 0 18px; }
@@ -537,6 +542,7 @@
       <button id="newBtn" type="button" hidden>新的冒險</button>
       <button id="rankBtn" type="button">排行榜</button>
       <button id="titleSetBtn" type="button">設定</button>
+      <button id="transferBtn" type="button">存檔搬家</button>
     </div>
     <p class="muted" id="saveNote">三個欄位各自獨立存檔（等級、裝備、背包、身上金幣分開），倉庫的物品和金幣由三個角色共用。進度會自動存在這台裝置的瀏覽器裡。</p>
   </div>
@@ -607,6 +613,20 @@
     <div class="shop-head"><h3>古文學者</h3><span class="sub">把在地窟收集到的碎片、印記和殘頁交給我。</span></div>
     <div id="scholarBody"></div>
     <div class="inv-actions"><button class="primary" type="button" data-close>離開（E）</button></div>
+  </div>
+</div>
+<div class="overlay" id="transferScreen" hidden>
+  <div class="panel card transfer">
+    <h2 class="pick-title">存檔搬家</h2>
+    <p class="muted">存檔放在這個瀏覽器、這個網址裡。要換網址（例如搬到 GitHub 版）或換電腦玩，先在舊的地方「匯出」，再到新的地方「匯入」。三個角色欄位、共用倉庫和設定都會一起搬過去。</p>
+    <div class="sub-h">匯出：複製這段存檔碼</div>
+    <textarea id="exportCode" readonly rows="4"></textarea>
+    <div class="row"><button id="exportCopy" type="button">複製存檔碼</button><button id="exportFile" type="button">下載存檔檔案</button></div>
+    <div class="sub-h">匯入：貼上存檔碼</div>
+    <textarea id="importCode" rows="4" placeholder="把從舊的地方複製的存檔碼貼在這裡"></textarea>
+    <div class="row"><label class="file-pick">選擇存檔檔案<input type="file" id="importFile" accept=".txt,text/plain"></label><button class="primary" id="importGo" type="button">匯入</button></div>
+    <p class="sub" id="transferMsg"></p>
+    <div class="row"><button id="transferClose" type="button">關閉</button></div>
   </div>
 </div>
 <div class="overlay" id="dragonTalk" hidden>
@@ -6821,6 +6841,60 @@
   $('settingsScreen').addEventListener('click', (e) => { if (e.target.id === 'settingsScreen') closeSettings(); });
   $('setBtn').addEventListener('click', openSettings);
   $('titleSetBtn').addEventListener('click', openSettings);
+
+  // ---------- moving saves between sites or browsers ----------
+  const SAVE_PREFIX = 'DLSAVE1:';
+  const transferKeys = () => [...Array.from({ length: SLOT_COUNT }, (_, i) => slotKey(i)), SHARED_KEY, SLOT_KEY, SETTINGS_KEY, LOCAL_SCORES];
+  function exportSave() {
+    if (P && menuFromCamp) save();
+    const data = {};
+    try { for (const k of transferKeys()) { const v = localStorage.getItem(k); if (v !== null) data[k] = v; } } catch (e) { return ''; }
+    return SAVE_PREFIX + btoa(unescape(encodeURIComponent(JSON.stringify({ v: 1, t: Date.now(), data }))));
+  }
+  function parseSave(code) {
+    code = (code || '').trim();
+    if (!code.startsWith(SAVE_PREFIX)) return null;
+    try { const o = JSON.parse(decodeURIComponent(escape(atob(code.slice(SAVE_PREFIX.length))))); return o && o.data ? o : null; } catch (e) { return null; }
+  }
+  const transferMsg = (txt, ok) => { const m = $('transferMsg'); m.textContent = txt; m.className = 'sub ' + (ok ? 'ok' : 'bad'); };
+  function openTransfer() {
+    $('exportCode').value = exportSave(); $('importCode').value = ''; transferMsg('', true);
+    $('exportFile').hidden = !!window.claude; // the Claude viewer blocks plain downloads; copying still works
+    $('transferScreen').hidden = false;
+  }
+  $('transferBtn').addEventListener('click', openTransfer);
+  $('transferClose').addEventListener('click', () => { $('transferScreen').hidden = true; });
+  $('exportCopy').addEventListener('click', async () => {
+    const ta = $('exportCode'); ta.focus(); ta.select();
+    let done = false;
+    try { await navigator.clipboard.writeText(ta.value); done = true; } catch (e) { try { done = document.execCommand('copy'); } catch (e2) { done = false; } }
+    transferMsg(done ? '已複製存檔碼。到新的地方打開「存檔搬家」，貼到匯入欄位。' : '無法自動複製：存檔碼已經選取好了，請按 Ctrl+C（手機長按）複製。', done);
+  });
+  $('exportFile').addEventListener('click', () => {
+    try {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([$('exportCode').value], { type: 'text/plain' }));
+      a.download = `地窟獵寶存檔-${new Date().toISOString().slice(0, 10)}.txt`;
+      document.body.appendChild(a); a.click(); a.remove();
+      transferMsg('已開始下載存檔檔案。如果沒有出現下載，改用「複製存檔碼」。', true);
+    } catch (e) { transferMsg('這裡不能下載檔案，請改用「複製存檔碼」。', false); }
+  });
+  $('importFile').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => { $('importCode').value = String(r.result || '').trim(); transferMsg('已讀取檔案，按「匯入」完成搬家。', true); }; r.readAsText(f);
+  });
+  $('importGo').addEventListener('click', () => {
+    const o = parseSave($('importCode').value);
+    if (!o) { transferMsg('這不是有效的存檔碼，請確認有完整複製（開頭是 DLSAVE1:）。', false); return; }
+    const slots = Array.from({ length: SLOT_COUNT }, (_, i) => { try { const sv = JSON.parse(o.data[slotKey(i)] || 'null'); return sv ? `欄位 ${i + 1}：${CLASSES[sv.cls || 'warrior'].name} ${sv.lvl} 級` : `欄位 ${i + 1}：空的`; } catch (e) { return `欄位 ${i + 1}：無法讀取`; } });
+    askConfirm('匯入存檔', `這裡現有的三個角色欄位、倉庫和設定會被<b>全部覆蓋</b>，無法復原。<br><br>要匯入的存檔：<br>${slots.join('<br>')}`, '確定匯入', () => {
+      try {
+        for (const k of transferKeys()) localStorage.removeItem(k);
+        for (const [k, v] of Object.entries(o.data)) if (transferKeys().includes(k)) localStorage.setItem(k, v);
+      } catch (e) { transferMsg('這個瀏覽器不允許寫入存檔。', false); return; }
+      location.reload();
+    });
+  });
 
 
   // ================= talent and rune screen =================
