@@ -640,7 +640,7 @@
       <p>房號 <b class="party-code" id="partyRoom"></b> <button id="partyCopy" type="button">複製房號</button></p>
       <p class="muted" id="partyRole"></p>
       <ul class="party-list" id="partyList"></ul>
-      <p class="sub">組隊中暫時不能進入秘境、金幣秘境、試煉秘境、魔王挑戰，也不能用傳送卷軸（之後的版本會開放）。</p>
+      <p class="sub">隊長可以帶全隊進入卷軸秘境、魔王挑戰、金幣秘境（只用隊長的卷軸、鑰匙或地圖）和試煉秘境（全隊都要 99 級）。這些地方的怪物血量會乘上隊伍人數。組隊中不能使用傳送卷軸。</p>
       <div class="row"><button id="partyLeave" type="button">離開隊伍</button></div>
     </div>
     <p class="sub" id="partyStatus"></p>
@@ -905,7 +905,7 @@
     warrior: {
       name: '戰士', color: '#c8323c', cloak: '#7a2a2a', desc: '近戰揮砍，血厚耐打，適合衝進怪堆。', bonus: '生命 +25%、護甲 +10', basic: '揮砍：扇形近戰攻擊',
       skills: [
-        { id: 'whirlwind', name: '旋風斬', cd: 7, desc: '旋轉 1.5 秒，每 0.25 秒對周圍敵人造成 60% 傷害' },
+        { id: 'whirlwind', name: '旋風斬', cd: 7, desc: '旋轉 1.5 秒，對周圍敵人連續造成 80% 傷害，每次普攻的時間內打 2 下（攻速越快打越多下）' },
         { id: 'leap', name: '震地衝鋒', cd: 8, desc: '衝向瞄準方向，落地造成 180% 範圍傷害並暈眩 1 秒' },
         { id: 'warcry', name: '戰吼', cd: 16, desc: '6 秒內傷害 +40%、護甲 +50%，並回復 15% 生命' },
       ],
@@ -1841,7 +1841,7 @@
       e.fireCd = 1;
     }
     if (type === 'necro') e.sumCd = 3;
-    if (G.goldRealm) { e.hp = e.maxHp = GOLD_REALM_HP; e.armorMul = 1; }
+    if (G.goldRealm) { e.hp = e.maxHp = GOLD_REALM_HP * partySize(); e.armorMul = 1; }
     e.nid = G.nidN = (G.nidN || 0) + 1;
     G.enemies.push(e);
     return e;
@@ -2735,15 +2735,20 @@
     if (P.spin > 0) {
       P.spin -= dt; P.spinTick -= dt;
       if (P.spinTick <= 0) {
-        P.spinTick = 0.25;
+        // two spin hits per basic-attack interval at 80% each, so spinning out-damages swinging and keeps up with attack speed
+        const iv = clamp(S.period * 0.5, 0.08, 0.25);
+        P.spinTick = iv;
         const R = AR(85);
         hitProps(P.x, P.y, R);
+        skillCtx = true;
         for (const e of G.enemies) {
           if (e.dead || Math.hypot(e.x - P.x, e.y - P.y) > R + e.r || !los(P, e)) continue;
-          const r = rollDamage(0.6); hitEnemy(e, r.dmg, r.crit, P.x, P.y, 160, true);
-          if (P.spinRune === 2) P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.01);
+          const r = rollDamage(0.8); hitEnemy(e, r.dmg, r.crit, P.x, P.y, 160, true);
+          if (P.spinRune === 2) P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.01 * (iv / 0.25));
         }
-        if (P.spinRune === 3) G.fields.push({ type: 'burn', x: P.x, y: P.y, r: AR(55), life: 2, max: 2, tick: 0, mult: 0.15 });
+        skillCtx = false;
+        P.spinBurnT = (P.spinBurnT || 0) - iv;
+        if (P.spinRune === 3 && P.spinBurnT <= 0) { P.spinBurnT = 0.25; G.fields.push({ type: 'burn', x: P.x, y: P.y, r: AR(55), life: 2, max: 2, tick: 0, mult: 0.15 }); }
       }
     }
     if (P.leap) {
@@ -7705,10 +7710,11 @@
 
   // ---------- secret realm and boss challenges ----------
   function startRealm() {
-    const c = coll(); if (c.realm < 1 || partyBlocked('進入秘境')) return;
+    if (NET.mode === 'client') { logMsg('組隊中由隊長開啟秘境，全隊一起進入', '#9cc7ff'); return; }
+    const c = coll(); if (c.realm < 1) return;
     c.realm--; closeOverlay();
     let d = Math.max(1, P.best); if (d % 5 === 0) d = Math.max(1, d - 1);
-    genFloor(d);
+    NET.floorKind = 'realm'; genFloor(d); NET.floorKind = null;
     G.realm = { t: 180, chest: false };
     const types = [...new Set(G.enemies.map((e) => e.type))].filter((t) => t !== 'boss' && t !== 'goblin');
     const rooms = G.rooms.filter((r) => r !== G.start), extra = Math.round(G.enemies.length * 0.8);
@@ -7716,22 +7722,29 @@
       const r = pick(rooms), x = (ri(r.x, r.x + r.w - 1) + 0.5) * TILE, y = (ri(r.y, r.y + r.h - 1) + 0.5) * TILE;
       spawnEnemy(pick(types), x, y, Math.random() < 0.4);
     }
-    const r = G.stairRoom, tx = r.cx + 1 < r.x + r.w ? r.cx + 1 : r.cx - 1;
-    G.props.push({ prop: true, type: 'chest', big: true, realm: true, tx, ty: r.cy, x: (tx + 0.5) * TILE, y: (r.cy + 0.5) * TILE + 4, r: 12, opened: false });
+    scaleRealmHp();
+    placeRealmChest();
     $('floorName').textContent = `秘境・第 ${d} 層`;
     logMsg('進入秘境！3 分鐘內打倒怪物、打開出口旁的大寶箱，再走樓梯離開', '#b79cff');
     save();
   }
+  // the realm's big chest sits beside the way out; every party member gets their own
+  function placeRealmChest() {
+    const r = G.stairRoom, tx = r.cx + 1 < r.x + r.w ? r.cx + 1 : r.cx - 1;
+    G.props.push({ prop: true, type: 'chest', big: true, realm: true, tx, ty: r.cy, x: (tx + 0.5) * TILE, y: (r.cy + 0.5) * TILE + 4, r: 12, opened: false });
+  }
   function startChallenge(look) {
-    const c = coll(); if (!(c.bkey[look] > 0) || partyBlocked('挑戰魔王')) return;
+    if (NET.mode === 'client') { logMsg('組隊中由隊長開啟魔王挑戰，全隊一起進入', '#9cc7ff'); return; }
+    const c = coll(); if (!(c.bkey[look] > 0)) return;
     c.bkey[look]--; closeOverlay();
     const idx = BOSSES.findIndex((b) => b.look === look);
     let d = 5 * (idx + 1);
     const cyc = BOSSES.length * 5;
     while (d + cyc <= Math.max(P.best, 5) && d + cyc <= MAX_DEPTH) d += cyc;
-    genFloor(d);
+    NET.floorKind = 'challenge'; NET.floorLook = look; genFloor(d); NET.floorKind = null;
     G.challenge = look;
     if (G.boss) { G.boss.hp = G.boss.maxHp = G.boss.maxHp * 2; G.boss.dmg *= 2; }
+    scaleRealmHp();
     $('floorName').textContent = `魔王挑戰・${bossName(look)}`;
     logMsg(`強化版${bossName(look)}在樓梯旁等著你：生命與攻擊加倍，保證掉落傳說或套裝`, '#ff6b4d');
     save();
@@ -7749,13 +7762,13 @@
     return false;
   }
   function startGoldRealm() {
-    if (partyBlocked('進入金幣秘境')) return;
+    if (NET.mode === 'client') { logMsg('組隊中由隊長開啟金幣秘境，全隊一起進入', '#9cc7ff'); return; }
     if (!goldMapCount()) { logMsg('需要一張「金幣秘境地圖」才能進入：在地窟第 30 層以後打倒怪物有機會掉落', '#ffd34d'); return; }
     takeGoldMap(); closeOverlay(); tpFloor = null;
     const best = Math.max(1, P.best);
     // the layout comes from a normal-sized floor; gold is paid at the deepest floor reached
     let d = Math.min(best, 40); if (d % 5 === 0) d = Math.max(1, d - 1);
-    genFloor(d);
+    NET.floorKind = 'gold'; genFloor(d); NET.floorKind = null;
     buildArena(); // one wide open plaza instead of rooms and corridors
     $('log').innerHTML = '';
     G.boss = null; G.bossFloor = false;
@@ -7790,7 +7803,7 @@
     if (R.spawnT <= 0) {
       // one new monster every 0.25 s until the plaza is full again
       R.spawnT = 0.25;
-      if (G.enemies.filter((e) => !e.dead).length < GOLD_REALM_MOBS) goldRealmSpawn(false);
+      if (NET.mode !== 'client' && G.enemies.filter((e) => !e.dead).length < GOLD_REALM_MOBS) goldRealmSpawn(false);
     }
   }
   // every kill pays: hell-difficulty gold, five times over, at the deepest floor reached
@@ -7804,17 +7817,21 @@
   const TRIAL_LV = 99;
   const FIRE_DRAGON = { name: '火龍', look: 'firewyrm', quote: '「愚蠢的人類，你確定要挑戰我嗎？」', r: 44 };
   function startTrialRealm() {
-    if (partyBlocked('進入試煉秘境')) return;
+    if (NET.mode === 'client') { logMsg('組隊中由隊長開啟試煉秘境，全隊一起進入', '#9cc7ff'); return; }
     if (P.lvl < TRIAL_LV) { logMsg(`試煉秘境需要 ${TRIAL_LV} 級才能進入（目前 ${P.lvl} 級）`, '#ff6b4d'); return; }
+    if (NET.mode === 'host') {
+      const low = [...NET.players.values()].filter((rp) => (rp.lvl || 0) < TRIAL_LV).map((rp) => rp.name || '隊友');
+      if (low.length) { logMsg(`試煉秘境需要全隊 ${TRIAL_LV} 級：${low.join('、')} 還沒達到`, '#ff6b4d'); return; }
+    }
     closeOverlay(); tpFloor = null;
-    genFloor(13); // borrow the lava scene, then carve one wide open cavern
+    NET.floorKind = 'trial'; genFloor(13); NET.floorKind = null; // borrow the lava scene, then carve one wide open cavern
     buildArena();
     $('log').innerHTML = ''; // drop the borrowed floor's messages
     G.trialRealm = true; G.bossFloor = true;
     const A = G.rooms[0];
     const b = G.boss = spawnEnemy('boss', (A.cx + 0.5) * TILE, (A.cy + 0.5) * TILE, false);
     // 2.2x a hell floor-100 boss: a well-geared player needs about 30-35 s of basic attacks
-    b.hp = b.maxHp = Math.round(EDEF.boss.hp * monsterHpMul(100) * DIFFS[2].hp * 2.2);
+    b.hp = b.maxHp = Math.round(EDEF.boss.hp * monsterHpMul(100) * DIFFS[2].hp * 2.2 * partySize());
     // damage 1.55x a hell floor-100 boss, so one hit takes about 40-45% of a geared player's life
     b.dmg = EDEF.boss.dmg * monsterDmgMul(100) * DIFFS[2].dmg * DIFFS[2].bossDmg * 1.55;
     b.xp = Math.round(EDEF.boss.xp * (1 + 100 * 0.25) * 2);
@@ -7940,6 +7957,8 @@
     partyFloor: null, dotAcc: new Map(), dotT: 0, lastLook: '',
   };
   const inParty = () => NET.mode !== 'off';
+  const partySize = () => (NET.mode === 'host' ? 1 + NET.players.size : 1);
+  const scaleRealmHp = () => { const k = partySize(); if (k > 1) for (const e of G.enemies) { e.hp *= k; e.maxHp *= k; } };
   const nativeRandom = Math.random;
   function mulberry32(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   function withSeed(seed, fn) { const r = Math.random; Math.random = mulberry32(seed); try { fn(); } finally { Math.random = r; } }
@@ -7955,7 +7974,7 @@
     G.netSeed = seed;
     if (NET.mode === 'host') {
       G.netDiff = P.diff || 0;
-      NET.partyFloor = { depth, seed, diff: G.netDiff };
+      NET.partyFloor = { depth, seed, diff: G.netDiff, kind: NET.floorKind || 'floor', look: NET.floorKind === 'challenge' ? NET.floorLook : null };
       netSend(null, { t: 'floor', ...NET.partyFloor });
     } else {
       // teammates take every monster from the host's snapshots
@@ -7979,6 +7998,29 @@
     for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'deathScreen' && o.id !== 'titleScreen') o.hidden = true;
     if (mode !== 'dead') mode = 'play';
     NET.nextSeed = f.seed; genFloor(f.depth); G.netDiff = f.diff;
+    if (f.kind === 'gold' || f.kind === 'trial') { buildArena(); $('log').innerHTML = ''; G.boss = null; $('bossBox').hidden = true; }
+    if (f.kind === 'gold') {
+      // teammates mirror the realm; the leader spawns the crowd, each player collects their own gold
+      G.goldRealm = { t: f.t || GOLD_REALM_T, depth: Math.max(1, P.best), earned: 0, spawnT: Infinity, types: [] };
+      $('floorName').textContent = '金幣秘境';
+      logMsg(msg || '跟著隊長進入金幣秘境！', '#ffd34d'); save(); return;
+    }
+    if (f.kind === 'realm') {
+      G.realm = { t: f.t || 180, chest: false };
+      placeRealmChest();
+      $('floorName').textContent = `秘境・第 ${f.depth} 層`;
+      logMsg(msg || '跟著隊長進入秘境！3 分鐘內打開出口旁的大寶箱，再走樓梯離開', '#b79cff'); save(); return;
+    }
+    if (f.kind === 'challenge') {
+      G.challenge = f.look;
+      $('floorName').textContent = `魔王挑戰・${bossName(f.look)}`;
+      logMsg(msg || `跟著隊長挑戰強化版${bossName(f.look)}`, '#ff6b4d'); save(); return;
+    }
+    if (f.kind === 'trial') {
+      G.trialRealm = true; G.bossFloor = true;
+      $('floorName').textContent = '試煉秘境・火龍巢穴';
+      logMsg(msg || '跟著隊長進入試煉秘境：隊長答應挑戰後，火龍就會開始攻擊', '#ff6b4d'); save(); return;
+    }
     P.best = Math.max(P.best, f.depth);
     P.checkpoint = Math.max(P.checkpoint || 1, Math.floor((f.depth - 1) / 5) * 5 + 1);
     logMsg(msg || `隊長帶大家前往第 ${f.depth} 層`, '#9cc7ff');
@@ -8048,7 +8090,7 @@
     const r = (v) => Math.round(v);
     return {
       t: 's', seed: G.netSeed,
-      e: G.enemies.filter((e) => !e.dead).map((e) => [e.nid, e.type, r(e.x), r(e.y), r(e.hp), r(e.maxHp), e.elite ? 1 : 0, +Math.max(0, e.frozen || 0).toFixed(1), +Math.max(0, e.wind || 0).toFixed(2), e.aggro ? 1 : 0, e.type === 'boss' ? e.look || 0 : 0]),
+      e: G.enemies.filter((e) => !e.dead).map((e) => [e.nid, e.type, r(e.x), r(e.y), r(e.hp), r(e.maxHp), e.elite ? 1 : 0, +Math.max(0, e.frozen || 0).toFixed(1), +Math.max(0, e.wind || 0).toFixed(2), e.aggro ? 1 : 0, e.type === 'boss' ? e.look || 0 : 0, e.look === 'firewyrm' ? [+(e.face || 0).toFixed(2), +(e.breathWarn || 0).toFixed(2), +(e.breathAng || 0).toFixed(2), e.dive ? [e.dive.phase, Math.round(e.dive.tx), Math.round(e.dive.ty), +e.dive.t.toFixed(2)] : 0, +(e.tailT || 0).toFixed(2), +(e.breathT || 0).toFixed(2)] : 0]),
       sh: G.shots.map((s) => [r(s.x), r(s.y), r(s.vx), r(s.vy), s.r, s.color]),
       z: G.zones.filter((z) => z.hostile).map((z) => [r(z.x), r(z.y), z.r, +z.t.toFixed(2), z.fire ? 1 : 0]),
       hz: G.hazards.map((h) => [r(h.x), r(h.y), h.r, h.type, +h.life.toFixed(1), h.max]),
@@ -8077,7 +8119,7 @@
     if (G.netSeed !== s.seed) return;
     const byId = new Map(G.enemies.map((e) => [e.nid, e]));
     const alive = new Set();
-    for (const [nid, type, x, y, hp, mhp, el, fr, wd, ag, look] of s.e) {
+    for (const [nid, type, x, y, hp, mhp, el, fr, wd, ag, look, fx] of s.e) {
       alive.add(nid);
       let e = byId.get(nid);
       if (!e) {
@@ -8090,6 +8132,7 @@
       }
       e.nx = x; e.ny = y; e.hp = hp; e.maxHp = mhp; e.wind = wd; e.aggro = !!ag; e.netGone = 0;
       e._sf = fr; if (!(e.frozen > fr)) e.frozen = fr;
+      if (fx) { const [f, bw, ba, dv, tt, bt] = fx; Object.assign(e, { face: f, breathWarn: bw, breathAng: ba, tailT: tt, breathT: bt, dive: dv ? { phase: dv[0], tx: dv[1], ty: dv[2], t: dv[3] } : null }); if (tt > 0) e.wind = tt; }
       if (Math.hypot(e.x - x, e.y - y) > 240) { e.x = x; e.y = y; }
     }
     for (const e of G.enemies) if (!alive.has(e.nid)) e.netGone = (e.netGone || 0) + 1;
@@ -8124,7 +8167,7 @@
       for (const [i, fr, sl] of m.l) { const e = G.enemies.find((x) => x.nid === i); if (!e) continue; e.frozen = Math.max(e.frozen || 0, fr); e.slowT = Math.max(e.slowT || 0, sl); }
     } else if (m.t === 'sync') {
       const c = NET.conns.get(id);
-      if (c) c.send(NET.partyFloor ? { t: 'floor', ...NET.partyFloor, quiet: 1 } : { t: 'camp', quiet: 1 });
+      if (c) c.send(NET.partyFloor ? { t: 'floor', ...NET.partyFloor, t2: G.goldRealm ? G.goldRealm.t : G.realm ? G.realm.t : 0, quiet: 1 } : { t: 'camp', quiet: 1 });
     }
   }
   function onClientMsg(m) {
@@ -8134,7 +8177,7 @@
       if (m.floor) followFloor(m.floor, `隊伍在第 ${m.floor.depth} 層，前往會合`);
       renderParty();
     } else if (m.t === 'deny') { leaveParty(m.why || '無法加入這個房間'); }
-    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
+    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff, kind: m.kind || 'floor', look: m.look || null, t: m.t2 || 0 }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
     else if (m.t === 'camp') { NET.partyFloor = null; if (mode !== 'dead' && !G.camp) { for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'titleScreen') o.hidden = true; mode = 'play'; enterCamp('隊長帶大家回到了營地'); } }
     else if (m.t === 's') applySnap(m);
     else if (m.t === 'k') { const e = G.enemies.find((x) => x.nid === m.i); if (e && !e.dead) killEnemy(e); }
