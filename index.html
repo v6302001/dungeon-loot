@@ -480,6 +480,7 @@
   </div>
   <div class="stats-row">
     <span class="gold">金幣 <b id="goldText">0</b></span>
+    <span title="目前的單體每秒傷害，觸發加成時會即時變化">秒傷 <b id="dpsText">0</b></span>
     <span>藥水 <b id="potText">3</b></span>
     <span title="疾速／無敵／智慧藥劑（4／5／6 或 Z／X／C）">藥劑 <b id="elixText">0／0／0</b></span>
   </div>
@@ -1660,7 +1661,59 @@
     s.crit = Math.min(75, s.crit);
     return s;
   }
-  const dps = (s) => (s.min + s.max) / 2 * (1 + s.dmgPct / 100) * (1 + s.crit / 100 * (s.critMult - 1)) / s.period;
+  // single-target damage per second; with live=true it also counts every boost active right now
+  function dpsCalc(s, live) {
+    const on = live && P && G;
+    let crit = s.crit / 100;
+    if (on && P.critT > 0) crit = 1; // 反擊 rune: every hit crits
+    let hit = (s.min + s.max) / 2 * (1 + s.dmgPct / 100) * (s.fDmg || 1) * (1 + crit * (s.critMult - 1));
+    if (s.specials.has('giant')) hit *= 1.3; // 15% chance of triple damage
+    if (on) {
+      if (P.buffT > 0) hit *= 1.4;
+      if (shrineOn('power')) hit *= 1.5;
+      if (P.windT > 0) hit *= 1.3;
+      if (P.rage > 0) hit *= 1 + 0.04 * P.rage;
+      if (P.hp < P.hpMax * 0.5) hit *= 1 + 0.1 * talentSpecial('lowHpDmg');
+      if (s.specials.has('souleater')) hit *= 1 + Math.min(0.3, 0.02 * (G.souls || 0));
+    }
+    let rate = 1 / s.period;
+    if (on) rate *= (P.hasteT > 0 ? 1.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1);
+    const perAttack = 1 + (P && P.cls === 'mage' && talentSpecial('extraBolt') ? 0.6 : 0);
+    const aura = s.specials.has('hellfire') ? 0.8 : 0; // 地獄之火: 40% every 0.5 s
+    return hit * (rate * perAttack + aura);
+  }
+  const dps = (s) => dpsCalc(s, false);
+  // character-sheet figures: base = gear, talents, sets and difficulty; live = plus whatever is active right now
+  function sheetStats(live) {
+    const on = live && P && G, d = diffOf();
+    const armor = S.armor * (on && P.buffT > 0 && P.buffKind !== 'rage' ? 1.5 : 1);
+    const taken = 100 / (100 + armor) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1) * (S.fTaken || 1)
+      * (on && shrineOn('guard') ? 0.6 : 1) * (on && P.spin > 0 && S.specials.has('setSpin') ? 0.7 : 1);
+    const move = S.move * (on ? (P.spin > 0 ? 0.75 : 1) * (P.slowT > 0 ? 0.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) : 1);
+    const gold = (1 + S.goldFind / 100) * d.gold * (on && shrineOn('fortune') ? 2 : 1);
+    const mf = S.magicFind + d.mf + (on && shrineOn('fortune') ? 100 : 0);
+    const skill = (1 + S.skillDmg / 100) * (S.fSkill || 1) * (on && P.shield > 0 && S.specials.has('setArcaneShield') ? 1.3 : 1);
+    return { reduce: Math.round((1 - taken) * 100), move: Math.round(move), gold: Math.round((gold - 1) * 100), mf: Math.round(mf), skill: Math.round((skill - 1) * 100) };
+  }
+  // "base" plus an orange "now" figure when something active changes it
+  function sheetVal(key, unit = '', sign = '') {
+    const b = sheetStats(false)[key], n = sheetStats(true)[key];
+    return `<b>${sign && b > 0 ? sign : ''}${b}${unit}</b>` + (n !== b ? `（目前 <b style="color:#ff8a5a">${sign && n > 0 ? sign : ''}${n}${unit}</b>）` : '');
+  }
+  function otherStatsHtml() {
+    const cd = Math.round((1 - (S.specials.has('skillcd') ? 0.75 : 1) * (1 - (S.cdr || 0) / 100)) * 100);
+    const rows = [
+      ['技能冷卻', cd ? `−${cd}%` : ''],
+      ['技能傷害', sheetStats(false).skill || sheetStats(true).skill ? sheetVal('skill', '%', '+') : ''],
+      ['技能範圍', S.skillArea ? `+${Math.round(S.skillArea)}%` : ''],
+      ['攻擊距離', S.rangePct ? `+${Math.round(S.rangePct)}%` : ''],
+      ['箭矢穿透', S.specials.has('pierce') ? '100%' : S.pierceChance ? `${Math.round(S.pierceChance)}%` : ''],
+      ['荊棘反傷', [S.thornsPct ? `${Math.round(S.thornsPct)}%` : '', S.specials.has('thorns') ? '近戰 150%' : ''].filter(Boolean).join('＋')],
+    ].filter((r) => r[1]);
+    return rows.length ? '<br><span style="color:#b9a77a">其他素質</span><br>' + rows.map((r) => `${r[0]} <b>${r[1]}</b>`).join('<br>') : '';
+  }
+  const dpsNow = () => dpsCalc(S, true);
+  const buffDpsMul = () => { const b = dps(S); return b > 0 ? dpsNow() / b : 1; };
   function refreshStats() {
     S = calcStats(P.equip, P.lvl, P.cls);
     if (P.potions > potMax()) P.potions = potMax();
@@ -4381,6 +4434,7 @@
     $('xpFill').style.width = `${clamp(P.xp / xpNeed(P.lvl), 0, 1) * 100}%`;
     $('lvText').textContent = P.lvl;
     $('goldText').textContent = P.gold;
+    { const now = dpsNow(), base = dps(S); $('dpsText').textContent = Math.round(now).toLocaleString(); $('dpsText').style.color = now > base * 1.001 ? '#ff8a5a' : ''; }
     $('potText').textContent = `${P.potions}/${potMax()}`;
     $('elixText').textContent = `${(P.elix && P.elix.haste) || 0}／${(P.elix && P.elix.shield) || 0}／${(P.elix && P.elix.wisdom) || 0}`;
     const pts = talentPoints();
@@ -4418,9 +4472,9 @@
     if (elixOn('wisdom')) buffs.push(['智慧', P.elixT.wisdom, '#b79cff']);
     if (P.shield > 0) buffs.push(['護盾', P.shieldT, '#9cd4ff']);
     if (P.critT > 0) buffs.push(['必定暴擊', P.critT, '#ffd34d']);
-    if (P.rage > 0) buffs.push([`狂怒 ×${P.rage}`, P.rageT, '#ff5a3a']);
+    if (P.rage > 0) buffs.push([`狂怒 ${P.rage}/10 層`, P.rageT, '#ff5a3a']);
     if (P.slowT > 0) buffs.push(['緩速', P.slowT, '#9cd4ff']);
-    const bh = buffs.map(([n, t, c]) => `<span class="buff" style="--bc:${c}">${n} ${Math.ceil(t)}</span>`).join('');
+    const bh = buffs.map(([n, t, c]) => `<span class="buff" style="--bc:${c}">${n}・${Math.ceil(t)} 秒</span>`).join('');
     if ($('buffRow').innerHTML !== bh) $('buffRow').innerHTML = bh;
     const skills = CLASSES[P.cls].skills;
     const ELIX_DUR = { haste: 10, shield: 3, wisdom: 60 };
@@ -4541,9 +4595,9 @@
     $('bagGrid').classList.toggle('multi', !!multiSel);
     $('buyPotBtn').disabled = P.gold < 50 || P.potions >= potMax();
     $('charSheet').innerHTML =
-      `<b style="color:${CLASSES[P.cls].color}">${CLASSES[P.cls].name}</b>　等級 <b>${P.lvl}</b>　金幣 <b>${P.gold}</b><br>每秒傷害 <b>${Math.round(dps(S))}</b>　生命 <b>${P.hpMax}</b><br>` +
-      `護甲 <b>${S.armor}</b>（減傷 ${Math.round(S.armor / (100 + S.armor) * 100)}%）<br>暴擊 <b>${S.crit}%</b> ×${S.critMult.toFixed(2)}<br>` +
-      `移動 <b>${Math.round(S.move)}</b>　吸血 <b>${S.lifesteal}%</b><br>生命回復 <b>${(Math.round(S.regen * 10) / 10)}／秒</b><br>金幣掉落 <b>+${S.goldFind}%</b>　稀有度 <b>+${S.magicFind}%</b><br>最深 <b>第 ${P.best} 層</b>　擊殺 <b>${P.kills || 0}</b>`;
+      `<b style="color:${CLASSES[P.cls].color}">${CLASSES[P.cls].name}</b>　等級 <b>${P.lvl}</b>　金幣 <b>${P.gold}</b><br>每秒傷害 <b>${Math.round(dps(S))}</b>${buffDpsMul() > 1.001 ? `（目前狀態 <b style="color:#ff8a5a">${Math.round(dps(S) * buffDpsMul())}</b>）` : ''}　生命 <b>${P.hpMax}</b><br>` +
+      `<span style="font-size:11px">秒傷是對單一目標的估算；連鎖閃電、爆炸、火球、龍捲風等觸發型額外傷害不計入。</span><br>護甲 <b>${S.armor}</b>　總減傷 ${sheetVal('reduce', '%')}<br>暴擊 <b>${S.crit}%</b> ×${S.critMult.toFixed(2)}<br>` +
+      `移動 ${sheetVal('move')}　吸血 <b>${S.lifesteal}%</b><br>生命回復 <b>${(Math.round(S.regen * 10) / 10)}／秒</b><br>金幣掉落 ${sheetVal('gold', '%', '+')}　稀有度 ${sheetVal('mf', '%', '+')}<br><span style="font-size:11px">金幣與稀有度已含目前難度加成。</span>${otherStatsHtml()}<br>最深 <b>第 ${P.best} 層</b>　擊殺 <b>${P.kills || 0}</b>`;
 
     const det = $('detail');
     if (multiSel) { renderMultiSell(det); return; }
