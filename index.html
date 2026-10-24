@@ -253,6 +253,16 @@
   .sigil-row button, .scholar .inv-actions button { padding: 6px 10px; font-size: 13px; }
   .letter-card { max-width: 460px; }
   .transfer { max-width: 560px; }
+  .party { max-width: 500px; }
+  .party input { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: inherit; }
+  .party-code { font: 700 26px/1 monospace; color: var(--gold); letter-spacing: 0.12em; margin: 0 8px; }
+  .party-list { margin: 8px 0; padding-left: 18px; line-height: 1.8; }
+  #partyStatus.ok { color: #6fd08c; } #partyStatus.bad { color: #ff6b6b; }
+  .party-hud { display: grid; gap: 4px; width: 170px; pointer-events: none; }
+  .party-hud .pm { position: relative; background: #000a; border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px 7px; font-size: 12px; display: flex; justify-content: space-between; gap: 6px; overflow: hidden; }
+  .party-hud .pm small { color: var(--muted); font-size: 11px; }
+  .party-hud .pm i { position: absolute; left: 0; bottom: 0; height: 3px; background: #4fd18b; }
+  .party-hud .pm.dead, .party-hud .pm.away { opacity: 0.55; }
   .transfer textarea { width: 100%; box-sizing: border-box; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: 12px/1.4 monospace; resize: vertical; }
   .transfer .file-pick { position: relative; overflow: hidden; display: inline-flex; align-items: center; padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-size: 14px; }
   .transfer .file-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -477,7 +487,8 @@
   <div class="buffs" id="buffRow"></div>
 </div>
 <div class="hud hud-tr" id="hudTR" hidden><canvas id="minimap" title="點一下或按 M 放大地圖"></canvas>
-  <div class="hud-btns"><button id="talBtn" type="button">天賦</button><button id="achBtn" type="button">成就</button><button id="setBtn" type="button" aria-label="設定">設定</button></div>
+  <div class="hud-btns"><button id="partyBtn" type="button">組隊</button><button id="talBtn" type="button">天賦</button><button id="achBtn" type="button">成就</button><button id="setBtn" type="button" aria-label="設定">設定</button></div>
+  <div class="party-hud" id="partyHud" hidden></div>
 </div>
 <div class="event-bar" id="eventBar" hidden></div>
 <div class="up-card" id="upCard" hidden></div>
@@ -507,7 +518,7 @@
 <button id="tMenu" class="t-menu" type="button" hidden aria-label="選單">☰</button>
 <div class="t-menu-panel" id="tMenuPanel" hidden>
   <button id="tBag" type="button">背包</button><button id="tTal" type="button">天賦</button><button id="tAch" type="button">成就</button>
-  <button id="tMap" type="button">地圖</button><button id="tCamp" type="button">回營</button><button id="tSet" type="button">設定</button><button id="tClass" type="button">角色欄位</button>
+  <button id="tMap" type="button">地圖</button><button id="tCamp" type="button">回營</button><button id="tSet" type="button">設定</button><button id="tClass" type="button">角色欄位</button><button id="tParty" type="button">組隊</button>
 </div>
 <div class="stick" id="stick" hidden><i id="stickKnob"></i></div>
 
@@ -613,6 +624,27 @@
     <div class="shop-head"><h3>古文學者</h3><span class="sub">把在地窟收集到的碎片、印記和殘頁交給我。</span></div>
     <div id="scholarBody"></div>
     <div class="inv-actions"><button class="primary" type="button" data-close>離開（E）</button></div>
+  </div>
+</div>
+<div class="overlay" id="partyScreen" hidden>
+  <div class="panel card party">
+    <h2 class="pick-title">組隊連線</h2>
+    <div id="partySolo">
+      <p class="muted">和朋友一起冒險：一個人建立房間當隊長，其他人輸入房號加入（最多 4 人）。要在營地才能建立或加入。隊伍裡每次打倒怪物，所有隊員都會得到完整經驗，掉寶各自計算。</p>
+      <div class="set-grid"><label for="partyName">你的名字</label><input id="partyName" maxlength="12" autocomplete="off"></div>
+      <div class="row"><button class="primary" id="partyHost" type="button">建立房間</button></div>
+      <div class="set-grid"><label for="partyCode">朋友的房號</label><input id="partyCode" maxlength="6" autocomplete="off" placeholder="例如 K7PQ2" style="text-transform:uppercase"></div>
+      <div class="row"><button class="primary" id="partyJoin" type="button">加入房間</button></div>
+    </div>
+    <div id="partyIn" hidden>
+      <p>房號 <b class="party-code" id="partyRoom"></b> <button id="partyCopy" type="button">複製房號</button></p>
+      <p class="muted" id="partyRole"></p>
+      <ul class="party-list" id="partyList"></ul>
+      <p class="sub">組隊中暫時不能進入秘境、金幣秘境、試煉秘境、魔王挑戰，也不能用傳送卷軸（之後的版本會開放）。</p>
+      <div class="row"><button id="partyLeave" type="button">離開隊伍</button></div>
+    </div>
+    <p class="sub" id="partyStatus"></p>
+    <div class="row"><button id="partyClose" type="button">關閉（Esc）</button></div>
   </div>
 </div>
 <div class="overlay" id="transferScreen" hidden>
@@ -1316,8 +1348,8 @@
       if (p.type === 'remains' && !p.read && d < 26) readLetter(p);
       if (p.type === 'treasure' && !p.dug && d < 22) digTreasure(p);
       if (p.type === 'shrine' && !p.used && d < 26) useShrine(p);
-      if (p.type === 'cursed' && !p.opened && d < 28) startCursed(p);
-      if (p.type === 'trial' && !p.used && d < 28) startTrial(p);
+      if (p.type === 'cursed' && !p.opened && d < 28 && NET.mode !== 'client') startCursed(p);
+      if (p.type === 'trial' && !p.used && d < 28 && NET.mode !== 'client') startTrial(p);
     }
     if (P.shrine) {
       P.shrine.t -= dt;
@@ -1342,19 +1374,21 @@
     if (P.hp <= 0) die();
   }
   function poisonPlayer(t, dps) {
+    if (NET.tgt) { netSend(NET.tgt.id, { t: 'poison', s: t, dps }); return; }
     P.poisonDps = P.poisonT > 0 ? Math.max(P.poisonDps || 0, dps) : dps;
     P.poisonT = Math.max(P.poisonT || 0, t);
   }
   function updateHazards(dt) {
     for (const h of G.hazards) {
       h.life -= dt;
-      if (Math.hypot(P.x - h.x, P.y - h.y) < h.r + P.r * 0.4) dot(h.dps * dt, h.type === 'fire' ? '#ff8a3d' : '#7fd06a');
+      if (NET.mode !== 'client' && Math.hypot(P.x - h.x, P.y - h.y) < h.r + P.r * 0.4) dot(h.dps * dt, h.type === 'fire' ? '#ff8a3d' : '#7fd06a');
       if (Math.random() < (h.type === 'fire' ? 0.35 : 0.15)) {
         const a = Math.random() * Math.PI * 2, rr = Math.random() * h.r;
         embers(h.x + Math.cos(a) * rr, h.y + Math.sin(a) * rr, h.type === 'fire' ? '#ffb347' : '#9be07a', 1, 10, h.type === 'fire' ? 60 : 20);
       }
     }
     G.hazards = G.hazards.filter((h) => h.life > 0);
+    if (NET.mode === 'host') netHazards(dt);
     if (P.poisonT > 0) {
       P.poisonT -= dt; dot(P.poisonDps * dt, '#7fd06a');
       if (Math.random() < 0.2) embers(P.x + rnd(-6, 6), P.y - rnd(0, 16), '#9be07a', 1, 10, 30);
@@ -1779,6 +1813,7 @@
     }
     if (type === 'necro') e.sumCd = 3;
     if (G.goldRealm) { e.hp = e.maxHp = GOLD_REALM_HP; e.armorMul = 1; }
+    e.nid = G.nidN = (G.nidN || 0) + 1;
     G.enemies.push(e);
     return e;
   }
@@ -1885,28 +1920,34 @@
 
   function hitEnemy(e, dmg, crit, fromX, fromY, kb = 260, canChain = false) {
     if (e.dead) return;
-    if (P.coll && P.coll.spec && P.coll.spec[e.type]) dmg = Math.round(dmg * 1.05);
-    if (e.frozen > 0 && S.specials.has('setFreeze')) dmg = Math.round(dmg * 1.3);
-    if (e.armorMul) dmg = Math.max(1, Math.round(dmg * e.armorMul));
-    e.hp -= dmg; e.flash = 0.12; e.aggro = true;
+    // a teammate's hit arrives already boosted by their own gear; only the monster's armour applies here
+    const own = !NET.remoteHit;
+    if (own && P.coll && P.coll.spec && P.coll.spec[e.type]) dmg = Math.round(dmg * 1.05);
+    if (own && e.frozen > 0 && S.specials.has('setFreeze')) dmg = Math.round(dmg * 1.3);
+    if (NET.mode === 'client') netSend(null, { t: 'hit', i: e.nid, d: dmg, c: crit ? 1 : 0, x: Math.round(fromX), y: Math.round(fromY), kb: Math.round(kb) });
+    else {
+      if (e.armorMul) dmg = Math.max(1, Math.round(dmg * e.armorMul));
+      e.hp -= dmg;
+    }
+    e.flash = 0.12; e.aggro = true;
     const a = Math.atan2(e.y - fromY, e.x - fromX);
     const kbm = e.type === 'boss' ? 0.15 : 1;
     e.kx += Math.cos(a) * kb * kbm; e.ky += Math.sin(a) * kb * kbm;
     if (CFG.dmgNums) addText(String(Math.round(dmg)), e.x + rnd(-6, 6), e.y - e.r - 6, crit ? '#ffd34d' : '#ffffff', crit ? 18 : 14);
     sfx(crit ? 'crit' : 'hit');
     if (e.type === 'assassin') e.revealT = 2;
-    if (S.specials.has('setFreeze') && Math.random() < 0.1 && e.type !== 'boss' && !(e.frzImm > G.time)) { e.frozen = Math.max(e.frozen || 0, 1.5); e.frzImm = G.time + 5.5; }
-    if (S.specials.has('setRage')) { P.rage = Math.min(10, (P.rage || 0) + 1); P.rageT = 5; }
-    if (crit && S.specials.has('setRicochet') && P.cls === 'archer') P.skillCd[2] = 0;
-    if (S.specials.has('setFireball') && !(P.setFbCd > 0) && Math.random() < 0.2 && !e.dead) {
+    if (own && S.specials.has('setFreeze') && Math.random() < 0.1 && e.type !== 'boss' && !(e.frzImm > G.time)) { e.frozen = Math.max(e.frozen || 0, 1.5); e.frzImm = G.time + 5.5; }
+    if (own && S.specials.has('setRage')) { P.rage = Math.min(10, (P.rage || 0) + 1); P.rageT = 5; }
+    if (own && crit && S.specials.has('setRicochet') && P.cls === 'archer') P.skillCd[2] = 0;
+    if (own && S.specials.has('setFireball') && !(P.setFbCd > 0) && Math.random() < 0.2 && !e.dead) {
       P.setFbCd = 2;
       firePlayerShot(Math.atan2(e.y - P.y, e.x - P.x), { kind: 'fireball', speed: 380, r: 9, mult: 2, range: 520, color: '#ff8a3d', chain: false });
     }
-    if (crit && S.specials.has('reaper') && Math.random() < 0.3) { P.dashCd = 0; P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.03); }
-    if (S.lifesteal > 0) P.hp = Math.min(P.hpMax, P.hp + dmg * S.lifesteal / 100);
+    if (own && crit && S.specials.has('reaper') && Math.random() < 0.3) { P.dashCd = 0; P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.03); }
+    if (own && S.lifesteal > 0) P.hp = Math.min(P.hpMax, P.hp + dmg * S.lifesteal / 100);
     hitFx(e, crit, fromX, fromY);
-    if (canChain && S.specials.has('chain') && Math.random() < 0.25) chainLightning(e);
-    if (e.hp <= 0) killEnemy(e);
+    if (own && canChain && S.specials.has('chain') && Math.random() < 0.25) chainLightning(e);
+    if (e.hp <= 0 && NET.mode !== 'client') killEnemy(e);
   }
 
   function chainLightning(from) {
@@ -1930,6 +1971,8 @@
   function killEnemy(e) {
     if (e.dead) return;
     e.dead = true;
+    // in a party every kill is announced, so all teammates get the experience and roll their own loot
+    if (NET.mode === 'host' && e.nid) netSend(null, { t: 'k', i: e.nid });
     deathFx(e);
     gainXp(e.xp);
     P.kills = (P.kills || 0) + 1; P.runKills = (P.runKills || 0) + 1;
@@ -1984,6 +2027,7 @@
   }
 
   function damagePlayer(raw, src) {
+    if (NET.tgt) { netSend(NET.tgt.id, { t: 'hurt', raw }); return; }
     if (P.invuln > 0 || P.dashT > 0 || P.leap || mode !== 'play') return;
     if (G.goldRealm) {
       P.hp -= 1; P.hurt = 0.25; P.invuln = 0.35; sfx('hurt'); addText('-1', P.x, P.y - 20, '#ff6b6b', 15);
@@ -2233,6 +2277,7 @@
     keys.add(e.code);
     if (!$('confirmScreen').hidden) { if (e.code === 'Escape') closeConfirm(); else if (e.code === 'Enter') $('confirmYes').click(); return; }
     if (mode === 'letter') { if (e.code === 'Escape' || e.code === 'Enter' || e.code === 'KeyE') closeLetter(); return; }
+    if (mode === 'party') { if (e.code === 'Escape') closeParty(); return; }
     if (mode === 'talk') { if (e.code === 'Enter' || e.code === 'KeyE') dragonFight(true); else if (e.code === 'Escape') dragonFight(false); return; }
     if (mode === 'classpick') { if (e.code === 'Escape') { if (!$('classScreen').hidden) closeClassPick(); else closeSlotMenu(); } return; }
     if (mode === 'play') {
@@ -2356,6 +2401,7 @@
   menuGo('tAch', () => openAch('ach'));
   menuGo('tMap', () => toggleBigMap());
   menuGo('tCamp', () => startRecall());
+  menuGo('tParty', () => openParty());
   menuGo('tSet', () => openSettings());
   menuGo('tClass', () => { if (G && G.camp) openSlotMenu(); else logMsg('回到營地後才能切換角色欄位', '#9a8fa6'); });
   // button positions: an arc around the attack button, mirrored for left-handed play
@@ -2698,14 +2744,17 @@
       z.tick -= dt;
       if (z.tick <= 0 && z.n > 0) {
         z.tick = 0.33; z.n--;
+        if (z.hostile && NET.mode === 'client') continue;
         if (z.hostile && z.fire) {
           fireFx(z.x, z.y, z.r); sfx('boom'); addHazard(z.x, z.y, z.r * 0.9, 3, z.burn, 'fire');
           if (Math.hypot(P.x - z.x, P.y - z.y) < z.r + P.r) damagePlayer(z.hostile, null);
+          netAreaHurt(z.x, z.y, z.r, z.hostile);
           continue;
         }
         if (z.hostile) {
           frostFx(z.x, z.y, z.r); sfx('ice');
           if (Math.hypot(P.x - z.x, P.y - z.y) < z.r + P.r) { damagePlayer(z.hostile, null); P.slowT = 1.2; }
+          netAreaHurt(z.x, z.y, z.r, z.hostile, 'frost');
           continue;
         }
         hitProps(z.x, z.y, z.r);
@@ -2819,6 +2868,7 @@
   }
   function tryStairs() {
     if (mode !== 'play' || !onStairs()) return;
+    if (NET.mode === 'client') { logMsg('組隊中由隊長帶大家下樓', '#9cc7ff'); return; }
     if (G.boss) { logMsg('魔王還活著，樓梯被封住了', '#ff6b6b'); return; }
     if (G.trialRealm) { G.trialRealm = false; enterCamp('離開了試煉秘境，回到營地'); return; }
     if (G.goldRealm) { const got = G.goldRealm.earned; G.goldRealm = null; enterCamp(`離開了金幣秘境，共獲得 ${got.toLocaleString()} 金幣`); return; }
@@ -2878,26 +2928,14 @@
     updateSkills(dt);
     updatePShots(dt);
 
-    for (const e of G.enemies) updateEnemy(e, dt);
-    G.enemies = G.enemies.filter((e) => !e.dead);
+    netEnemies(dt);
     separate();
-
-    for (const s of G.shots) {
-      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
-      if (solidAt(s.x, s.y)) { s.life = 0; sparks(s.x, s.y, '#e9d9a6', 3, 100); }
-      else if (Math.hypot(s.x - P.x, s.y - P.y) < s.r + P.r) {
-        const hit = P.invuln <= 0 && P.dashT <= 0 && !P.leap;
-        damagePlayer(s.dmg, null); s.life = 0;
-        if (hit && s.fx === 'poison') poisonPlayer(3, s.dmg * 0.35);
-        if (hit && s.fx === 'frost') { P.slowT = 1.6; frostPuff(P.x, P.y); }
-      }
-    }
-    G.shots = G.shots.filter((s) => s.life > 0);
+    enemyShots(dt);
     updateProps(dt);
     updateHazards(dt);
     updateRecall(dt);
     updateTraps(dt);
-    updateEvent(dt);
+    if (NET.mode !== 'client') updateEvent(dt);
     updateElixirs(dt);
     updatePet(dt);
     P.windT = Math.max(0, (P.windT || 0) - dt); P.undyingCd = Math.max(0, (P.undyingCd || 0) - dt);
@@ -3192,9 +3230,11 @@
     if (G.merchant && seenAt(G.merchant.x, G.merchant.y)) ents.push(G.merchant);
     for (const n of G.npcs || []) if (n !== G.merchant) ents.push(n);
     ents.push(P);
+    if (inParty()) for (const rp of visibleMates()) ents.push(rp);
     ents.sort((a, b) => a.y - b.y);
     for (const e of ents) {
       if (e === P) drawPlayer(c);
+      else if (e.remote) drawMate(c, e);
       else if (e.prop) (e.type === 'tent' || e.type === 'crate' || e.type === 'anvil' ? drawDeco : e.type === 'cursed' || e.type === 'trial' ? drawEventProp : drawProp)(c, e);
       else if (e.npc) (e.kind && e.kind !== 'merchant' ? drawNpc : drawMerchant)(c, e);
       else drawEnemy(c, e);
@@ -4832,7 +4872,7 @@
   const TP_PRICE = 3000;
   let tpFloor = null; // the floor left behind, kept in memory until the player walks back through the gate
   function useScroll() {
-    if (mode !== 'play') return;
+    if (mode !== 'play' || partyBlocked('使用傳送卷軸')) return;
     if (G.camp) { logMsg(tpFloor ? '走進營地裡的藍色回程傳送門，就能回到剛才的位置' : '傳送卷軸要在地窟裡使用', '#7fb8ff'); return; }
     if (G.realm || G.challenge || G.goldRealm || G.trialRealm) { logMsg('秘境和魔王挑戰裡不能使用傳送卷軸', '#ff6b6b'); return; }
     const si = P.bag.findIndex((x) => x.slot === 'scroll');
@@ -4861,6 +4901,7 @@
   // ---------- recall: channel back to camp from the dungeon ----------
   function startRecall() {
     if (mode !== 'play' || G.camp || P.recall) return;
+    if (NET.mode === 'client') { logMsg('組隊中由隊長決定回營地；也可以在組隊視窗離開隊伍', '#9cc7ff'); return; }
     P.recall = { t: 0, dur: 1.6 };
     logMsg('正在返回營地……受到攻擊會中斷', '#9cc7ff');
   }
@@ -5609,7 +5650,7 @@
     { name: '惡夢', hp: 2.5, dmg: 2, bossDmg: 1.7, xp: 2, gold: 1.6, mf: 60, ilvl: 5, color: '#b79cff' },
     { name: '地獄', hp: 5, dmg: 3, bossDmg: 1.3, xp: 4, gold: 2.5, mf: 120, ilvl: 10, color: '#ff5a4a' },
   ];
-  const diffOf = () => DIFFS[(P && P.diff) || 0];
+  const diffOf = () => DIFFS[(G && G.netDiff != null ? G.netDiff : P && P.diff) || 0];
   LEGENDS.push(
     { key: 'reaper', slot: 'weapon', diff: 1, name: '暗夜收割者', desc: '【惡夢限定】暴擊時有 30% 機率重置衝刺並回復 3% 生命' },
     { key: 'souleater', slot: 'amulet', diff: 1, name: '噬魂者', desc: '【惡夢限定】這一層每擊殺一隻怪物，傷害 +2%（最多 +30%）' },
@@ -7369,6 +7410,7 @@
   }
   function openSlotMenu() {
     if (mode !== 'play' || !G || !G.camp) return;
+    if (inParty()) { logMsg('組隊中不能切換角色欄位：先在組隊視窗離開隊伍', '#9cc7ff'); return; }
     save();
     menuFromCamp = true; mode = 'classpick'; mouse.down = false; keys.clear();
     renderSlots(); $('titleScreen').hidden = false;
@@ -7600,7 +7642,7 @@
 
   // ---------- secret realm and boss challenges ----------
   function startRealm() {
-    const c = coll(); if (c.realm < 1) return;
+    const c = coll(); if (c.realm < 1 || partyBlocked('進入秘境')) return;
     c.realm--; closeOverlay();
     let d = Math.max(1, P.best); if (d % 5 === 0) d = Math.max(1, d - 1);
     genFloor(d);
@@ -7618,7 +7660,7 @@
     save();
   }
   function startChallenge(look) {
-    const c = coll(); if (!(c.bkey[look] > 0)) return;
+    const c = coll(); if (!(c.bkey[look] > 0) || partyBlocked('挑戰魔王')) return;
     c.bkey[look]--; closeOverlay();
     const idx = BOSSES.findIndex((b) => b.look === look);
     let d = 5 * (idx + 1);
@@ -7644,6 +7686,7 @@
     return false;
   }
   function startGoldRealm() {
+    if (partyBlocked('進入金幣秘境')) return;
     if (!goldMapCount()) { logMsg('需要一張「金幣秘境地圖」才能進入：在地窟第 30 層以後打倒怪物有機會掉落', '#ffd34d'); return; }
     takeGoldMap(); closeOverlay(); tpFloor = null;
     const best = Math.max(1, P.best);
@@ -7694,6 +7737,7 @@
   const TRIAL_LV = 99;
   const FIRE_DRAGON = { name: '火龍', look: 'firewyrm', quote: '「愚蠢的人類，你確定要挑戰我嗎？」', r: 44 };
   function startTrialRealm() {
+    if (partyBlocked('進入試煉秘境')) return;
     if (P.lvl < TRIAL_LV) { logMsg(`試煉秘境需要 ${TRIAL_LV} 級才能進入（目前 ${P.lvl} 級）`, '#ff6b4d'); return; }
     closeOverlay(); tpFloor = null;
     genFloor(13); // borrow the lava scene, then carve one wide open cavern
@@ -7821,12 +7865,397 @@
 
   resize();
   let last = performance.now(), hudT = 0;
+  // ================= co-op: rooms over PeerJS — the host runs the world, teammates mirror it =================
+  const NET_VER = 1, NET_MAX = 4, NET_PREFIX = 'dloot1-';
+  const NET = {
+    mode: 'off', peer: null, conns: new Map(), host: null, id: 'host', name: '', code: '',
+    players: new Map(), sendT: 0, lookT: 0, hudT: 0, tgt: null, remoteHit: false, nextSeed: null,
+    partyFloor: null, dotAcc: new Map(), dotT: 0, lastLook: '',
+  };
+  const inParty = () => NET.mode !== 'off';
+  const nativeRandom = Math.random;
+  function mulberry32(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function withSeed(seed, fn) { const r = Math.random; Math.random = mulberry32(seed); try { fn(); } finally { Math.random = r; } }
+  const partyBlocked = (what) => { if (!inParty()) return false; logMsg(`組隊中暫時不能${what}（之後的版本會開放）`, '#ff6b6b'); return true; };
+
+  // every floor in a party is built from a seed the host shares, so the map matches for everyone
+  const genFloorSolo = genFloor;
+  genFloor = function (depth) {
+    if (!inParty()) { genFloorSolo(depth); return; }
+    const seed = NET.nextSeed != null ? NET.nextSeed : Math.floor(nativeRandom() * 2147483647);
+    NET.nextSeed = null;
+    withSeed(seed, () => genFloorSolo(depth));
+    G.netSeed = seed;
+    if (NET.mode === 'host') {
+      G.netDiff = P.diff || 0;
+      NET.partyFloor = { depth, seed, diff: G.netDiff };
+      netSend(null, { t: 'floor', ...NET.partyFloor });
+    } else {
+      // teammates take every monster from the host's snapshots
+      G.enemies = []; G.boss = null; $('bossBox').hidden = true;
+    }
+  };
+  const enterCampSolo = enterCamp;
+  enterCamp = function (msg) {
+    enterCampSolo(msg);
+    G.netSeed = 'camp';
+    if (NET.mode === 'host') { NET.partyFloor = null; netSend(null, { t: 'camp' }); }
+  };
+  // a teammate back in camp (after falling) rejoins the party through the dungeon portal
+  const openPortalSolo = openPortal;
+  openPortal = function () {
+    if (NET.mode !== 'client') { openPortalSolo(); return; }
+    if (!NET.partyFloor) { logMsg('隊長也在營地。由隊長決定要去哪一層', '#9cc7ff'); return; }
+    followFloor(NET.partyFloor, '回到隊伍所在的樓層');
+  };
+  function followFloor(f, msg) {
+    for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'deathScreen' && o.id !== 'titleScreen') o.hidden = true;
+    if (mode !== 'dead') mode = 'play';
+    NET.nextSeed = f.seed; genFloor(f.depth); G.netDiff = f.diff;
+    P.best = Math.max(P.best, f.depth);
+    P.checkpoint = Math.max(P.checkpoint || 1, Math.floor((f.depth - 1) / 5) * 5 + 1);
+    logMsg(msg || `隊長帶大家前往第 ${f.depth} 層`, '#9cc7ff');
+    save();
+  }
+
+  // ---------- host side: monsters chase whoever is closest ----------
+  const peersHere = () => (NET.mode === 'host' ? [...NET.players.values()].filter((rp) => rp.seed === G.netSeed && !rp.dead) : []);
+  function withTarget(rp, fn) {
+    const keep = { x: P.x, y: P.y, invuln: P.invuln, dashT: P.dashT, leap: P.leap, slowT: P.slowT };
+    P.x = rp.x; P.y = rp.y; P.invuln = 0; P.dashT = 0; P.leap = null;
+    NET.tgt = rp;
+    try { fn(); } finally {
+      if (P.slowT > keep.slowT) netSend(rp.id, { t: 'slow', s: P.slowT });
+      Object.assign(P, keep); NET.tgt = null;
+    }
+  }
+  function netEnemies(dt) {
+    if (NET.mode === 'client') {
+      for (const e of G.enemies) {
+        if (e.nx != null) { const k = Math.min(1, dt * 12); e.x += (e.nx - e.x) * k; e.y += (e.ny - e.y) * k; }
+        e.flash = Math.max(0, (e.flash || 0) - dt); if (e.frozen > 0) e.frozen -= dt;
+      }
+      G.enemies = G.enemies.filter((e) => !e.dead);
+      return;
+    }
+    const peers = peersHere();
+    for (const e of G.enemies) {
+      if (!peers.length) { updateEnemy(e, dt); continue; }
+      let best = null, bd = mode === 'dead' ? Infinity : Math.hypot(P.x - e.x, P.y - e.y);
+      for (const rp of peers) { const d = Math.hypot(rp.x - e.x, rp.y - e.y); if (d < bd) { bd = d; best = rp; } }
+      if (best) withTarget(best, () => updateEnemy(e, dt)); else updateEnemy(e, dt);
+    }
+    G.enemies = G.enemies.filter((e) => !e.dead);
+  }
+  function enemyShots(dt) {
+    const peers = peersHere();
+    for (const s of G.shots) {
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      if (solidAt(s.x, s.y)) { s.life = 0; sparks(s.x, s.y, '#e9d9a6', 3, 100); continue; }
+      if (NET.mode === 'client') continue; // the host decides who gets hit
+      if (Math.hypot(s.x - P.x, s.y - P.y) < s.r + P.r) {
+        const hit = P.invuln <= 0 && P.dashT <= 0 && !P.leap;
+        damagePlayer(s.dmg, null); s.life = 0;
+        if (hit && s.fx === 'poison') poisonPlayer(3, s.dmg * 0.35);
+        if (hit && s.fx === 'frost') { P.slowT = 1.6; frostPuff(P.x, P.y); }
+        continue;
+      }
+      for (const rp of peers) if (Math.hypot(s.x - rp.x, s.y - rp.y) < s.r + P.r) { netSend(rp.id, { t: 'hurt', raw: s.dmg, fx: s.fx || 0 }); s.life = 0; break; }
+    }
+    G.shots = G.shots.filter((s) => s.life > 0);
+  }
+  function netAreaHurt(x, y, r, raw, fx) { for (const rp of peersHere()) if (Math.hypot(rp.x - x, rp.y - y) < r + P.r) netSend(rp.id, { t: 'hurt', raw, fx: fx || 0 }); }
+  function netHazards(dt) {
+    const peers = peersHere(); if (!peers.length) return;
+    for (const h of G.hazards) for (const rp of peers) if (Math.hypot(rp.x - h.x, rp.y - h.y) < h.r + P.r * 0.4) {
+      const a = NET.dotAcc.get(rp.id) || { amt: 0, c: '#ff8a3d' }; a.amt += h.dps * dt; a.c = h.type === 'fire' ? '#ff8a3d' : '#7fd06a'; NET.dotAcc.set(rp.id, a);
+    }
+    NET.dotT -= dt;
+    if (NET.dotT <= 0) { NET.dotT = 0.3; for (const [id, a] of NET.dotAcc) if (a.amt > 0) netSend(id, { t: 'dot', a: a.amt, c: a.c }); NET.dotAcc.clear(); }
+  }
+  // the host keeps the world moving while its own menus are open
+  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); enemyShots(dt); updateHazards(dt); }
+
+  // ---------- snapshots ----------
+  function buildSnap() {
+    const r = (v) => Math.round(v);
+    return {
+      t: 's', seed: G.netSeed,
+      e: G.enemies.filter((e) => !e.dead).map((e) => [e.nid, e.type, r(e.x), r(e.y), r(e.hp), r(e.maxHp), e.elite ? 1 : 0, +Math.max(0, e.frozen || 0).toFixed(1), +Math.max(0, e.wind || 0).toFixed(2), e.aggro ? 1 : 0, e.type === 'boss' ? e.look || 0 : 0]),
+      sh: G.shots.map((s) => [r(s.x), r(s.y), r(s.vx), r(s.vy), s.r, s.color]),
+      z: G.zones.filter((z) => z.hostile).map((z) => [r(z.x), r(z.y), z.r, +z.t.toFixed(2), z.fire ? 1 : 0]),
+      hz: G.hazards.map((h) => [r(h.x), r(h.y), h.r, h.type, +h.life.toFixed(1), h.max]),
+      p: [selfRow(), ...[...NET.players.values()].map((rp) => [rp.id, rp.name, rp.cls, r(rp.x), r(rp.y), r(rp.hp), rp.hpMax, rp.f, rp.m, rp.dead ? 1 : 0, rp.lvl, rp.seed, rp.look])],
+    };
+  }
+  function selfRow() {
+    return [NET.id, NET.name, P.cls, Math.round(P.x), Math.round(P.y), Math.round(P.hp), P.hpMax, +(P.facing || 0).toFixed(2), P.moving ? 1 : 0, mode === 'dead' ? 1 : 0, P.lvl, G.netSeed, NET.mode === 'host' ? lookOf() : null];
+  }
+  function lookOf() {
+    const eq = {};
+    for (const [k, it] of Object.entries(P.equip || {})) if (it) eq[k] = { base: it.base, rarity: it.rarity, slot: it.slot, cls: it.cls, special: it.special, set: it.set };
+    return { eq, cape: P.cape || null };
+  }
+  function upsertPlayer(row) {
+    const [id, name, cls, x, y, hp, hpMax, f, m, dead, lvl, seed, look] = row;
+    let rp = NET.players.get(id);
+    if (!rp) { rp = { id, x, y, remote: true }; NET.players.set(id, rp); }
+    const jump = Math.hypot((rp.x || 0) - x, (rp.y || 0) - y) > 300 || rp.seed !== seed;
+    Object.assign(rp, { name, cls, tx: x, ty: y, hp, hpMax, f, m, dead: !!dead, lvl, seed });
+    if (jump) { rp.x = x; rp.y = y; }
+    if (look) rp.look = look;
+  }
+  function applySnap(s) {
+    for (const row of s.p) if (row[0] !== NET.id) upsertPlayer(row);
+    if (G.netSeed !== s.seed) return;
+    const byId = new Map(G.enemies.map((e) => [e.nid, e]));
+    const alive = new Set();
+    for (const [nid, type, x, y, hp, mhp, el, fr, wd, ag, look] of s.e) {
+      alive.add(nid);
+      let e = byId.get(nid);
+      if (!e) {
+        if (!EDEF[type]) continue;
+        e = spawnEnemy(type, x, y, !!el); e.nid = nid;
+        if (look) {
+          const B = BOSSES.find((b) => b.look === look) || (look === FIRE_DRAGON.look ? FIRE_DRAGON : null);
+          if (B) { e.variant = B; e.look = B.look; e.r = B.r; G.boss = e; $('bossName').textContent = B.name; }
+        }
+      }
+      e.nx = x; e.ny = y; e.hp = hp; e.maxHp = mhp; e.wind = wd; e.aggro = !!ag; e.netGone = 0;
+      e._sf = fr; if (!(e.frozen > fr)) e.frozen = fr;
+      if (Math.hypot(e.x - x, e.y - y) > 240) { e.x = x; e.y = y; }
+    }
+    for (const e of G.enemies) if (!alive.has(e.nid)) e.netGone = (e.netGone || 0) + 1;
+    G.enemies = G.enemies.filter((e) => !(e.netGone >= 2));
+    if (G.boss && (G.boss.dead || !G.enemies.includes(G.boss))) G.boss = null;
+    G.shots = s.sh.map(([x, y, vx, vy, r, color]) => ({ x, y, vx, vy, r, color, life: 1, dmg: 0 }));
+    G.zones = G.zones.filter((z) => !z.hostile).concat(s.z.map(([x, y, r, t, f]) => ({ x, y, r, t, tick: 1, n: 0, mult: 0, hostile: 1, fire: !!f })));
+    G.hazards = s.hz.map(([x, y, r, type, life, max]) => ({ x, y, r, life, max: max || 3, dps: 0, type, ph: 0 }));
+  }
+
+  // ---------- messages ----------
+  function netSend(to, msg) {
+    try {
+      if (NET.mode === 'client') { if (NET.host && NET.host.open) NET.host.send(msg); return; }
+      if (NET.mode !== 'host') return;
+      if (to) { const c = NET.conns.get(to); if (c && c.open) c.send(msg); return; }
+      for (const c of NET.conns.values()) if (c.open) c.send(msg);
+    } catch (e) { /* a dropped connection is cleaned up by its close handler */ }
+  }
+  function onHostMsg(id, m) {
+    const rp = NET.players.get(id);
+    if (m.t === 'p' && rp) {
+      Object.assign(rp, { tx: m.x, ty: m.y, hp: m.hp, hpMax: m.hpMax, f: m.f, m: m.m, w: m.w, dead: !!m.dead, lvl: m.lvl });
+      if (rp.seed !== m.seed || Math.hypot(rp.x - m.x, rp.y - m.y) > 300) { rp.x = m.x; rp.y = m.y; }
+      rp.seed = m.seed;
+    } else if (m.t === 'look' && rp) { rp.look = m.look; rp.name = m.name || rp.name; rp.cls = m.cls || rp.cls; }
+    else if (m.t === 'hit' && rp && rp.seed === G.netSeed) {
+      const e = G.enemies.find((x) => x.nid === m.i); if (!e || e.dead) return;
+      NET.remoteHit = true;
+      try { hitEnemy(e, m.d, !!m.c, m.x, m.y, m.kb || 0, false); } finally { NET.remoteHit = false; }
+    } else if (m.t === 'cc') {
+      for (const [i, fr, sl] of m.l) { const e = G.enemies.find((x) => x.nid === i); if (!e) continue; e.frozen = Math.max(e.frozen || 0, fr); e.slowT = Math.max(e.slowT || 0, sl); }
+    } else if (m.t === 'sync') {
+      const c = NET.conns.get(id);
+      if (c) c.send(NET.partyFloor ? { t: 'floor', ...NET.partyFloor, quiet: 1 } : { t: 'camp', quiet: 1 });
+    }
+  }
+  function onClientMsg(m) {
+    if (m.t === 'welcome') {
+      NET.id = m.id; NET.partyFloor = m.floor || null;
+      logMsg(`加入了 ${m.hostName} 的隊伍`, '#9cc7ff');
+      if (m.floor) followFloor(m.floor, `隊伍在第 ${m.floor.depth} 層，前往會合`);
+      renderParty();
+    } else if (m.t === 'deny') { leaveParty(m.why || '無法加入這個房間'); }
+    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
+    else if (m.t === 'camp') { NET.partyFloor = null; if (mode !== 'dead' && !G.camp) { for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'titleScreen') o.hidden = true; mode = 'play'; enterCamp('隊長帶大家回到了營地'); } }
+    else if (m.t === 's') applySnap(m);
+    else if (m.t === 'k') { const e = G.enemies.find((x) => x.nid === m.i); if (e && !e.dead) killEnemy(e); }
+    else if (m.t === 'hurt') {
+      const hit = P.invuln <= 0 && P.dashT <= 0 && !P.leap;
+      damagePlayer(m.raw, null);
+      if (hit && m.fx === 'poison') poisonPlayer(3, m.raw * 0.35);
+      if (hit && m.fx === 'frost') { P.slowT = 1.6; frostPuff(P.x, P.y); }
+    } else if (m.t === 'poison') poisonPlayer(m.s, m.dps);
+    else if (m.t === 'slow') P.slowT = Math.max(P.slowT || 0, m.s);
+    else if (m.t === 'dot') dot(m.a, m.c);
+    else if (m.t === 'roster') { for (const id of [...NET.players.keys()]) if (!m.ids.includes(id)) NET.players.delete(id); renderParty(); }
+  }
+
+  // ---------- creating, joining and leaving rooms ----------
+  function loadPeer() {
+    return new Promise((res, rej) => {
+      if (window.Peer) { res(); return; }
+      const sc = document.createElement('script');
+      sc.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+      sc.onload = () => res(); sc.onerror = () => rej(new Error('peerjs'));
+      document.head.appendChild(sc);
+    });
+  }
+  const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const newCode = () => Array.from({ length: 5 }, () => CODE_CHARS[Math.floor(nativeRandom() * CODE_CHARS.length)]).join('');
+  const myName = () => (($('partyName') && $('partyName').value.trim()) || CFG.netName || `${CLASSES[P.cls].name}${P.lvl}`).slice(0, 12);
+  function partyStatus(txt, bad) { const el = $('partyStatus'); el.textContent = txt; el.className = 'sub ' + (bad ? 'bad' : 'ok'); }
+  async function hostRoom(tries = 0) {
+    if (inParty()) return;
+    if (!G || !G.camp) { partyStatus('請先回到營地再建立房間', true); return; }
+    CFG.netName = myName(); saveCfg();
+    partyStatus('正在建立房間……');
+    try { await loadPeer(); } catch (e) { partyStatus('無法載入連線元件，請確認網路連線', true); return; }
+    const code = newCode(), peer = new window.Peer(NET_PREFIX + code);
+    peer.on('open', () => {
+      Object.assign(NET, { mode: 'host', peer, code, id: 'host', name: CFG.netName, partyFloor: null });
+      G.netSeed = 'camp';
+      logMsg(`房間已建立：房號 ${code}，把房號告訴朋友`, '#9cc7ff'); partyStatus('房間已建立，等待朋友加入'); renderParty();
+    });
+    peer.on('connection', (conn) => {
+      conn.on('data', (m) => {
+        if (m && m.t === 'hello') {
+          if (m.v !== NET_VER) { conn.send({ t: 'deny', why: '雙方的遊戲版本不同，請兩邊都重新整理網頁' }); setTimeout(() => conn.close(), 300); return; }
+          if (NET.players.size >= NET_MAX - 1) { conn.send({ t: 'deny', why: '房間已滿（最多 4 人）' }); setTimeout(() => conn.close(), 300); return; }
+          const id = 'p' + conn.peer.slice(-6);
+          conn.pid = id; NET.conns.set(id, conn);
+          NET.players.set(id, { id, name: m.name, cls: m.cls, lvl: m.lvl, look: m.look, x: P.x, y: P.y, tx: P.x, ty: P.y, hp: 1, hpMax: 1, seed: m.seed, remote: true });
+          conn.send({ t: 'welcome', id, hostName: NET.name, floor: NET.partyFloor });
+          netSend(null, { t: 'roster', ids: ['host', ...NET.players.keys()] });
+          logMsg(`${m.name} 加入了隊伍`, '#9cc7ff'); renderParty();
+          return;
+        }
+        if (conn.pid) onHostMsg(conn.pid, m);
+      });
+      conn.on('close', () => {
+        if (!conn.pid) return;
+        const rp = NET.players.get(conn.pid);
+        NET.conns.delete(conn.pid); NET.players.delete(conn.pid);
+        netSend(null, { t: 'roster', ids: ['host', ...NET.players.keys()] });
+        if (rp) logMsg(`${rp.name} 離開了隊伍`, '#9a8fa6');
+        renderParty();
+      });
+    });
+    peer.on('error', (err) => {
+      if (err.type === 'unavailable-id' && tries < 3) { peer.destroy(); hostRoom(tries + 1); return; }
+      if (NET.mode !== 'host') { partyStatus('建立房間失敗：' + (err.type || '連線錯誤'), true); peer.destroy(); }
+    });
+  }
+  async function joinRoom() {
+    if (inParty()) return;
+    const code = ($('partyCode').value || '').trim().toUpperCase();
+    if (code.length < 4) { partyStatus('請輸入朋友給你的房號', true); return; }
+    if (!G || !G.camp) { partyStatus('請先回到營地再加入房間', true); return; }
+    CFG.netName = myName(); saveCfg();
+    partyStatus('正在連線……');
+    try { await loadPeer(); } catch (e) { partyStatus('無法載入連線元件，請確認網路連線', true); return; }
+    const peer = new window.Peer();
+    const timer = setTimeout(() => { if (NET.mode !== 'client') { partyStatus('找不到這個房間：請確認房號，或請朋友重新建立房間', true); peer.destroy(); } }, 12000);
+    peer.on('open', () => {
+      const conn = peer.connect(NET_PREFIX + code, { reliable: true, serialization: 'json' });
+      conn.on('open', () => {
+        clearTimeout(timer);
+        Object.assign(NET, { mode: 'client', peer, host: conn, code, name: CFG.netName, id: '?' });
+        G.netSeed = 'camp';
+        conn.send({ t: 'hello', v: NET_VER, name: NET.name, cls: P.cls, lvl: P.lvl, look: lookOf(), seed: G.netSeed }); partyStatus('已加入房間');
+        renderParty();
+      });
+      conn.on('data', (m) => { try { onClientMsg(m); } catch (e) { console.error(e); } });
+      conn.on('close', () => { if (NET.mode === 'client') leaveParty('和隊長的連線中斷了'); });
+    });
+    peer.on('error', (err) => { if (NET.mode !== 'client') { clearTimeout(timer); partyStatus(err.type === 'peer-unavailable' ? '找不到這個房間：請確認房號' : '連線失敗：' + (err.type || '錯誤'), true); peer.destroy(); } });
+  }
+  function leaveParty(why) {
+    const wasClient = NET.mode === 'client';
+    try { if (NET.peer) NET.peer.destroy(); } catch (e) { /* already closed */ }
+    Object.assign(NET, { mode: 'off', peer: null, host: null, code: '', partyFloor: null, nextSeed: null, id: 'host' });
+    NET.conns.clear(); NET.players.clear();
+    if (G) { delete G.netSeed; delete G.netDiff; }
+    $('partyHud').hidden = true;
+    logMsg(why || '離開了隊伍，回到單機模式', '#9a8fa6');
+    if (wasClient && G && !G.camp && mode !== 'dead') { for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'titleScreen') o.hidden = true; mode = 'play'; enterCamp(why || '離開了隊伍，回到營地'); }
+    renderParty();
+  }
+
+  // ---------- per-frame upkeep: smoothing teammates and sending updates ----------
+  function netTick(dt) {
+    if (!inParty() || !G) return;
+    const k = Math.min(1, dt * 12);
+    for (const rp of NET.players.values()) if (rp.tx != null) { rp.x += (rp.tx - rp.x) * k; rp.y += (rp.ty - rp.y) * k; rp.w = (rp.w || 0) + (rp.m ? dt * 10 : 0); }
+    if ((NET.hudT -= dt) <= 0) { NET.hudT = 0.25; renderPartyHud(); }
+    if ((NET.sendT -= dt) > 0) return;
+    if (NET.mode === 'host') { NET.sendT = 1 / 12; if (NET.conns.size) netSend(null, buildSnap()); return; }
+    NET.sendT = 1 / 15;
+    netSend(null, { t: 'p', x: Math.round(P.x), y: Math.round(P.y), hp: Math.round(P.hp), hpMax: P.hpMax, f: +(P.facing || 0).toFixed(2), m: P.moving ? 1 : 0, dead: mode === 'dead' ? 1 : 0, lvl: P.lvl, seed: G.netSeed });
+    // crowd control a teammate put on monsters (freezes, slows) is passed to the host
+    const cc = [];
+    for (const e of G.enemies) if ((e.frozen || 0) > (e._sf || 0) + 0.1 || (e.slowT || 0) > 0.2) { cc.push([e.nid, +(e.frozen || 0).toFixed(1), +(e.slowT || 0).toFixed(1)]); e._sf = e.frozen; e.slowT = 0; }
+    if (cc.length) netSend(null, { t: 'cc', l: cc });
+    if ((NET.lookT -= 1 / 15) <= 0) {
+      NET.lookT = 3; const lk = JSON.stringify(lookOf());
+      if (lk !== NET.lastLook) { NET.lastLook = lk; netSend(null, { t: 'look', look: lookOf(), name: NET.name, cls: P.cls }); }
+    }
+  }
+  const visibleMates = () => [...NET.players.values()].filter((rp) => rp.seed === G.netSeed && !rp.dead && rp.cls);
+  // teammates reuse the player drawing with their own position, class and gear
+  const MATE_SWAP = ['x', 'y', 'cls', 'equip', 'cape', 'facing', 'moving', 'walk', 'mvx', 'leap', 'invuln', 'dashT', 'spin', 'recall', 'hurt'];
+  function drawMate(c, rp) {
+    const keep = {}; for (const k of MATE_SWAP) keep[k] = P[k];
+    const sw = G.swing; G.swing = null;
+    const lk = rp.look || {};
+    Object.assign(P, { x: rp.x, y: rp.y, cls: rp.cls, equip: lk.eq || {}, cape: lk.cape || null, facing: rp.f || 0, moving: !!rp.m, walk: rp.w || 0, mvx: 0, leap: null, invuln: 0, dashT: 0, spin: 0, recall: null, hurt: 0 });
+    try { drawPlayer(c); } finally { Object.assign(P, keep); G.swing = sw; }
+    const w = 34, hpk = clamp((rp.hp || 0) / (rp.hpMax || 1), 0, 1);
+    c.save(); c.font = '600 12px "Noto Sans TC", sans-serif'; c.textAlign = 'center';
+    c.fillStyle = '#000a'; c.fillRect(rp.x - w / 2 - 1, rp.y - 54, w + 2, 6);
+    c.fillStyle = hpk > 0.3 ? '#4fd18b' : '#ff5a4a'; c.fillRect(rp.x - w / 2, rp.y - 53, w * hpk, 4);
+    c.lineWidth = 3; c.strokeStyle = '#000c'; c.strokeText(rp.name || '隊友', rp.x, rp.y - 58);
+    c.fillStyle = CLASSES[rp.cls] ? CLASSES[rp.cls].color : '#fff'; c.fillText(rp.name || '隊友', rp.x, rp.y - 58);
+    c.restore();
+  }
+
+  // ---------- party window and HUD ----------
+  function openParty() {
+    if (mode !== 'play' && mode !== 'party') return;
+    mode = 'party'; mouse.down = false;
+    $('partyName').value = CFG.netName || `${CLASSES[P.cls].name}${P.lvl}`;
+    renderParty(); $('partyScreen').hidden = false;
+  }
+  function closeParty() { $('partyScreen').hidden = true; if (mode === 'party') mode = 'play'; }
+  function renderParty() {
+    const on = inParty();
+    $('partySolo').hidden = on; $('partyIn').hidden = !on;
+    if (on) {
+      $('partyRoom').textContent = NET.code;
+      $('partyRole').textContent = NET.mode === 'host' ? '你是隊長：怪物和掉寶由你的電腦計算，只有你能帶大家下樓、回營地。' : '你是隊員：跟著隊長移動；死掉後回營地，走到地窟傳送門可以歸隊。';
+      const rows = [`<li>${NET.mode === 'host' ? '★ ' : ''}${NET.name}（你）・${CLASSES[P.cls].name} ${P.lvl} 級</li>`];
+      for (const rp of NET.players.values()) if (rp.cls) rows.push(`<li>${rp.id === 'host' ? '★ ' : ''}${escapeHtml(rp.name || '隊友')}・${CLASSES[rp.cls].name} ${rp.lvl || 1} 級</li>`);
+      $('partyList').innerHTML = rows.join('');
+    }
+    renderPartyHud();
+  }
+  function renderPartyHud() {
+    const el = $('partyHud');
+    if (!inParty() || !NET.players.size) { el.hidden = true; return; }
+    el.hidden = false;
+    el.innerHTML = [...NET.players.values()].filter((rp) => rp.cls).map((rp) => {
+      const k = clamp((rp.hp || 0) / (rp.hpMax || 1), 0, 1), away = rp.seed !== (G && G.netSeed);
+      return `<div class="pm${rp.dead ? ' dead' : ''}${away ? ' away' : ''}"><span style="color:${CLASSES[rp.cls].color}">${escapeHtml(rp.name || '隊友')}</span><small>${rp.lvl || 1} 級${rp.dead ? '・倒下' : away ? '・不在這裡' : ''}</small><i style="width:${k * 100}%"></i></div>`;
+    }).join('');
+  }
+  const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  $('partyBtn').addEventListener('click', openParty);
+  $('partyClose').addEventListener('click', closeParty);
+  $('partyHost').addEventListener('click', () => hostRoom());
+  $('partyJoin').addEventListener('click', () => joinRoom());
+  $('partyLeave').addEventListener('click', () => { leaveParty(); });
+  $('partyCopy').addEventListener('click', async () => { try { await navigator.clipboard.writeText(NET.code); partyStatus('已複製房號'); } catch (e) { partyStatus('請手動記下房號：' + NET.code); } });
+  $('partyScreen').addEventListener('click', (e) => { if (e.target.id === 'partyScreen') closeParty(); });
+
   function frame(now) {
     // schedule first so one bad frame can never stop the game loop
     requestAnimationFrame(frame);
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     try {
       if (mode === 'play') update(dt);
+      else if (NET.mode === 'host' && G && mode !== 'title' && mode !== 'dead') hostWorldTick(dt);
+      if (mode !== 'title') netTick(dt);
       else if (mode === 'title' && G) { G.time += dt; P.x += Math.cos(G.time * 0.2) * 0.4; P.y += Math.sin(G.time * 0.13) * 0.3; updateFx(dt); }
       render();
       if (mode !== 'title') {
