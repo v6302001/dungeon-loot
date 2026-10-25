@@ -404,6 +404,15 @@
   .ttree { border: 1px solid var(--line); border-top: 3px solid var(--tc); border-radius: 8px; padding: 10px; display: grid; gap: 6px; background: var(--panel-2); }
   .tname { font-family: var(--font-display); font-size: 18px; color: var(--tc); display: flex; justify-content: space-between; align-items: baseline; }
   .tname small { font-family: var(--font-body); font-size: 11px; color: var(--muted); }
+  .kst { margin-top: 6px; padding-top: 6px; border-top: 1px dashed var(--line); display: grid; gap: 4px; }
+  .kst > small { color: var(--muted); font-size: 11px; }
+  .tnode.ks b { color: #ffd34d; }
+  .tsets { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 4px 0 8px; font-size: 12px; color: var(--muted); }
+  .tsets button.on { border-color: var(--gold); color: var(--gold); }
+  .para-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+  .para-row { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+  .para-row span { flex: 1; min-width: 0; }
+  .para-row button { min-width: 30px; padding: 2px 6px; }
   .tnode { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; text-align: left; padding: 7px 10px; font-weight: 400; background: #16121b; }
   .tnode b { font-size: 13px; } .tnode .rank { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
   .tnode .tdesc, .tnode .need { grid-column: 1 / -1; font-size: 11px; color: var(--muted); }
@@ -612,7 +621,7 @@
     <p class="sub">把 5 顆相同的寶石合成 1 顆更高一級的寶石（每次 3000 × 寶石等級的金幣）。只會用到背包裡的寶石。</p>
     <div id="gemList"></div>
     <div class="inv-actions"><button class="primary" id="gemAllBtn" type="button">一鍵全部合成</button></div>
-    <div class="sub-h">拆除鑲嵌的寶石（每顆 200,000 金）</div>
+    <div class="sub-h">拆除鑲嵌的寶石（每顆 50,000 金）</div>
     <div id="gemUnsock"></div>
     <div class="sub-h">購買碎裂的寶石</div>
     <div class="gold-bank"><label for="gemQty" class="sub">購買數量</label><input type="number" id="gemQty" min="1" max="99" step="1" value="1" inputmode="numeric"></div>
@@ -725,7 +734,7 @@
     <h2 class="pick-title">排行榜・前 10 名</h2>
     <p class="muted" id="rankNote"></p>
     <div class="row nick-row" id="nickRow" hidden><label for="nickInput">排行榜上顯示的名稱</label><input id="nickInput" maxlength="12" placeholder="例如：火球大師"><button id="nickSave" type="button">儲存</button></div>
-    <div class="rank-wrap"><table class="rank-table"><thead><tr><th>名次</th><th>玩家</th><th>職業</th><th>最深</th><th>等級</th><th>擊殺</th></tr></thead><tbody id="rankBody"></tbody></table></div>
+    <div class="rank-wrap"><table class="rank-table"><thead><tr><th>名次</th><th>玩家</th><th>職業</th><th>最深</th><th>等級</th><th>擊殺</th><th>鑰匙</th></tr></thead><tbody id="rankBody"></tbody></table></div>
     <div class="row"><button class="primary" id="rankClose" type="button">關閉</button></div>
   </div>
 </div>
@@ -733,7 +742,10 @@
 <div class="overlay" id="talentScreen" hidden>
   <div class="panel talents">
     <div class="shop-head"><h2 class="pick-title">天賦與技能符文</h2><span class="muted" id="talPoints"></span></div>
+    <div class="tsets" id="talSets"></div>
     <div class="ttrees" id="talTrees"></div>
+    <h3 class="sec-h">巔峰等級</h3>
+    <div id="paraBox"></div>
     <h3 class="sec-h">技能符文：每個技能選一種變化</h3>
     <div class="rune-list" id="runeList"></div>
     <div class="row"><button id="talReset" type="button">重置天賦</button><button class="primary" id="talentClose" type="button">關閉（N）</button></div>
@@ -1369,7 +1381,7 @@
   // armour and damage reduction apply to poison and burning exactly as they do to hits
   const hurtMul = () => {
     const armor = S.armor * (P.buffT > 0 && P.buffKind !== 'rage' ? 1.5 : 1);
-    return 100 / (100 + armor) * (shrineOn('guard') ? 0.6 : 1) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1) * (S.fTaken || 1);
+    return 100 / (100 + armor) * (shrineOn('guard') ? 0.6 : 1) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1) * (S.fTaken || 1) * liveTakenMul();
   };
   function dot(amount, color) {
     if (mode !== 'play' || P.dashT > 0 || P.leap || G.goldRealm) return;
@@ -1612,7 +1624,7 @@
     }
     let legend = null;
     if (rarity === 'legendary') {
-      const opts = LEGENDS.filter((l) => l.slot === slot && (!l.cls || l.cls === (wcls || curCls())) && (!l.diff || ((P && P.diff) || 0) >= l.diff));
+      const opts = LEGENDS.filter((l) => !l.boss && l.slot === slot && (!l.cls || l.cls === (wcls || curCls())) && (!l.diff || ((P && P.diff) || 0) >= l.diff));
       if (opts.length) legend = pick(opts); else rarity = it.rarity = 'rare';
     }
     rollAffixes(it, ilvl, rarity);
@@ -1629,7 +1641,7 @@
   // ================= stats =================
   function calcStats(equip, lvl, cls = 'warrior') {
     const s = {
-      life: 100 + (lvl - 1) * 12, armor: 0, dmgPct: (lvl - 1) * 3, atkSpd: 0, crit: 5, critDmg: 0, movePct: 0,
+      life: 100 + (Math.min(lvl, 99) - 1) * 12, armor: 0, dmgPct: (Math.min(lvl, 99) - 1) * 3, atkSpd: 0, crit: 5, critDmg: 0, movePct: 0,
       lifesteal: 0, regen: 0.6, goldFind: 0, magicFind: 0, potion: 0, regenPctLife: 0,
       fDmg: 1, fLife: 1, fAtk: 1, fTaken: 1, fSkill: 1,
       lifePct: 0, armorPct: 0, dmgReduce: 0, thornsPct: 0, skillDmg: 0, skillArea: 0, cdr: 0, rangePct: 0, pierceChance: 0,
@@ -1643,7 +1655,7 @@
       if (it.special) s.specials.add(it.special);
     }
     if (s.specials.has('greed')) s.goldFind += 100;
-    applySets(s, equip); applyGems(s, equip); applyTalents(s, cls);
+    applySets(s, equip); applyGems(s, equip); applyTalents(s, cls); applyEndgame(s, cls);
     if (P && P.coll && P.coll.coins) { const cb = Math.floor(Object.keys(P.coll.coins).length / 10); s.goldFind += cb; s.magicFind += cb; }
     s.ranged = cls !== 'warrior';
     if (s.ranged && !equip.weapon) s.range = 320;
@@ -1655,7 +1667,7 @@
     s.armor = Math.round(s.armor * (1 + s.armorPct / 100));
     s.range *= 1 + s.rangePct / 100;
     s.cdr = Math.min(50, s.cdr); s.dmgReduce = Math.min(60, s.dmgReduce);
-    s.move = 150 * (1 + s.movePct / 100);
+    s.move = 150 * (1 + s.movePct / 100) * (s.fMove || 1);
     s.period = s.speed / (1 + s.atkSpd / 100) / s.fAtk;
     s.critMult = 1.5 + s.critDmg / 100;
     s.crit = Math.min(75, s.crit);
@@ -1675,6 +1687,9 @@
       if (P.rage > 0) hit *= 1 + 0.04 * P.rage;
       if (P.hp < P.hpMax * 0.5) hit *= 1 + 0.1 * talentSpecial('lowHpDmg');
       if (s.specials.has('souleater')) hit *= 1 + Math.min(0.3, 0.02 * (G.souls || 0));
+      if (P.bsoul > 0 && s.specials.has('bSoul')) hit *= (1 + crit * (s.critMult + 0.03 * P.bsoul - 1)) / (1 + crit * (s.critMult - 1)) * (s.specials.has('bBone') ? 1 + 0.01 * P.bsoul : 1);
+      if (P.phaseT > 0) hit *= 1.25;
+      if (P.moving && ks('ksGuerrilla')) hit *= 1.2;
     }
     let rate = 1 / s.period;
     if (on) rate *= (P.hasteT > 0 ? 1.4 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1);
@@ -1688,8 +1703,8 @@
     const on = live && P && G, d = diffOf();
     const armor = S.armor * (on && P.buffT > 0 && P.buffKind !== 'rage' ? 1.5 : 1);
     const taken = 100 / (100 + armor) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1) * (S.fTaken || 1)
-      * (on && shrineOn('guard') ? 0.6 : 1) * (on && P.spin > 0 && S.specials.has('setSpin') ? 0.7 : 1);
-    const move = S.move * (on ? (P.spin > 0 ? 0.75 : 1) * (P.slowT > 0 ? 0.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) : 1);
+      * (on && shrineOn('guard') ? 0.6 : 1) * (on && P.spin > 0 && S.specials.has('setSpin') ? 0.7 : 1) * (on ? liveTakenMul() : 1);
+    const move = S.move * (on ? (P.spin > 0 && !ks('ksStorm') ? 0.75 : 1) * (P.slowT > 0 ? 0.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) : 1);
     const gold = (1 + S.goldFind / 100) * d.gold * (on && shrineOn('fortune') ? 2 : 1);
     const mf = S.magicFind + d.mf + (on && shrineOn('fortune') ? 100 : 0);
     const skill = (1 + S.skillDmg / 100) * (S.fSkill || 1) * (on && P.shield > 0 && S.specials.has('setArcaneShield') ? 1.3 : 1);
@@ -1719,7 +1734,8 @@
     if (P.potions > potMax()) P.potions = potMax();
     P.hpMax = S.life; P.hp = Math.min(P.hp, P.hpMax);
   }
-  const xpNeed = (lvl) => Math.floor(40 * Math.pow(lvl, 1.6));
+  const LVL_CAP = 150;
+  const xpNeed = (lvl) => Math.floor(40 * Math.pow(lvl, 1.6) * (lvl >= 99 ? 1.5 : 1));
 
   // ================= save =================
   // the stash lives outside the slots, so every character sees the same items and gold
@@ -1751,6 +1767,7 @@
         runBest: P.runBest || 0, runKills: P.runKills || 0, runId: P.runId,
         talents: P.talents || {}, runes: P.runes || {}, diff: P.diff || 0, diffUnlock: P.diffUnlock || 0, stats: P.stats || {}, ach: P.ach || {},
         title: P.title || '', cape: P.cape || null, nick: P.nick || '', coll: P.coll || {}, codex: P.codex || {}, elix: P.elix || {}, campLv: P.campLv || {}, pet: P.pet || null,
+        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, rstone: P.rstone || 0,
       }));
     } catch (e) { /* storage unavailable: play continues without saving */ }
   }
@@ -1776,6 +1793,7 @@
     if (P.elix) for (const k of Object.keys(P.elix)) P.elix[k] = Math.min(5, P.elix[k] || 0);
     if (P.tps === undefined) P.tps = 2;
     if (P.tps > 0) { stackInto(P.bag, makeScroll(P.tps), BAG_MAX); P.tps = 0; }
+    setupEndgame();
     if (!P.gmapGift) { P.gmapGift = 1; if (!stackInto(P.bag, makeGoldMap(1), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeGoldMap(1), 9999); } }
     { const sh = loadShared(); P.stash = sh.stash || []; P.stashGold = sh.stashGold || 0; }
     refreshStats();
@@ -1992,11 +2010,14 @@
     if (P.windT > 0) dmg *= 1.3;
     dmg *= S.fDmg || 1;
     if (P.rage > 0) dmg *= 1 + 0.04 * P.rage;
+    if (P.bsoul > 0 && S.specials.has('bSoul') && S.specials.has('bBone')) dmg *= 1 + 0.01 * P.bsoul;
+    if (P.phaseT > 0) dmg *= 1.25;
+    if (P.moving && ks('ksGuerrilla')) dmg *= 1.2;
     if (skillCtx) dmg *= S.fSkill || 1;
     if (skillCtx && P.shield > 0 && S.specials.has('setArcaneShield')) dmg *= 1.3;
     if (S.specials.has('souleater')) dmg *= 1 + Math.min(0.3, 0.02 * (G.souls || 0));
     const crit = Math.random() * 100 < S.crit || P.critT > 0;
-    if (crit) dmg *= S.critMult;
+    if (crit) dmg *= S.critMult + (S.specials.has('bSoul') ? 0.03 * (P.bsoul || 0) : 0);
     return { dmg: Math.max(1, Math.round(dmg)), crit };
   }
 
@@ -2006,6 +2027,7 @@
     const own = !NET.remoteHit;
     if (own && P.coll && P.coll.spec && P.coll.spec[e.type]) dmg = Math.round(dmg * 1.05);
     if (own && e.frozen > 0 && S.specials.has('setFreeze')) dmg = Math.round(dmg * 1.3);
+    if (own) dmg = Math.round(dmg * targetMul(e));
     if (NET.mode === 'client') netSend(null, { t: 'hit', i: e.nid, d: dmg, c: crit ? 1 : 0, x: Math.round(fromX), y: Math.round(fromY), kb: Math.round(kb) });
     else {
       if (e.armorMul) dmg = Math.max(1, Math.round(dmg * e.armorMul));
@@ -2016,18 +2038,19 @@
     const kbm = e.type === 'boss' ? 0.15 : 1;
     e.kx += Math.cos(a) * kb * kbm; e.ky += Math.sin(a) * kb * kbm;
     if (CFG.dmgNums) addText(String(Math.round(dmg)), e.x + rnd(-6, 6), e.y - e.r - 6, crit ? '#ffd34d' : '#ffffff', crit ? 18 : 14);
-    sfx(crit ? 'crit' : 'hit');
+    if (!dotHit) sfx(crit ? 'crit' : 'hit');
     if (e.type === 'assassin') e.revealT = 2;
-    if (own && S.specials.has('setFreeze') && Math.random() < 0.1 && e.type !== 'boss' && !(e.frzImm > G.time)) { e.frozen = Math.max(e.frozen || 0, 1.5); e.frzImm = G.time + 5.5; }
-    if (own && S.specials.has('setRage')) { P.rage = Math.min(10, (P.rage || 0) + 1); P.rageT = 5; }
+    if (own && !dotHit && S.specials.has('setFreeze') && Math.random() < 0.1 && e.type !== 'boss' && !(e.frzImm > G.time)) { e.frozen = Math.max(e.frozen || 0, 1.5); e.frzImm = G.time + 5.5; }
+    if (own && !dotHit && S.specials.has('setRage')) { P.rage = Math.min(10, (P.rage || 0) + 1); P.rageT = 5; }
     if (own && crit && S.specials.has('setRicochet') && P.cls === 'archer') P.skillCd[2] = Math.max(0, P.skillCd[2] - 0.5);
-    if (own && S.specials.has('setFireball') && !(P.setFbCd > 0) && Math.random() < 0.2 && !e.dead) {
+    if (own && !dotHit && S.specials.has('setFireball') && !(P.setFbCd > 0) && Math.random() < 0.2 && !e.dead) {
       P.setFbCd = 2;
       firePlayerShot(Math.atan2(e.y - P.y, e.x - P.x), { kind: 'fireball', speed: 380, r: 9, mult: 2, range: 520, color: '#ff8a3d', chain: false });
     }
     if (own && crit && S.specials.has('reaper') && Math.random() < 0.3) { P.dashCd = 0; P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.03); }
     if (own && S.lifesteal > 0) P.hp = Math.min(P.hpMax, P.hp + dmg * S.lifesteal / 100);
-    hitFx(e, crit, fromX, fromY);
+    if (!dotHit) hitFx(e, crit, fromX, fromY);
+    if (own && !dotHit) bossLegendOnHit(e, crit);
     if (own && canChain && S.specials.has('chain') && Math.random() < 0.25) chainLightning(e);
     if (e.hp <= 0 && NET.mode !== 'client') killEnemy(e);
   }
@@ -2060,6 +2083,8 @@
     P.kills = (P.kills || 0) + 1; P.runKills = (P.runKills || 0) + 1;
     stat('kills'); sfx(e.type === 'boss' ? 'boom' : 'kill');
     G.souls = (G.souls || 0) + 1;
+    if (S.specials.has('bSoul')) { P.bsoul = Math.min(20, (P.bsoul || 0) + 1); P.bsoulT = 8; }
+    if (realmAff('burst') && NET.mode !== 'client' && e.dmg > 0) G.zones.push({ x: e.x, y: e.y, r: 55, t: -1, tick: 0, n: 1, mult: 0, hostile: e.dmg * 1.2, fire: true, burn: e.dmg * 0.2 });
     if (talentSpecial('killHeal')) P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.02 * talentSpecial('killHeal'));
     onSpecialDeath(e);
     if (G.event && G.event.active && G.event.kind === 'trial' && e.trial) G.event.kills++;
@@ -2087,6 +2112,9 @@
       // the boss's signature drop: a chance at legendary or set, otherwise a rare
       { const q = Math.random(); dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, q < 0.2 ? 'legendary' : q < 0.45 ? 'set' : 'rare') }); }
       for (let i = 0; i < 3; i++) dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, rollRarity(4)) });
+      // each boss keeps two legendaries of its own: 1.5% on a normal floor, 20% in its challenge
+      { const own = BOSS_LEGS[e.variant && e.variant.look]; if (own && Math.random() < (G.challenge ? 0.2 : 0.015)) { dropAt(e.x, e.y, { kind: 'item', item: makeBossLegend(lootDepth() + 1, pick(own)) }); logMsg(`${e.variant.name}掉落了專屬傳說！`, RAR.legendary.color); sfx('legend'); } }
+      { const n = ri(1, 3); P.rstone = (P.rstone || 0) + n; logMsg(`獲得精煉石 ×${n}`, '#9cd4ff'); }
       dropAt(e.x, e.y, { kind: 'potion' }); dropAt(e.x, e.y, { kind: 'potion' });
       G.boss = null;
       stat('bossKills'); { const st = statsOf(); st.bossTypes = [...new Set([...(st.bossTypes || []), e.variant.look])]; }
@@ -2109,6 +2137,7 @@
   }
 
   function damagePlayer(raw, src) {
+    if (src && !src.dead && src.maxHp && realmAff('vamp') && NET.mode !== 'client') src.hp = Math.min(src.maxHp, src.hp + src.maxHp * 0.1);
     if (NET.tgt) { netSend(NET.tgt.id, { t: 'hurt', raw }); return; }
     if (P.invuln > 0 || P.dashT > 0 || P.leap || mode !== 'play') return;
     if (G.goldRealm) {
@@ -2118,8 +2147,11 @@
     }
     const armor = S.armor * (P.buffT > 0 && P.buffKind !== 'rage' ? 1.5 : 1);
     let dmg = Math.max(1, Math.round(raw * 100 / (100 + armor) * (shrineOn('guard') ? 0.6 : 1) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1)
-      * (S.fTaken || 1) * (P.spin > 0 && S.specials.has('setSpin') ? 0.7 : 1)));
+      * (S.fTaken || 1) * (P.spin > 0 && S.specials.has('setSpin') ? 0.7 : 1) * liveTakenMul() * (S.specials.has('bRock') && Math.random() < 0.2 ? 0.5 : 1)));
     arcaneShieldOnHurt();
+    // being hit counts even when a shield soaks it up
+    if (ks('ksVeng') && !(P.vengCd > 0)) { P.vengT = 3; P.vengCd = 5; }
+    if (S.specials.has('bCore') && (P.coreN = (P.coreN || 0) + 1) >= (S.specials.has('bRock') ? 6 : 10)) coreEruption();
     if (P.shield > 0) { const ab = Math.min(Math.round(P.shield), dmg); P.shield = Math.max(0, P.shield - ab); dmg = Math.round(dmg - ab); frostPuff(P.x, P.y); if (dmg <= 0) { P.invuln = 0.2; return; } }
     P.hp -= dmg; P.hurt = 0.25; P.invuln = 0.35;
     sfx('hurt');
@@ -2150,11 +2182,13 @@
 
   function gainXp(n) {
     n = Math.round(n * diffOf().xp * (elixOn('wisdom') ? 2 : 1));
+    if (P.lvl >= LVL_CAP) { P.xp = 0; return; }
     P.xp += n;
-    while (P.xp >= xpNeed(P.lvl)) {
+    while (P.xp >= xpNeed(P.lvl) && P.lvl < LVL_CAP) {
       P.xp -= xpNeed(P.lvl); P.lvl++;
+      if (P.lvl >= LVL_CAP) P.xp = 0;
       refreshStats(); P.hp = P.hpMax;
-      logMsg(`升級！現在是 ${P.lvl} 級，生命全滿，獲得 1 點天賦（按 N）`, '#b79cff'); sfx('level');
+      logMsg(P.lvl >= 100 ? `巔峰升級！現在是 ${P.lvl} 級，獲得 1 點巔峰點數（按 N）` : `升級！現在是 ${P.lvl} 級，生命全滿，獲得 1 點天賦（按 N）`, '#b79cff'); sfx('level');
       levelFx();
     }
   }
@@ -2564,6 +2598,7 @@
     for (const e of G.enemies) {
       if (e.dead || Math.hypot(e.x - x, e.y - y) > radius + e.r || !los({ x, y }, e)) continue;
       const r = rollDamage(mult); hitEnemy(e, r.dmg, r.crit, x, y, 220, false);
+      if (color === '#ff8a3d' && ks('ksEmber') && !e.dead) addEnemyDot(e, 'burn', dotTick() * 2, 6, 1);
     }
   }
 
@@ -2619,8 +2654,9 @@
     P.facing = aimAngle(S.range + 120);
     P.atkCd = S.period / ((P.hasteT > 0 ? 1.4 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1));
     if (P.cls === 'mage') {
-      if (S.specials.has('split') || (P.arcaneT > 0 && S.specials.has('setArcane'))) [-0.18, 0, 0.18].forEach((o) => firePlayerShot(P.facing + o, { kind: 'bolt', speed: 430, r: 6, mult: o ? 0.6 : 1 }));
-      else firePlayerShot(P.facing, { kind: 'bolt', speed: 430, r: 6 });
+      const sm = P.surge ? 1.8 : 1; P.surge = 0;
+      if (S.specials.has('split') || (P.arcaneT > 0 && S.specials.has('setArcane'))) [-0.18, 0, 0.18].forEach((o) => firePlayerShot(P.facing + o, { kind: 'bolt', speed: 430, r: 6, mult: o ? 0.6 : sm }));
+      else firePlayerShot(P.facing, { kind: 'bolt', speed: 430, r: 6, mult: sm });
       if (talentSpecial('extraBolt')) firePlayerShot(P.facing + 0.16, { kind: 'bolt', speed: 430, r: 5, mult: 0.6 });
       sfx('magic');
       return;
@@ -2634,8 +2670,9 @@
       sfx('bow');
       return;
     }
-    const whirl = S.specials.has('whirl');
-    G.swing = { t: 0, dur: Math.min(0.2, S.period * 0.7), angle: P.facing, range: S.range, arc: whirl ? Math.PI * 2 : S.arc, hit: new Set(), whirl };
+    const whirl = S.specials.has('whirl'), veng = P.vengT > 0;
+    if (veng) P.vengT = 0;
+    G.swing = { t: 0, dur: Math.min(0.2, S.period * 0.7), angle: P.facing, range: S.range, arc: whirl ? Math.PI * 2 : S.arc, hit: new Set(), whirl, veng };
   }
 
   function updateSwing(dt) {
@@ -2650,7 +2687,7 @@
       if (!sw.whirl && Math.abs(diff) > sw.arc / 2 + 0.15) continue;
       if (!los(P, e)) continue;
       sw.hit.add(e);
-      const r = rollDamage();
+      const r = rollDamage(sw.veng ? 2.5 : 1);
       hitEnemy(e, r.dmg, r.crit, P.x, P.y, 260, true);
       if (r.crit) shakeIt(3);
     }
@@ -2677,6 +2714,7 @@
     if (mode !== 'play' || P.skillCd[i] > 0 || P.leap) return;
     const sk = CLASSES[P.cls].skills[i];
     if (S.specials.has('setArcane')) P.arcaneT = 4;
+    if (ks('ksSurge')) P.surge = 1;
     const ang = aimAngle(420), rune = runeOf(sk.id);
     P.facing = ang;
     let cdMul = 1;
@@ -2691,6 +2729,7 @@
       case 'leap': {
         const to = reachPoint(ang, 220);
         P.leap = { t: 0, dur: 0.32, sx: P.x, sy: P.y, tx: to.x, ty: to.y, rune };
+        if (ks('ksQuake')) cdMul *= 5 / 8;
         dust(P.x, P.y + 8, 10, 140); sfx('dash');
         break;
       }
@@ -2722,7 +2761,7 @@
           const r = rollDamage(1.2); hitEnemy(e, r.dmg, r.crit, P.x, P.y, 60, false);
         }
         if (rune === 1) { P.shield = P.hpMax * 0.3; P.shieldT = 5; addText('冰晶護盾', P.x, P.y - 30, '#9cd4ff', 16); }
-        else { P.shield = Math.max(P.shield || 0, P.hpMax * 0.12); P.shieldT = 4; }
+        else { P.shield = Math.max(P.shield || 0, P.hpMax * (ks('ksGlacier') ? 0.2 : 0.12)); P.shieldT = 4; }
         if (rune === 2) G.fields.push({ type: 'frost', x: P.x, y: P.y, r: R, life: 3, max: 3, tick: 0, mult: 0.3 });
         if (rune === 3) for (let k = 0; k < 12; k++) firePlayerShot(k / 12 * Math.PI * 2, { kind: 'bolt', speed: 420, r: 5, mult: 0.7, range: 320, color: '#9cd4ff', pierce: true, skill: true });
         break;
@@ -2731,6 +2770,7 @@
         const to = reachPoint(ang, rune === 2 ? 150 : 220);
         const x0 = P.x, y0 = P.y;
         P.x = to.x; P.y = to.y; P.invuln = Math.max(P.invuln, 0.3);
+        if (ks('ksPhase')) P.phaseT = 2;
         blinkFx(x0, y0, P.x, P.y); rift(x0, y0, 0.45); rift(P.x, P.y, 0.55); sfx('magic');
         if (rune === 1) {
           blinkFxAt(x0, y0, x0, y0); shockwave(x0, y0, AR(80), 'rgba(190,160,255,0.9)', 0.35, 6, 0.3);
@@ -2743,15 +2783,16 @@
       }
       case 'multishot': {
         const n = rune === 1 ? 9 : 5 + 2 * talentSpecial('extraArrow'), spread = rune === 1 ? 0.1 : 0.15;
-        for (let k = 0; k < n; k++) firePlayerShot(ang + (k - (n - 1) / 2) * spread, { kind: 'arrow', speed: 620, r: 4, mult: rune === 1 ? 0.6 : rune === 3 ? 1.1 : 0.9, pierce: rune === 3 || arrowPierce(), color: '#e8dcc0', skill: true, blast: rune === 2 ? 40 : 0 });
+        for (let k = 0; k < n; k++) firePlayerShot(ang + (k - (n - 1) / 2) * spread, { kind: 'arrow', speed: 620, r: 4, mult: (rune === 1 ? 0.6 : rune === 3 ? 1.1 : 0.9) * (ks('ksHoming') ? 0.6 : 1), pierce: rune === 3 || arrowPierce(), color: '#e8dcc0', skill: true, blast: rune === 2 ? 40 : 0, home: ks('ksHoming') });
         flash(P.x + Math.cos(ang) * 20, P.y + Math.sin(ang) * 20, 70, 'rgba(140,255,170,0.8)', 0.15); sfx('bow');
         break;
       }
       case 'rain': {
         const p = aimPoint(420), d = Math.hypot(p.x - P.x, p.y - P.y), k = d > 320 ? 320 / d : 1;
         const zx = P.x + (p.x - P.x) * k, zy = P.y + (p.y - P.y) * k, n = 6 + 2 * talentSpecial('extraRain');
-        const r = AR(rune === 2 ? 45 : 90);
-        G.zones.push({ x: zx, y: zy, r, t: -0.4, tick: 0, n, mult: rune === 2 ? 1.1 : 0.55 });
+        const r = AR(rune === 2 ? 45 : 90) * (ks('ksSky') ? 1.3 : 1);
+        G.zones.push({ x: zx, y: zy, r, t: -0.4, tick: 0, n, mult: (rune === 2 ? 1.1 : 0.55) * (ks('ksSky') ? 1.4 : 1) });
+        if (ks('ksSky')) cdMul *= 7 / 9;
         if (rune === 1) G.fields.push({ type: 'burn', x: zx, y: zy, r, life: 3, max: 3, tick: 0, mult: 0.35, delay: 0.4 + n * 0.33 });
         if (rune === 3) G.fields.push({ type: 'frost', x: zx, y: zy, r, life: 3, max: 3, tick: 0, mult: 0.25 });
         sfx('bow');
@@ -2767,6 +2808,7 @@
         if (rune === 3) for (let k = -2; k <= 2; k++) firePlayerShot(ang + k * 0.12, { kind: 'arrow', speed: 620, r: 4, mult: 0.7, pierce: arrowPierce(), color: '#e8dcc0', skill: true });
         P.dashDir = { x: rx / n, y: ry / n }; P.dashT = 0.22; P.dashHit = new Set();
         P.hasteT = 4 + 0.5 * talentSpecial('hastePlus');
+        if (ks('ksDodge')) P.dodgeT = 2;
         cdMul *= Math.max(0.3, 1 - (0.6 * talentSpecial('rollCd')) / sk.cd);
         addText('疾風！', P.x, P.y - 30, '#6fd08c', 16); sfx('dash');
         break;
@@ -2782,6 +2824,7 @@
     for (let i = 0; i < 3; i++) if (!(i === 2 && P.cls === 'archer' && P.hasteT > 0)) P.skillCd[i] = Math.max(0, P.skillCd[i] - dt);
     P.buffT = Math.max(0, P.buffT - dt); P.hasteT = Math.max(0, P.hasteT - dt);
     P.critT = Math.max(0, (P.critT || 0) - dt);
+    endgameTick(dt);
     P.arcaneT = Math.max(0, (P.arcaneT || 0) - dt);
     P.arcShCd = Math.max(0, (P.arcShCd || 0) - dt);
     if (P.shieldT > 0) { P.shieldT -= dt; if (P.shieldT <= 0) P.shield = 0; }
@@ -2793,6 +2836,11 @@
         const iv = clamp(S.period * 0.5, 0.08, 0.25);
         P.spinTick = iv;
         const R = AR(85);
+        if (ks('ksStorm') && NET.mode !== 'client') for (const e of G.enemies) {
+          if (e.dead || e.type === 'boss') continue;
+          const dx = P.x - e.x, dy = P.y - e.y, d = Math.hypot(dx, dy);
+          if (d > 30 && d < 170) { e.kx += dx / d * 140; e.ky += dy / d * 140; }
+        }
         hitProps(P.x, P.y, R);
         skillCtx = true;
         for (const e of G.enemies) {
@@ -2812,7 +2860,7 @@
       if (k >= 1) {
         P.leap = null;
         const R = AR(95);
-        explode(P.x, P.y, R, 1.8, '#e9b949');
+        explode(P.x, P.y, R, 1.8 * (ks('ksQuake') ? 1.5 : 1), '#e9b949');
         shards(P.x, P.y + 4, '#8a7a6a', 18, 300); sfx('boom');
         const stun = 1 + 0.3 * talentSpecial('stunPlus');
         for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - P.x, e.y - P.y) < R + e.r) e.frozen = Math.max(e.frozen || 0, e.type === 'boss' ? 0.3 : stun);
@@ -2881,6 +2929,8 @@
         f.tick -= dt; if (f.tick <= 0) { f.tick = 0.5; hitAll(f.mult, 10); }
         if (f.type === 'frost') for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - f.x, e.y - f.y) < f.r + e.r) e.slowT = 0.6;
         if (Math.random() < 0.5) { const a = Math.random() * Math.PI * 2, rr = Math.random() * f.r; embers(f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr, f.type === 'frost' ? '#bfe6ff' : '#ffb347', 1, 10, f.type === 'frost' ? 10 : 60); }
+      } else if (f.type === 'web') {
+        for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - f.x, e.y - f.y) < f.r + e.r) { e.slowT = 0.5; e.webUntil = G.time + 0.3; }
       } else if (f.type === 'smoke') {
         for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - f.x, e.y - f.y) < f.r + e.r) e.slowT = 0.5;
         if (Math.random() < 0.4) smoke(f.x + rnd(-f.r, f.r) * 0.6, f.y + rnd(-f.r, f.r) * 0.5, 1, 'rgba(120,130,140,');
@@ -2896,7 +2946,11 @@
         continue;
       }
       const k = Math.min(1, f.life / 0.4);
-      if (f.type === 'tornado') {
+      if (f.type === 'web') {
+        c.strokeStyle = `rgba(230,230,240,${0.45 * k})`; c.lineWidth = 1;
+        for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(f.x + Math.cos(a) * f.r, f.y + Math.sin(a) * f.r * 0.7); c.stroke(); }
+        for (const rr of [0.35, 0.7, 1]) { c.beginPath(); c.ellipse(f.x, f.y, f.r * rr, f.r * rr * 0.7, 0, 0, Math.PI * 2); c.stroke(); }
+      } else if (f.type === 'tornado') {
         for (let i = 0; i < 5; i++) {
           c.strokeStyle = `rgba(230,225,210,${0.45 - i * 0.07})`; c.lineWidth = 3;
           c.beginPath(); c.ellipse(f.x, f.y - i * 9, f.r * (0.45 + i * 0.13), 6 + i * 2, 0, t * 12 + i, t * 12 + i + 4.2); c.stroke();
@@ -3002,7 +3056,7 @@
         }
       }
     } else if ((m.x || m.y) && !P.leap) {
-      const slow = (P.spin > 0 ? 0.75 : 1) * (P.slowT > 0 ? 0.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1);
+      const slow = (P.spin > 0 && !ks('ksStorm') ? 0.75 : 1) * (P.slowT > 0 ? 0.6 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1);
       moveEnt(P, m.x * S.move * slow * dt, m.y * S.move * slow * dt);
       P.walk += dt * 10;
       if (isTouch || performance.now() - mouse.last > 4000) P.facing = Math.atan2(m.y, m.x);
@@ -5136,7 +5190,7 @@
     // gems have no item level: show only gem actions, not the blacksmith's upgrade line about raising item level
     if (it && it.slot === 'gem') { det.innerHTML = itemLines(it) + forgeExtraHtml(it); bindForgeExtra(it); return; }
     if (it && (it.slot === 'scroll' || it.slot === 'gmap')) { det.innerHTML = itemLines(it) + '<div class="sub">這個物品不能強化。</div>'; return; }
-    if (!it) { det.innerHTML = upgradeHtml('smith') + '<div class="sub-h">寶石合成</div><span class="sub">寶石合成請找營地裡的<b>寶石商人</b>（傳送門左邊）。</span>' + '<div class="sub-h">鍛造</div><span class="sub">選一件裝備或寶石。<br><b>鑲嵌</b>：把寶石放進裝備的鑲孔。<br><b>打孔</b>：為魔法以上的裝備增加鑲孔，失敗只扣金幣。<br><b>提升等級</b>：把裝備升到目前樓層的物品等級。<br><b>重鑄</b>：保留稀有度，重新隨機所有詞綴。<br><b>強化</b>：普通變魔法、魔法變稀有，並重新產生詞綴。</span>'; bindUpgrade(det, renderForge); return; }
+    if (!it) { det.innerHTML = salvageAllHtml() + upgradeHtml('smith') + '<div class="sub-h">寶石合成</div><span class="sub">寶石合成請找營地裡的<b>寶石商人</b>（傳送門左邊）。</span>' + '<div class="sub-h">鍛造</div><span class="sub">選一件裝備或寶石。<br><b>鑲嵌</b>：把寶石放進裝備的鑲孔。<br><b>打孔</b>：為魔法以上的裝備增加鑲孔，失敗只扣金幣。<br><b>提升等級</b>：把裝備升到目前樓層的物品等級。<br><b>重鑄</b>：保留稀有度，重新隨機所有詞綴。<br><b>強化</b>：普通變魔法、魔法變稀有，並重新產生詞綴。<br><b>精煉</b>：花精煉石重骰一條詞綴，三選一。<br><b>分解</b>：把背包裡的裝備拆成精煉石。</span>'; bindUpgrade(det, renderForge); bindSalvageAll(); return; }
     const rc = rerollCost(it), next = NEXT_RAR[it.rarity], uc = next ? upgradeCost(it) : 0;
     let h = itemLines(it);
     h += '<div class="inv-actions">';
@@ -5145,9 +5199,11 @@
     h += '</div>';
     if (it.rarity === 'common') h += '<div class="sub">普通裝備沒有詞綴，先強化成魔法才能重鑄。</div>';
     if (it.rarity === 'legendary') h += '<div class="sub">傳說裝備重鑄時會保留特殊能力。</div>';
+    h += refineHtml(it, forgeSel.from === 'equip');
     h += forgeExtraHtml(it);
     det.innerHTML = h;
     bindForgeExtra(it);
+    bindRefine(it);
     $('rerollBtn')?.addEventListener('click', () => {
       if (P.gold < rc || it.rarity === 'common') return;
       P.gold -= rc; setForgeItem(reforged(it, it.rarity));
@@ -5378,7 +5434,7 @@
   })();
 
   const betterRun = (a, b) => !b || (a.diff || 0) > (b.diff || 0) || ((a.diff || 0) === (b.diff || 0) && (a.depth > b.depth || (a.depth === b.depth && (a.kills > b.kills || (a.kills === b.kills && a.lvl > b.lvl)))));
-  const runScore = () => ({ depth: P.runBest || 0, lvl: P.lvl, cls: P.cls, kills: P.runKills || 0, diff: P.diff || 0, name: (P.nick || '').slice(0, 12), at: Date.now() });
+  const runScore = () => ({ key: Math.max(0, (P.keyMax || 1) - 1), depth: P.runBest || 0, lvl: P.lvl, cls: P.cls, kills: P.runKills || 0, diff: P.diff || 0, name: (P.nick || '').slice(0, 12), at: Date.now() });
 
   function submitScore() {
     const s = runScore();
@@ -5392,13 +5448,21 @@
       localStorage.setItem(LOCAL_SCORES, JSON.stringify(list.slice(0, 20)));
     } catch (e) { /* storage unavailable */ }
     if ((LB.db || LB.sb) && LB.uid && LB.canWrite && betterRun(s, LB.mine)) { LB.mine = s; queueWrite(s); }
+    // a new realm key level is uploaded on top of the best run already on the board
+    else if ((LB.db || LB.sb) && LB.uid && LB.canWrite && LB.mine && s.key > (LB.mine.key != null ? LB.mine.key : LB.mine.keylv || 0)) {
+      const row = { ...LB.mine, key: s.key, name: s.name || LB.mine.name || '' }; delete row.pid; delete row.id;
+      LB.mine = row; queueWrite(row);
+    }
   }
   async function queueWrite(s) {
     if (LB.writing) { LB.pending = s; return; }
     LB.writing = true;
     try {
       if (LB.sb) {
-        const r = await sbFetch('rpc/submit_score', { method: 'POST', body: JSON.stringify({ p_pid: LB.uid, p_secret: LB.secret, p_name: s.name || '', p_cls: s.cls, p_lvl: s.lvl, p_depth: s.depth, p_kills: s.kills, p_diff: s.diff || 0 }) });
+        // the key-level column needs the database update; older databases simply get the score without it
+        const base = { p_pid: LB.uid, p_secret: LB.secret, p_name: s.name || '', p_cls: s.cls, p_lvl: s.lvl, p_depth: s.depth, p_kills: s.kills, p_diff: s.diff || 0 };
+        let r = LB.sbNoKey ? null : await sbFetch('rpc/submit_score', { method: 'POST', body: JSON.stringify({ ...base, p_key: s.key || 0 }) });
+        if (!r || (!r.ok && (r.status === 404 || r.status === 400))) { if (r) LB.sbNoKey = true; r = await sbFetch('rpc/submit_score', { method: 'POST', body: JSON.stringify(base) }); }
         if (!r.ok) throw Object.assign(new Error('sb'), { code: r.status === 401 || r.status === 403 ? 'invalid_argument' : 'net' });
       } else await LB.db.doc('scores/' + LB.uid).set(s);
     } catch (e) { if (e && e.code === 'invalid_argument') { LB.canWrite = false; logMsg('你目前的權限無法上傳排行榜成績', '#ff6b6b'); } }
@@ -5424,7 +5488,9 @@
       } catch (e) { shared = false; }
     } else if (LB.sb) {
       try {
-        const r = await sbFetch(`scores?select=${SB_COLS}&order=diff.desc,depth.desc,kills.desc,lvl.desc&limit=${RANK_TOP}`);
+        const q = (cols) => sbFetch(`scores?select=${cols}&order=diff.desc,depth.desc,kills.desc,lvl.desc&limit=${RANK_TOP}`);
+        let r = LB.sbNoKeyCol ? null : await q(SB_COLS + ',keylv');
+        if (!r || !r.ok) { if (r) LB.sbNoKeyCol = true; r = await q(SB_COLS); }
         const v = r.ok ? await r.json() : null;
         rows = (Array.isArray(v) ? v : []).map((d) => ({ ...d, id: d.pid }));
         shared = r.ok;
@@ -5446,7 +5512,7 @@
     $('nickRow').hidden = !(shared && LB.uid && LB.canWrite);
     $('nickInput').value = P && P.nick ? P.nick : '';
     const body = $('rankBody');
-    if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="empty-row">還沒有紀錄。下到第 2 層以上，倒下或抵達新的最深樓層時就會留下成績。</td></tr>'; return; }
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="7" class="empty-row">還沒有紀錄。下到第 2 層以上，倒下或抵達新的最深樓層時就會留下成績。</td></tr>'; return; }
     rows.slice(0, RANK_TOP).forEach((r, i) => {
       const tr = document.createElement('tr');
       if (shared && r.id === LB.uid) tr.className = 'me';
@@ -5454,7 +5520,7 @@
         i + 1,
         r.local ? '你（本機）' : (r.name || (names[r.id] && names[r.id].name) || '冒險者') + (r.id === LB.uid ? '（你）' : ''),
         (CLASSES[r.cls] || CLASSES.warrior).name,
-        `${DIFFS[r.diff || 0].name}・第 ${r.depth} 層`, r.lvl, r.kills,
+        `${DIFFS[r.diff || 0].name}・第 ${r.depth} 層`, r.lvl, r.kills, (r.keylv != null ? r.keylv : r.key) || '—',
       ];
       cells.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k === 2) td.style.color = (CLASSES[r.cls] || CLASSES.warrior).color; tr.appendChild(td); });
       body.appendChild(tr);
@@ -5735,13 +5801,14 @@
   const treeNeed = (ni) => ni * 3;
   const TALENT_COST = {};
   for (const trees of Object.values(TALENTS)) for (const tree of trees) tree.nodes.forEach((n, ni) => { TALENT_COST[n.id] = tierCost(ni); });
-  const talentSpent = () => Object.entries(P.talents || {}).reduce((a, [id, r]) => a + r * (TALENT_COST[id] || 1), 0);
-  const talentPoints = () => Math.max(0, P.lvl - 1 - talentSpent());
+  const talentSpent = () => Object.entries(P.talents || {}).reduce((a, [id, r]) => a + r * (TALENT_COST[id] || 1), 0) + KS_COST * Object.keys(P.kst || {}).length;
+  const talentCap = () => Math.min(P.lvl, 99) - 1;
+  const talentPoints = () => Math.max(0, talentCap() - talentSpent());
   const treeSpent = (tree) => tree.nodes.reduce((a, n) => a + talentRank(n.id) * TALENT_COST[n.id], 0);
   // saves from before the cost change may have spent more than they now have: hand those points back
   function refundTalentsIfOver() {
-    if (!P || !P.talents || talentSpent() <= P.lvl - 1) return false;
-    P.talents = {}; refreshStats();
+    if (!P || !P.talents || talentSpent() <= talentCap()) return false;
+    clearTalents(); refreshStats();
     setTimeout(() => logMsg('天賦規則改了：已經把你的天賦點數全部退還，按 N 重新分配（免費）', '#e9b949'), 800);
     return true;
   }
@@ -6622,7 +6689,7 @@
   function eventBarText() {
     if (G && G.trialRealm) return G.boss ? '試煉秘境：打倒火龍' : '試煉完成：走樓梯回營地';
     if (G && G.goldRealm) return `金幣秘境：剩下 ${Math.floor(G.goldRealm.t / 60)}:${String(Math.floor(G.goldRealm.t % 60)).padStart(2, '0')}・已獲得 ${G.goldRealm.earned.toLocaleString()} 金幣`;
-    if (G && G.realm) return `秘境：剩下 ${Math.floor(G.realm.t / 60)}:${String(Math.floor(G.realm.t % 60)).padStart(2, '0')}${G.realm.chest ? '・大寶箱已打開，走樓梯離開' : '・出口旁有大寶箱'}`;
+    if (G && G.realm) return `秘境：剩下 ${Math.floor(G.realm.t / 60)}:${String(Math.floor(G.realm.t % 60)).padStart(2, '0')}${G.realm.lv ? `・鑰匙 ${G.realm.lv} 級（${(G.realm.affs || []).map((k) => REALM_AFFS[k].name).join('、')}）` : ''}${G.realm.chest ? '・大寶箱已打開，走樓梯離開' : '・出口旁有大寶箱'}`;
     if (G && G.challenge) return G.boss ? `魔王挑戰：${bossName(G.challenge)}（強化版）` : '魔王挑戰完成：走樓梯回營地';
     const ev = G && G.event;
     if (!ev || ev.done || G.camp) return '';
@@ -7061,6 +7128,302 @@
   });
 
 
+
+  // ================= endgame: paragon, keystones, loadouts, boss legendaries, refining, realm keys =================
+  // ---------- keystone talents: one of two at the end of each tree ----------
+  const KS_COST = 5, KS_NEED = 15;
+  const KEYSTONES = {
+    warrior: [
+      [{ id: 'ksBlood', name: '血之狂怒', desc: '吸血效果 ×2，藥水回復量 −50%' }, { id: 'ksExec', name: '處決者', desc: '對生命低於 30% 的敵人傷害 +50%' }],
+      [{ id: 'ksFort', name: '不動堡壘', desc: '受到的傷害最終 −20%，移動速度 −15%' }, { id: 'ksVeng', name: '復仇之盾', desc: '被擊中後 3 秒內，下一次揮砍傷害 +150%（5 秒冷卻）' }],
+      [{ id: 'ksQuake', name: '崩山', desc: '震地衝鋒冷卻 −3 秒，落地傷害 +50%' }, { id: 'ksStorm', name: '旋風之王', desc: '旋風斬時移動不減速，並把周圍的怪物吸向自己（魔王除外）' }],
+    ],
+    mage: [
+      [{ id: 'ksGlass', name: '玻璃大砲', desc: '最終傷害 +30%，最終生命 −20%' }, { id: 'ksEmber', name: '餘燼', desc: '火球與隕石的爆炸讓敵人燃燒，3 秒共造成 120% 武器傷害' }],
+      [{ id: 'ksFuse', name: '元素交融', desc: '對被冰凍的敵人傷害 +40%' }, { id: 'ksGlacier', name: '冰河護甲', desc: '冰霜新星的護盾從 12% 提高到 20% 最大生命；有護盾時受到的傷害 −15%' }],
+      [{ id: 'ksSurge', name: '奧術湧動', desc: '每次施放技能後，下一發魔法飛彈傷害 +80%' }, { id: 'ksPhase', name: '相位大師', desc: '閃現後 2 秒內傷害 +25%' }],
+    ],
+    archer: [
+      [{ id: 'ksSniper', name: '狙擊手', desc: '最終攻擊速度 −30%，最終傷害 +60%，射程 +20%' }, { id: 'ksMark', name: '致命標記', desc: '被你暴擊的敵人 4 秒內受到你的傷害 +15%' }],
+      [{ id: 'ksGuerrilla', name: '游擊', desc: '移動中造成的傷害 +20%' }, { id: 'ksDodge', name: '閃避大師', desc: '疾風翻滾後 2 秒內受到的傷害 −40%' }],
+      [{ id: 'ksHoming', name: '追蹤箭', desc: '多重射擊的箭會追蹤最近的敵人，但每支傷害 −40%' }, { id: 'ksSky', name: '天降', desc: '箭雨範圍 +30%、每波傷害 +40%、冷卻 −2 秒' }],
+    ],
+  };
+  const ks = (id) => !!(P && P.kst && Object.values(P.kst).includes(id));
+  function keystoneHtml(ti, spent, pts) {
+    const cur = (P.kst || {})[ti];
+    return `<div class="kst"><small>關鍵天賦（二選一）：這條路線投入 ${KS_NEED} 點後可選，花 ${KS_COST} 點；選了之後可以免費換成另一個</small>` +
+      KEYSTONES[P.cls][ti].map((o, k) => {
+        const on = cur === o.id, can = on || cur || (spent >= KS_NEED && pts >= KS_COST);
+        return `<button type="button" class="tnode ks${on ? ' has' : ''}${spent < KS_NEED && !cur ? ' locked' : ''}" data-ks="${ti}:${k}"${can ? '' : ' aria-disabled="true"'}><b>${o.name}</b><span class="rank">${on ? '已選' : ''}</span><span class="tdesc">${o.desc}</span></button>`;
+      }).join('') + '</div>';
+  }
+  // ---------- three talent loadouts, switched for free in camp ----------
+  function clearTalents() {
+    for (const k of Object.keys(P.talents)) delete P.talents[k];
+    for (const k of Object.keys(P.kst)) delete P.kst[k];
+  }
+  function useTalentSet(i) {
+    P.tslot = i; P.talents = P.tsets[i].t; P.kst = P.tsets[i].k;
+    refreshStats(); P.hp = Math.min(P.hp, P.hpMax);
+  }
+  function renderTalentSets() {
+    $('talSets').innerHTML = '天賦配置：' + P.tsets.map((t, i) => `<button type="button" data-tset="${i}" class="${P.tslot === i ? 'on' : ''}">配置 ${i + 1}</button>`).join('') +
+      `<span>${G && G.camp ? '在營地可以免費切換' : '回到營地才能切換'}</span>`;
+    $('talSets').querySelectorAll('[data-tset]').forEach((b) => b.addEventListener('click', () => {
+      const i = +b.dataset.tset; if (i === P.tslot) return;
+      if (!(G && G.camp)) { logMsg('回到營地才能切換天賦配置', '#ff6b6b'); return; }
+      useTalentSet(i); sfx('ui'); logMsg(`切換到天賦配置 ${i + 1}`, '#e9b949'); renderTalents();
+    }));
+  }
+  // ---------- paragon levels 100-150 ----------
+  const PARA = [
+    { k: 'dmg', name: '傷害', max: 15, txt: (n) => `最終傷害 +${n}%` },
+    { k: 'life', name: '生命', max: 15, txt: (n) => `最終生命 +${(1.5 * n).toFixed(1)}%` },
+    { k: 'taken', name: '減傷', max: 10, txt: (n) => `受到的傷害最終 −${(0.5 * n).toFixed(1)}%` },
+    { k: 'atk', name: '攻擊速度', max: 10, txt: (n) => `最終攻擊速度 +${(0.6 * n).toFixed(1)}%` },
+    { k: 'critd', name: '暴擊傷害', max: 10, txt: (n) => `暴擊傷害 +${3 * n}%` },
+    { k: 'move', name: '移動速度', max: 10, txt: (n) => `移動速度 +${n}%` },
+    { k: 'find', name: '尋寶', max: 10, txt: (n) => `金幣與稀有度 +${4 * n}%` },
+  ];
+  const paraSpent = () => Object.values(P.para || {}).reduce((a, v) => a + v, 0);
+  const paraPoints = () => Math.max(0, Math.min(P.lvl, LVL_CAP) - 99 - paraSpent());
+  function renderPara() {
+    const box = $('paraBox');
+    if (P.lvl < 100) { box.innerHTML = `<div class="sub">100 級以後，每升 1 級得到 1 點巔峰點數（等級上限 ${LVL_CAP}，共 ${LVL_CAP - 99} 點）。99 級以後生命與傷害的基礎成長停止，改由巔峰點數決定。</div>`; return; }
+    const pts = paraPoints();
+    box.innerHTML = `<div class="sub">可用巔峰點數：<b>${pts}</b>（已投入 ${paraSpent()} 點，每項有上限，必須取捨；可以隨時免費重置）</div><div class="para-list">` +
+      PARA.map((d) => { const n = P.para[d.k] || 0; return `<div class="para-row"><span><b>${d.name}</b> ${n}/${d.max}<br><small>${d.txt(n)}</small></span><button type="button" data-pm="${d.k}"${n ? '' : ' disabled'}>−</button><button type="button" class="primary" data-pp="${d.k}"${pts && n < d.max ? '' : ' disabled'}>＋</button></div>`; }).join('') +
+      `</div><div class="inv-actions"><button type="button" id="paraReset"${paraSpent() ? '' : ' disabled'}>重置巔峰點數（免費）</button></div>`;
+    box.querySelectorAll('[data-pp]').forEach((b) => b.addEventListener('click', () => { const d = PARA.find((x) => x.k === b.dataset.pp); if (!paraPoints() || (P.para[d.k] || 0) >= d.max) return; P.para[d.k] = (P.para[d.k] || 0) + 1; refreshStats(); renderPara(); }));
+    box.querySelectorAll('[data-pm]').forEach((b) => b.addEventListener('click', () => { const k = b.dataset.pm; if (!P.para[k]) return; P.para[k]--; refreshStats(); renderPara(); }));
+    $('paraReset').addEventListener('click', () => { P.para = {}; refreshStats(); renderPara(); });
+  }
+  function setupEndgame() {
+    P.lvl = Math.min(P.lvl, LVL_CAP);
+    if (P.lvl >= LVL_CAP) P.xp = 0;
+    if (!Array.isArray(P.tsets) || P.tsets.length !== 3) P.tsets = [{ t: P.talents || {}, k: P.kst || {} }, { t: {}, k: {} }, { t: {}, k: {} }];
+    P.tslot = clamp(P.tslot || 0, 0, 2);
+    P.talents = P.tsets[P.tslot].t; P.kst = P.tsets[P.tslot].k;
+    P.para = P.para || {}; P.keyMax = P.keyMax || 1; P.rstone = P.rstone || 0;
+    if (paraSpent() > Math.max(0, P.lvl - 99)) P.para = {};
+  }
+  // keystones, paragon points and boss pieces that change the stat sheet
+  function applyEndgame(s, cls) {
+    const sp = s.specials;
+    if (sp.has('bRock')) { s.armorPct += 40; s.fMove = (s.fMove || 1) * 0.92; }
+    if (!P || P.cls !== cls) return;
+    const pa = P.para || {};
+    s.fDmg *= 1 + 0.01 * (pa.dmg || 0); s.fLife *= 1 + 0.015 * (pa.life || 0); s.fTaken *= 1 - 0.005 * (pa.taken || 0);
+    s.fAtk *= 1 + 0.006 * (pa.atk || 0); s.critDmg += 3 * (pa.critd || 0); s.movePct += pa.move || 0;
+    s.goldFind += 4 * (pa.find || 0); s.magicFind += 4 * (pa.find || 0);
+    if (ks('ksBlood')) { s.lifesteal *= 2; s.potion -= 50; }
+    if (ks('ksFort')) { s.fTaken *= 0.8; s.fMove = (s.fMove || 1) * 0.85; }
+    if (ks('ksGlass')) { s.fDmg *= 1.3; s.fLife *= 0.8; }
+    if (ks('ksSniper')) { s.fAtk *= 0.7; s.fDmg *= 1.6; s.rangePct += 20; }
+  }
+  const liveTakenMul = () => (ks('ksGlacier') && P.shield > 0 ? 0.85 : 1) * (P.dodgeT > 0 ? 0.6 : 1) * (P.coreT > 0 ? 0.8 : 1);
+
+  // ---------- boss-exclusive legendaries: two per boss, both together form a pair bonus ----------
+  const BOSS_LEGS = { skull: ['bSoul', 'bBone'], queen: ['bFang', 'bWeb'], golem: ['bCore', 'bRock'], eye: ['bGaze', 'bRift'] };
+  LEGENDS.push(
+    { key: 'bSoul', slot: 'ring', boss: 'skull', name: '冥王之戒', desc: '【骷髏王專屬】擊殺時疊 1 層「亡魂」（最多 20 層，8 秒沒有擊殺就清空），每層暴擊傷害 +3%。〔冥王之契：同時穿戴白骨壁壘，每層亡魂再讓傷害 +1%〕' },
+    { key: 'bBone', slot: 'armor', boss: 'skull', name: '白骨壁壘', desc: '【骷髏王專屬】生命低於 50% 時，獲得吸收 15% 最大生命的白骨護盾（5 秒，10 秒冷卻）。〔冥王之契：同時穿戴冥王之戒，每層亡魂再讓傷害 +1%〕' },
+    { key: 'bFang', slot: 'gloves', boss: 'queen', name: '毒牙之握', desc: '【蜘蛛女后專屬】攻擊讓敵人中毒，3 秒共造成 30% 武器傷害（最多 3 層）。〔女后之網：同時穿戴蛛絲之靴，毒最多 5 層，且對中毒或被蛛網纏住的敵人傷害 +12%〕' },
+    { key: 'bWeb', slot: 'boots', boss: 'queen', name: '蛛絲之靴', desc: '【蜘蛛女后專屬】衝刺經過的地面留下蛛網 3 秒：敵人減速，在蛛網上受到你的傷害 +15%。〔女后之網：同時穿戴毒牙之握，毒最多 5 層，且對中毒或被蛛網纏住的敵人傷害 +12%〕' },
+    { key: 'bCore', slot: 'belt', boss: 'golem', name: '熔核腰帶', desc: '【熔岩巨像專屬】每被打中 10 次，釋放熔岩爆發，對周圍造成 300% 武器傷害。〔熔岩之心：同時穿戴岩心護甲，只要 6 次就爆發，爆發後 4 秒受到的傷害 −20%〕' },
+    { key: 'bRock', slot: 'armor', boss: 'golem', name: '岩心護甲', desc: '【熔岩巨像專屬】護甲 +40%、移動速度 −8%；被打中時 20% 機率該次傷害減半。〔熔岩之心：同時穿戴熔核腰帶，只要 6 次就爆發，爆發後 4 秒受到的傷害 −20%〕' },
+    { key: 'bGaze', slot: 'amulet', boss: 'eye', name: '虛空凝視', desc: '【虛空之眼專屬】每 6 秒標記附近一隻菁英或魔王，6 秒內牠受到你的傷害 +25%。〔虛空洞察：同時穿戴次元裂隙，對被標記的目標，裂隙觸發率提高到 40%〕' },
+    { key: 'bRift', slot: 'ring', boss: 'eye', name: '次元裂隙', desc: '【虛空之眼專屬】技能命中時 15% 機率讓所有技能剩餘冷卻減半（1 秒內最多一次）。〔虛空洞察：同時穿戴虛空凝視，對被標記的目標觸發率提高到 40%〕' },
+  );
+  for (const l of LEGENDS) LEG[l.key] = l;
+  function makeBossLegend(ilvl, key) {
+    const L = LEG[key], it = makeItem(ilvl, 'rare', L.slot);
+    it.rarity = 'legendary'; rollAffixes(it, ilvl, 'legendary');
+    it.special = key; it.name = L.name; delete it.sockets; rollSockets(it);
+    return it;
+  }
+  // per-target boosts from keystones and boss pieces (only on the player's own hits)
+  function targetMul(e) {
+    let m = 1;
+    if (ks('ksExec') && e.hp < e.maxHp * 0.3) m *= 1.5;
+    if (ks('ksFuse') && e.frozen > 0) m *= 1.4;
+    if (ks('ksMark') && e.markUntil > G.time) m *= 1.15;
+    if (S.specials.has('bGaze') && e.voidUntil > G.time) m *= 1.25;
+    const webbed = e.webUntil > G.time;
+    if (webbed && S.specials.has('bWeb')) m *= 1.15;
+    if (S.specials.has('bFang') && S.specials.has('bWeb') && (webbed || (e.pdots && e.pdots.some((d) => d.kind === 'poison')))) m *= 1.12;
+    return m;
+  }
+  // damage over time on monsters (poison fang, embers): 0.5 s ticks that skip the on-hit procs
+  let dotHit = false;
+  const dotTick = () => (S.min + S.max) / 2 * (1 + S.dmgPct / 100) * (S.fDmg || 1) * 0.1;
+  function addEnemyDot(e, kind, per, ticks, maxStacks) {
+    e.pdots = e.pdots || [];
+    const same = e.pdots.filter((d) => d.kind === kind);
+    if (same.length >= maxStacks) { const o = same.reduce((a, b) => (a.n < b.n ? a : b)); o.n = ticks; o.per = per; return; }
+    e.pdots.push({ kind, per, n: ticks, t: 0.5 });
+  }
+  function tickEnemyDots(dt) {
+    for (const e of G.enemies) {
+      if (e.dead || !e.pdots || !e.pdots.length) continue;
+      for (const d of e.pdots) {
+        d.t -= dt; if (d.t > 0) continue;
+        d.t = 0.5; d.n--;
+        dotHit = true; hitEnemy(e, Math.max(1, Math.round(d.per)), false, e.x, e.y, 0, false); dotHit = false;
+        if (e.dead) break;
+      }
+      e.pdots = e.pdots.filter((d) => d.n > 0);
+    }
+  }
+  function bossLegendOnHit(e, crit) {
+    if (crit && ks('ksMark')) e.markUntil = G.time + 4;
+    if (S.specials.has('bFang') && !e.dead) addEnemyDot(e, 'poison', dotTick() * 0.5, 6, S.specials.has('bWeb') ? 5 : 3);
+    if (skillCtx && S.specials.has('bRift') && !(P.riftCd > 0) && Math.random() < (S.specials.has('bGaze') && e.voidUntil > G.time ? 0.4 : 0.15)) {
+      // applied on the next frame, after the skill that hit has started its own cooldown
+      P.riftCd = 1; P.riftQueued = true;
+      addText('次元裂隙！', P.x, P.y - 30, '#b79cff', 14);
+    }
+  }
+  function coreEruption() {
+    P.coreN = 0;
+    const R = AR(130);
+    fireFx(P.x, P.y, R); shockwave(P.x, P.y, R, 'rgba(255,120,40,0.8)', 0.5, 4); shakeIt(8); sfx('boom');
+    for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - P.x, e.y - P.y) < R + e.r) { const r = rollDamage(3); hitEnemy(e, r.dmg, r.crit, P.x, P.y, 220, false); }
+    if (S.specials.has('bRock')) P.coreT = 4;
+    addText('熔岩爆發！', P.x, P.y - 34, '#ff8a3d', 16);
+  }
+  function endgameTick(dt) {
+    for (const k of ['vengT', 'vengCd', 'phaseT', 'dodgeT', 'coreT', 'riftCd', 'boneCd', 'gazeCd']) if (P[k] > 0) P[k] -= dt;
+    if (P.riftQueued) { P.riftQueued = false; for (let i = 0; i < 3; i++) P.skillCd[i] *= 0.5; }
+    if (P.bsoulT > 0) { P.bsoulT -= dt; if (P.bsoulT <= 0) P.bsoul = 0; }
+    if (S.specials.has('bBone') && P.hp > 0 && P.hp < P.hpMax * 0.5 && !(P.boneCd > 0) && !G.camp) {
+      P.boneCd = 10; P.shield = Math.max(P.shield || 0, Math.round(P.hpMax * 0.15)); P.shieldT = Math.max(P.shieldT || 0, 5);
+      addText('白骨壁壘！', P.x, P.y - 34, '#e8e0c8', 14);
+    }
+    if (S.specials.has('bGaze') && !(P.gazeCd > 0)) {
+      let best = null, bd = 450;
+      for (const e of G.enemies) { if (e.dead || !(e.elite || e.type === 'boss')) continue; const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd) { bd = d; best = e; } }
+      if (best) { best.voidUntil = G.time + 6; P.gazeCd = 6; addText('虛空凝視', best.x, best.y - best.r - 14, '#b79cff', 13); } else P.gazeCd = 0.5;
+    }
+    if (S.specials.has('bWeb') && P.dashT > 0) {
+      if (!P.webAt || Math.hypot(P.x - P.webAt.x, P.y - P.webAt.y) > 26) { P.webAt = { x: P.x, y: P.y }; G.fields.push({ type: 'web', x: P.x, y: P.y, r: 34, life: 3, max: 3 }); }
+    } else P.webAt = null;
+    tickEnemyDots(dt);
+  }
+
+  // ---------- refining and salvage at the blacksmith ----------
+  const SALVAGE = { magic: 1, rare: 3, legendary: 15, set: 15 };
+  const refineStones = (it) => (it.rarity === 'legendary' || it.rarity === 'set' ? 15 : 5);
+  const refineGold = (it) => it.ilvl * 50 * ((it.refN || 0) + 1);
+  let refineOpts = null;
+  function refineHtml(it, inEquip) {
+    if (!isGear(it) || it.rarity === 'common' || !Object.keys(it.aff).length) return '';
+    const st = refineStones(it), gc = refineGold(it), can = (P.rstone || 0) >= st && P.gold >= gc;
+    let h = `<div class="sub-h">精煉詞綴（持有精煉石 ${P.rstone || 0} 顆）</div>`;
+    if (refineOpts && refineOpts.id === it.id) {
+      return h + '<div class="sub">選一個結果（也可以保留原本的數值）：</div><div class="inv-actions">' +
+        refineOpts.opts.map(([k, v], i) => `<button type="button" class="${i ? 'primary' : ''}" data-rpick="${i}">${i ? '' : '保留：'}${AFF[k].label(v)}</button>`).join('') + '</div>';
+    }
+    h += '<div class="inv-actions">' + Object.entries(it.aff).filter(([k]) => AFF[k]).map(([k, v]) => `<button type="button" data-rk="${k}"${(it.refK && it.refK !== k) || !can ? ' disabled' : ''}>精煉「${AFF[k].label(v)}」</button>`).join('') + '</div>';
+    h += `<div class="sub">花 ${st} 顆精煉石＋${gc} 金（每次精煉金幣會增加），重骰一條詞綴：給 2 個新結果和原本的數值三選一，新結果可能是別種詞綴。${it.refK && AFF[it.refK] ? `這件裝備只能精煉「${AFF[it.refK].label(it.aff[it.refK])}」這一條。` : '第一次精煉哪一條，之後就只能精煉那一條。'}</div>`;
+    if (!inEquip && SALVAGE[it.rarity]) h += `<div class="inv-actions"><button type="button" id="salvBtn">分解這件（得到 ${SALVAGE[it.rarity]} 顆精煉石）</button></div>`;
+    return h;
+  }
+  function bindRefine(it) {
+    const det = $('forgeDetail');
+    det.querySelectorAll('[data-rk]').forEach((b) => b.addEventListener('click', () => {
+      const k = b.dataset.rk, st = refineStones(it), gc = refineGold(it);
+      if ((P.rstone || 0) < st || P.gold < gc || (it.refK && it.refK !== k)) return;
+      P.rstone -= st; P.gold -= gc;
+      const others = new Set(Object.keys(it.aff).filter((x) => x !== k));
+      const pool = AFFIXES.filter((a) => a.slots.includes(it.slot) && !others.has(a.k));
+      const q = AFF_FLOOR[it.rarity] || 0;
+      const roll = () => { const a = pick(pool); const [lo, hi] = affRange(a, it.ilvl); return [a.k, ri(Math.floor(lo + (hi - lo) * q), hi)]; };
+      refineOpts = { id: it.id, k, opts: [[k, it.aff[k]], roll(), roll()] };
+      sfx('forge'); renderForge();
+    }));
+    det.querySelectorAll('[data-rpick]').forEach((b) => b.addEventListener('click', () => {
+      if (!refineOpts || refineOpts.id !== it.id) return;
+      const [nk, nv] = refineOpts.opts[+b.dataset.rpick], k = refineOpts.k, aff = {};
+      for (const [kk, vv] of Object.entries(it.aff)) { if (kk === k) aff[nk] = nv; else if (kk !== nk) aff[kk] = vv; }
+      it.aff = aff; it.refK = nk; it.refN = (it.refN || 0) + 1; refineOpts = null;
+      setForgeItem(it); stat('forges'); logMsg('精煉完成', '#e9b949'); forgeFx(); renderForge(); save();
+    }));
+    $('salvBtn')?.addEventListener('click', () => {
+      if (!forgeSel || forgeSel.from !== 'bag' || P.bag[forgeSel.key] !== it) return;
+      const n = SALVAGE[it.rarity] || 0; P.bag.splice(forgeSel.key, 1); P.rstone = (P.rstone || 0) + n;
+      forgeSel = null; refineOpts = null; sfx('forge'); logMsg(`分解得到精煉石 ×${n}`, '#9cd4ff'); renderForge(); save();
+    });
+  }
+  let salvageArm = false;
+  const salvageTargets = () => P.bag.filter((it) => isGear(it) && !it.refN && (it.rarity === 'magic' || it.rarity === 'rare'));
+  function salvageAllHtml() {
+    const list = salvageTargets(), n = list.reduce((a, it) => a + SALVAGE[it.rarity], 0);
+    return `<div class="sub-h">分解（持有精煉石 ${P.rstone || 0} 顆）</div><div class="inv-actions"><button type="button" id="salvAll"${list.length ? '' : ' disabled'}>${salvageArm ? `再按一次確認：分解 ${list.length} 件` : `一鍵分解背包裡的魔法與稀有裝備（${list.length} 件，得到 ${n} 顆）`}</button></div><div class="sub">傳說、套裝和精煉過的裝備不會被一鍵分解，要單獨選擇才能分解（傳說與套裝各 15 顆）。</div>`;
+  }
+  function bindSalvageAll() {
+    $('salvAll')?.addEventListener('click', () => {
+      if (!salvageArm) { salvageArm = true; renderForge(); setTimeout(() => { salvageArm = false; }, 4000); return; }
+      salvageArm = false;
+      const list = new Set(salvageTargets()); let n = 0;
+      for (const it of list) n += SALVAGE[it.rarity];
+      P.bag = P.bag.filter((it) => !list.has(it)); P.rstone = (P.rstone || 0) + n;
+      sfx('forge'); logMsg(`分解了 ${list.size} 件裝備，得到精煉石 ×${n}`, '#9cd4ff'); renderForge(); save();
+    });
+  }
+
+  // ---------- realm key levels ----------
+  const KEY_MAX = 100;
+  const REALM_AFFS = {
+    burst: { name: '爆裂', desc: '怪物死亡 1 秒後爆炸' },
+    enrage: { name: '狂暴', desc: '生命低於 30% 時移速 +40%、傷害 +30%' },
+    vamp: { name: '吸血', desc: '怪物打中你時回復自己 10% 生命' },
+    swift: { name: '急速', desc: '怪物移動速度 +25%' },
+    elites: { name: '菁英大軍', desc: '菁英數量大幅增加' },
+    healer: { name: '治療者', desc: '菁英每 5 秒治療周圍怪物 10% 生命' },
+    lava: { name: '熔岩地面', desc: '每 8 秒在玩家腳下產生火圈' },
+    guard: { name: '堅韌守衛', desc: '菁英周圍的怪物受到的傷害 −30%' },
+  };
+  const realmAff = (k) => !!(G && G.realm && G.realm.affs && G.realm.affs.includes(k));
+  function rollRealmAffs(lv) {
+    const n = lv <= 0 ? 0 : lv < 5 ? 1 : lv < 10 ? 2 : 3;
+    return Object.keys(REALM_AFFS).sort(() => Math.random() - 0.5).slice(0, n);
+  }
+  function applyRealmKey() {
+    const lv = G.realm.lv; if (!lv) return;
+    const hm = Math.pow(1.08, lv), dm = Math.pow(1.05, lv);
+    for (const e of G.enemies) {
+      e.hp *= hm; e.maxHp *= hm; e.dmg *= dm;
+      if (realmAff('swift')) { e.baseSpeed = (e.baseSpeed || e.speed) * 1.25; e.speed = e.baseSpeed; }
+    }
+  }
+  function realmKeyTick(dt) {
+    const R = G.realm; if (!R.lv || NET.mode === 'client') return;
+    const alive = G.enemies.filter((e) => !e.dead);
+    if (realmAff('enrage')) for (const e of alive) if (!e.enraged && e.hp < e.maxHp * 0.3) {
+      e.enraged = true; e.dmg *= 1.3; e.baseSpeed = (e.baseSpeed || e.speed) * 1.4; e.speed = e.baseSpeed;
+      addText('狂暴！', e.x, e.y - e.r - 12, '#ff5a3a', 13);
+    }
+    if (realmAff('healer') && (R.healT = (R.healT || 5) - dt) <= 0) {
+      R.healT = 5;
+      for (const el of alive) if (el.elite) for (const o of alive) if (Math.hypot(o.x - el.x, o.y - el.y) < 150) o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.1);
+    }
+    if (realmAff('guard') && (R.guardT = (R.guardT || 0) - dt) <= 0) {
+      R.guardT = 0.5;
+      const elites = alive.filter((e) => e.elite);
+      for (const e of alive) {
+        if (e.baseArm == null) e.baseArm = e.armorMul || 1;
+        e.armorMul = e.baseArm * (elites.some((el) => el !== e && Math.hypot(el.x - e.x, el.y - e.y) < 150) ? 0.7 : 1);
+      }
+    }
+    if (realmAff('lava') && (R.lavaT = (R.lavaT == null ? 8 : R.lavaT) - dt) <= 0) {
+      R.lavaT = 8;
+      const dmg = alive.length ? alive.reduce((a, e) => a + (e.dmg || 0), 0) / alive.length : 0;
+      if (dmg > 0) for (const t of [P, ...peersHere()]) G.zones.push({ x: t.x, y: t.y, r: 45, t: -1.2, tick: 0, n: 1, mult: 0, hostile: dmg, fire: true, burn: dmg * 0.25 });
+    }
+  }
+
   // ================= talent and rune screen =================
   let talPrev = null;
   function openTalents() {
@@ -7076,7 +7439,8 @@
   function renderTalents() {
     P.talents = P.talents || {}; P.runes = P.runes || {};
     const pts = talentPoints();
-    $('talPoints').textContent = `可用天賦點數：${pts}　（每升 1 級得到 1 點；越深的天賦每級花越多點）`;
+    $('talPoints').textContent = `可用天賦點數：${pts}　（2–99 級每升 1 級得到 1 點，共 98 點；越深的天賦每級花越多點）`;
+    renderTalentSets(); renderPara();
     $('talTrees').innerHTML = TALENTS[P.cls].map((tree, ti) => {
       const spent = treeSpent(tree);
       return `<div class="ttree" style="--tc:${tree.color}"><div class="tname">${tree.tree}<small>已投入 ${spent}</small></div>` +
@@ -7085,8 +7449,15 @@
           const can = !locked && r < max && pts >= cost;
           return `<button type="button" class="tnode${r ? ' has' : ''}${locked ? ' locked' : ''}" data-t="${ti}:${ni}"${can ? '' : ' aria-disabled="true"'}>
             <b>${n.name}</b><span class="rank">${r}/${max}</span><span class="tdesc">${n.desc(Math.max(1, r))}</span><span class="cost">每級 ${cost} 點</span>${locked ? `<span class="need">需要在這條路線投入 ${need} 點</span>` : ''}</button>`;
-        }).join('') + '</div>';
+        }).join('') + keystoneHtml(ti, spent, pts) + '</div>';
     }).join('');
+    $('talTrees').querySelectorAll('[data-ks]').forEach((b) => b.addEventListener('click', () => {
+      const [ti, k] = b.dataset.ks.split(':').map(Number), o = KEYSTONES[P.cls][ti][k], tree = TALENTS[P.cls][ti];
+      P.kst = P.kst || {};
+      if (P.kst[ti] === o.id) return;
+      if (!P.kst[ti] && (talentPoints() < KS_COST || treeSpent(tree) < KS_NEED)) return;
+      P.kst[ti] = o.id; refreshStats(); sfx('magic'); renderTalents();
+    }));
     $('talTrees').querySelectorAll('[data-t]').forEach((b) => b.addEventListener('click', () => {
       const [ti, ni] = b.dataset.t.split(':').map(Number), tree = TALENTS[P.cls][ti], n = tree.nodes[ni];
       if (talentPoints() < TALENT_COST[n.id] || talentRank(n.id) >= (n.max || TALENT_MAX) || (treeSpent(tree) < treeNeed(ni) && !talentRank(n.id))) return;
@@ -7112,7 +7483,7 @@
   }
   $('talReset').addEventListener('click', () => {
     if (P.gold < resetCost()) return;
-    P.gold -= resetCost(); P.talents = {}; refreshStats(); renderTalents(); logMsg('天賦已重置', '#e9b949');
+    P.gold -= resetCost(); clearTalents(); refreshStats(); renderTalents(); logMsg('這一套天賦已重置', '#e9b949');
   });
 
   // ================= achievements and codex screen =================
@@ -7368,14 +7739,14 @@
   }
   $('gemAllBtn').addEventListener('click', () => { combineAllGems(); renderJeweler(); });
   // removing a socketed gem is the jeweler's job, and it is deliberately expensive
-  const GEM_UNSOCK_PRICE = 200000;
+  const GEM_UNSOCK_PRICE = 50000;
   function unsockHtml() {
     const rows = [];
     for (const s2 of SLOTS) { const it = P.equip[s2]; if (it && it.sockets) it.sockets.forEach((gm, k) => { if (gm) rows.push({ it, k, gm, where: `身上・${it.name}` }); }); }
     P.bag.forEach((it) => { if (it.sockets) it.sockets.forEach((gm, k) => { if (gm) rows.push({ it, k, gm, where: `背包・${it.name}` }); }); });
     unsockRows = rows;
     if (!rows.length) return '<span class="sub">身上和背包的裝備都沒有鑲寶石。</span>';
-    return '<div class="gem-list">' + rows.map((r, i) => `<div class="gem-row"><img src="${itemIcon(r.gm).url}" alt=""><span class="gname">${r.gm.name}<br><small class="sub">${r.where}</small></span><button type="button" data-us="${i}"${P.gold < GEM_UNSOCK_PRICE ? ' disabled' : ''}>拆下（200,000 金）</button></div>`).join('') + '</div><div class="sub">拆下的寶石會完整回到背包，裝備的鑲孔會空出來。</div>';
+    return '<div class="gem-list">' + rows.map((r, i) => `<div class="gem-row"><img src="${itemIcon(r.gm).url}" alt=""><span class="gname">${r.gm.name}<br><small class="sub">${r.where}</small></span><button type="button" data-us="${i}"${P.gold < GEM_UNSOCK_PRICE ? ' disabled' : ''}>拆下（${GEM_UNSOCK_PRICE.toLocaleString()} 金）</button></div>`).join('') + '</div><div class="sub">拆下的寶石會完整回到背包，裝備的鑲孔會空出來。</div>';
   }
   let unsockRows = [];
   function bindUnsock(root) {
@@ -7404,10 +7775,6 @@
       if (gemQty(stack) > 1) stack.qty--; else P.bag.splice(gi, 1);
       if (forgeSel.from === 'bag') forgeSel.key = P.bag.indexOf(target);
       refreshStats(); logMsg(`鑲入了${gem.name}`, GEMS[gem.gem].color); sfx('forge'); forgeFx(); renderForge();
-    }));
-    document.querySelectorAll('#forgeDetail [data-unsock]').forEach((b) => b.addEventListener('click', () => {
-      const k = +b.dataset.unsock; if (P.gold < 50 || !canStash(P.bag, it.sockets[k], BAG_MAX)) return;
-      P.gold -= 50; stackInto(P.bag, it.sockets[k], BAG_MAX); it.sockets[k] = null; refreshStats(); sfx('ui'); renderForge();
     }));
     $('ilvlBtn')?.addEventListener('click', () => {
       const t = ilvlTarget(), cost = ilvlCost(it, t); if (t <= it.ilvl || P.gold < cost) return;
@@ -7672,9 +8039,9 @@
     if (!boss && Math.random() < (e.elite ? 0.05 : 0.015)) dropAt(e.x, e.y, { kind: 'coll', c: 'key' });
   }
   // royal (tier 5) gems are a 0.1% find; most gems from the chest are tier 1-3
-  function realmGemTier() {
-    const x = Math.random();
-    return x < 0.001 ? 5 : x < 0.031 ? 4 : x < 0.231 ? 3 : x < 0.631 ? 2 : 1;
+  function realmGemTier(kl = 0) {
+    const x = Math.random(), top = 0.001 * (1 + Math.floor(kl / 10));
+    return x < top ? 5 : x < top + 0.03 ? 4 : x < top + 0.23 ? 3 : x < top + 0.63 ? 2 : 1;
   }
   // some slots have no legendary, so keep rolling until one comes out
   function guaranteedLegendary(ilvl) {
@@ -7691,9 +8058,13 @@
     if (p.realm) {
       // the secret realm's chest: one likely legendary or set piece, one rare or better, plus a handful of gems
       // one guaranteed piece: 45% legendary, 45% set, otherwise rare
-      { const q = Math.random(); dropAt(p.x, p.y, { kind: 'item', item: q < 0.45 ? guaranteedLegendary(lootDepth() + 1) : makeItem(lootDepth() + 1, q < 0.9 ? 'set' : 'rare') }); }
-      dropAt(p.x, p.y, { kind: 'item', item: makeItem(lootDepth() + 1, atLeastRare(rollRarity(3))) });
-      for (let i = 0; i < 4; i++) dropAt(p.x, p.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), realmGemTier()) });
+      // a key level raises the item level (1 per 4 levels, up to +10), adds a legendary every 10 levels and improves the gems
+      const kl = (G.realm && G.realm.lv) || 0, il = lootDepth() + 1 + Math.min(10, Math.floor(kl / 4));
+      { const q = Math.random(); dropAt(p.x, p.y, { kind: 'item', item: q < 0.45 ? guaranteedLegendary(il) : makeItem(il, q < 0.9 ? 'set' : 'rare') }); }
+      dropAt(p.x, p.y, { kind: 'item', item: makeItem(il, atLeastRare(rollRarity(3))) });
+      for (let i = 0; i < Math.floor(kl / 10); i++) dropAt(p.x, p.y, { kind: 'item', item: guaranteedLegendary(il) });
+      for (let i = 0; i < 4; i++) dropAt(p.x, p.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), realmGemTier(kl)) });
+      if (kl > 0 && kl >= (P.keyMax || 1) && (P.keyMax || 1) < KEY_MAX) { P.keyMax = kl + 1; logMsg(`秘境鑰匙等級提升！現在可以挑戰 ${P.keyMax} 級`, '#ffd34d'); levelFx(); submitScore(); }
       dropAt(p.x, p.y, { kind: 'gold', amount: Math.round(ri(40, 60) * goldDepth(G.depth)) });
       dropAt(p.x, p.y, { kind: 'coll', c: 'frag', v: ri(0, 4) });
       if (Math.random() < 0.5) dropAt(p.x, p.y, { kind: 'coll', c: 'stone' });
@@ -7720,6 +8091,7 @@
   function collUpdate(dt) {
     goldRealmUpdate(dt);
     if (G.realm) {
+      realmKeyTick(dt);
       G.realm.t -= dt;
       if (G.realm.t <= 0) { G.realm = null; enterCamp('秘境的時間到了，你被傳送回營地'); }
     }
@@ -7764,23 +8136,27 @@
   $('letterScreen').addEventListener('click', (e) => { if (e.target.id === 'letterScreen') closeLetter(); });
 
   // ---------- secret realm and boss challenges ----------
-  function startRealm() {
+  function startRealm(lv = 0) {
     if (NET.mode === 'client') { logMsg('組隊中由隊長開啟秘境，全隊一起進入', '#9cc7ff'); return; }
     const c = coll(); if (c.realm < 1) return;
     c.realm--; closeOverlay();
+    lv = clamp(Math.floor(+lv) || 0, 0, Math.min(KEY_MAX, P.keyMax || 1));
+    const affs = rollRealmAffs(lv);
     let d = Math.max(1, P.best); if (d % 5 === 0) d = Math.max(1, d - 1);
-    NET.floorKind = 'realm'; genFloor(d); NET.floorKind = null;
-    G.realm = { t: 180, chest: false };
+    NET.floorKind = 'realm'; NET.floorRealm = { lv, affs }; genFloor(d); NET.floorKind = null;
+    G.realm = { t: 180, chest: false, lv, affs };
     const types = [...new Set(G.enemies.map((e) => e.type))].filter((t) => t !== 'boss' && t !== 'goblin');
     const rooms = G.rooms.filter((r) => r !== G.start), extra = Math.round(G.enemies.length * 0.8);
     for (let i = 0; i < extra && types.length; i++) {
       const r = pick(rooms), x = (ri(r.x, r.x + r.w - 1) + 0.5) * TILE, y = (ri(r.y, r.y + r.h - 1) + 0.5) * TILE;
-      spawnEnemy(pick(types), x, y, Math.random() < 0.4);
+      spawnEnemy(pick(types), x, y, Math.random() < (affs.includes('elites') ? 0.8 : 0.4));
     }
+    applyRealmKey();
     scaleRealmHp();
     placeRealmChest();
-    $('floorName').textContent = `秘境・第 ${d} 層`;
+    $('floorName').textContent = `秘境・第 ${d} 層${lv ? `・鑰匙 ${lv} 級` : ''}`;
     logMsg('進入秘境！3 分鐘內打倒怪物、打開出口旁的大寶箱，再走樓梯離開', '#b79cff');
+    if (lv) logMsg(`鑰匙 ${lv} 級：怪物生命 ×${Math.pow(1.08, lv).toFixed(1)}、傷害 ×${Math.pow(1.05, lv).toFixed(1)}；詞綴：${affs.map((k) => REALM_AFFS[k].name).join('、')}`, '#ff8a5a');
     save();
   }
   // the realm's big chest sits beside the way out; every party member gets their own
@@ -7942,8 +8318,9 @@
     const c = coll(), canFrag = c.frag.every((n) => n > 0);
     let h = '<div class="sub-h">古老卷軸碎片 → 秘境卷軸</div><div class="frag-row">' +
       FRAG_NAMES.map((n, i) => `<span class="frag${c.frag[i] ? ' has' : ''}" style="--fc:${FRAG_COLORS[i]}">${n}<b>${c.frag[i]}</b></span>`).join('') + '</div>' +
-      `<div class="inv-actions"><button type="button" data-act="frag"${canFrag ? '' : ' disabled'}>集滿 5 種花紋：合成秘境卷軸</button><button class="primary" type="button" data-act="realm"${c.realm ? '' : ' disabled'}>進入秘境（持有卷軸 ${c.realm}）</button></div>` +
-      '<div class="sub">秘境：怪物更密集、菁英更多，限時 3 分鐘。出口旁的大寶箱保底一件傳說或套裝（各 45%）、一件稀有以上和 4 顆寶石，走樓梯離開。</div>';
+      `<div class="inv-actions"><button type="button" data-act="frag"${canFrag ? '' : ' disabled'}>集滿 5 種花紋：合成秘境卷軸</button><label class="sub">鑰匙等級 <input type="number" id="realmLv" min="0" max="${Math.min(KEY_MAX, P.keyMax || 1)}" step="1" value="${Math.min(P.keyLast || 0, P.keyMax || 1)}" inputmode="numeric" style="width:64px"></label><button class="primary" type="button" data-act="realm"${c.realm ? '' : ' disabled'}>進入秘境（持有卷軸 ${c.realm}）</button></div>` +
+      '<div class="sub">秘境：怪物更密集、菁英更多，限時 3 分鐘。出口旁的大寶箱保底一件傳說或套裝（各 45%）、一件稀有以上和 4 顆寶石，走樓梯離開。</div>' +
+      `<div class="sub">鑰匙等級（0 是一般秘境，最高可選 ${Math.min(KEY_MAX, P.keyMax || 1)} 級，上限 ${KEY_MAX}）：每級怪物生命 ×1.08、傷害 ×1.05，並帶 1–3 個隨機詞綴。限時內打開大寶箱就能挑戰下一級，失敗不會降級。獎勵：每 4 級物品等級 +1（最多 +10）、每 10 級多一件傳說、最高級寶石機率提高。</div>`;
     h += '<div class="sub-h">魔王印記 → 挑戰鑰匙（3 個同種印記）</div><div class="sigil-list">' + BOSSES.map((b) => {
       const n = c.sigil[b.look] || 0, k = c.bkey[b.look] || 0;
       return `<div class="sigil-row"><span>${b.name}</span><small>印記 ${n}・鑰匙 ${k}</small><button type="button" data-sig="${b.look}"${n >= 3 ? '' : ' disabled'}>合成鑰匙</button><button class="primary" type="button" data-ch="${b.look}"${k ? '' : ' disabled'}>挑戰</button></div>`;
@@ -7954,7 +8331,7 @@
     $('scholarBody').innerHTML = h;
     const body = $('scholarBody');
     body.querySelector('[data-act="frag"]').addEventListener('click', () => { if (!c.frag.every((n) => n > 0)) return; c.frag = c.frag.map((n) => n - 1); c.realm++; sfx('magic'); logMsg('合成了一張秘境卷軸', '#b79cff'); save(); renderScholar(); });
-    body.querySelector('[data-act="realm"]').addEventListener('click', startRealm);
+    body.querySelector('[data-act="realm"]').addEventListener('click', () => { const lv = clamp(Math.floor(+$('realmLv').value) || 0, 0, Math.min(KEY_MAX, P.keyMax || 1)); P.keyLast = lv; startRealm(lv); });
     body.querySelector('[data-act="map"]').addEventListener('click', () => {
       if (c.page < 4) return; c.page -= 4;
       const d = clamp(ri(Math.max(1, P.best - 8), P.best + 3), 1, MAX_DEPTH); c.maps.push(d);
@@ -8029,7 +8406,7 @@
     G.netSeed = seed;
     if (NET.mode === 'host') {
       G.netDiff = P.diff || 0;
-      NET.partyFloor = { depth, seed, diff: G.netDiff, kind: NET.floorKind || 'floor', look: NET.floorKind === 'challenge' ? NET.floorLook : null };
+      NET.partyFloor = { depth, seed, diff: G.netDiff, kind: NET.floorKind || 'floor', look: NET.floorKind === 'challenge' ? NET.floorLook : null, rk: NET.floorKind === 'realm' ? NET.floorRealm || null : null };
       netSend(null, { t: 'floor', ...NET.partyFloor });
     } else {
       // teammates take every monster from the host's snapshots
@@ -8061,9 +8438,9 @@
       logMsg(msg || '跟著隊長進入金幣秘境！', '#ffd34d'); save(); return;
     }
     if (f.kind === 'realm') {
-      G.realm = { t: f.t || 180, chest: false };
+      G.realm = { t: f.t || 180, chest: false, lv: (f.rk && f.rk.lv) || 0, affs: (f.rk && f.rk.affs) || [] };
       placeRealmChest();
-      $('floorName').textContent = `秘境・第 ${f.depth} 層`;
+      $('floorName').textContent = `秘境・第 ${f.depth} 層${G.realm.lv ? `・鑰匙 ${G.realm.lv} 級` : ''}`;
       logMsg(msg || '跟著隊長進入秘境！3 分鐘內打開出口旁的大寶箱，再走樓梯離開', '#b79cff'); save(); return;
     }
     if (f.kind === 'challenge') {
@@ -8232,7 +8609,7 @@
       if (m.floor) followFloor(m.floor, `隊伍在第 ${m.floor.depth} 層，前往會合`);
       renderParty();
     } else if (m.t === 'deny') { leaveParty(m.why || '無法加入這個房間'); }
-    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff, kind: m.kind || 'floor', look: m.look || null, t: m.t2 || 0 }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
+    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff, kind: m.kind || 'floor', look: m.look || null, t: m.t2 || 0, rk: m.rk || null }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
     else if (m.t === 'camp') { NET.partyFloor = null; if (mode !== 'dead' && !G.camp) { for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'titleScreen') o.hidden = true; mode = 'play'; enterCamp('隊長帶大家回到了營地'); } }
     else if (m.t === 's') applySnap(m);
     else if (m.t === 'k') { const e = G.enemies.find((x) => x.nid === m.i); if (e && !e.dead) killEnemy(e); }
