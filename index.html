@@ -2489,7 +2489,7 @@
     if (performance.now() - atkDownAt < 220) {
       touch.auto = !touch.auto;
       $('tAtk').classList.toggle('auto', touch.auto); $('tAutoTxt').textContent = touch.auto ? '自動中' : '點一下：自動';
-      logMsg(touch.auto ? '自動攻擊：開（附近有敵人就會自動攻擊）' : '自動攻擊：關', '#e9b949');
+      logMsg(touch.auto ? '自動攻擊：開（附近有敵人或罐子、木桶就會自動攻擊）' : '自動攻擊：關', '#e9b949');
     }
   };
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => $('tAtk').addEventListener(ev, atkUp));
@@ -2579,6 +2579,13 @@
     for (const e of G.enemies) { if (e.dead) continue; const d = Math.hypot(e.x - P.x, e.y - P.y); if (d < bd && los(P, e)) { bd = d; best = e; } }
     return best;
   }
+  // breakable urns and barrels within reach, so touch auto-attack also smashes them when no monster is near
+  const propReach = () => (P.cls === 'warrior' ? S.range + 30 : Math.min(S.range * 0.9, 260));
+  function nearestProp(range) {
+    let best = null, bd = range;
+    for (const p of G.props) { if (p.gone || (p.type !== 'urn' && p.type !== 'barrel')) continue; const d = Math.hypot(p.x - P.x, p.y - P.y); if (d < bd && los(P, p)) { bd = d; best = p; } }
+    return best;
+  }
 
   const usingMouse = () => !isTouch && performance.now() - mouse.last < 4000 && !touch.atk;
   const mouseWorld = () => ({ x: mouse.x / view.scale + cam.x, y: mouse.y / view.scale + cam.y });
@@ -2661,7 +2668,8 @@
 
   function attack() {
     if (P.atkCd > 0 || P.leap) return;
-    P.facing = aimAngle(S.range + 120);
+    const prop = !usingMouse() && !aimOverride && !nearestEnemy(S.range + 120) && nearestProp(propReach());
+    P.facing = prop ? Math.atan2(prop.y - P.y, prop.x - P.x) : aimAngle(S.range + 120);
     P.atkCd = S.period / ((P.hasteT > 0 ? 1.4 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1));
     if (P.cls === 'mage') {
       const sm = P.surge ? 1.8 : 1; P.surge = 0;
@@ -3075,7 +3083,7 @@
       const wx = mouse.x / view.scale + cam.x, wy = mouse.y / view.scale + cam.y;
       P.facing = Math.atan2(wy - P.y, wx - P.x);
     }
-    if ((mouse.down || touch.atk || keys.has('KeyJ') || (touch.auto && P.atkCd <= 0 && nearestEnemy(P.cls === 'warrior' ? S.range + 50 : S.range * 0.9))) && P.spin <= 0) attack();
+    if ((mouse.down || touch.atk || keys.has('KeyJ') || (touch.auto && P.atkCd <= 0 && (nearestEnemy(P.cls === 'warrior' ? S.range + 50 : S.range * 0.9) || nearestProp(propReach())))) && P.spin <= 0) attack();
     updateSwing(dt);
     updateSkills(dt);
     updatePShots(dt);
