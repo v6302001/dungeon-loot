@@ -946,8 +946,9 @@
   const canUse = (it) => !it || it.slot !== 'weapon' || weaponClass(it) === curCls();
   // gear needs a character level of half its item level
   // gems and scrolls live in the bag but are never worn
-  const isGear = (it) => !!it && it.slot !== 'gem' && it.slot !== 'scroll' && it.slot !== 'gmap';
-  const stacks = (it) => it.slot === 'gem' || it.slot === 'scroll' || it.slot === 'gmap';
+  const isGear = (it) => !!it && it.slot !== 'gem' && it.slot !== 'scroll' && it.slot !== 'gmap' && it.slot !== 'rstone';
+  const stacks = (it) => it.slot === 'gem' || it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone';
+  const makeRStone = (qty = 1) => ({ id: uid(), slot: 'rstone', rarity: 'rstone', base: '精煉石', name: '精煉石', ilvl: 1, aff: {}, qty });
   const makeGoldMap = (qty = 1) => ({ id: uid(), slot: 'gmap', rarity: 'gmap', base: '金幣秘境地圖', name: '金幣秘境地圖', ilvl: 1, aff: {}, qty });
   const makeScroll = (qty = 1) => ({ id: uid(), slot: 'scroll', rarity: 'scroll', base: '傳送卷軸', name: '傳送卷軸', ilvl: 1, aff: {}, qty });
   const reqLevel = (it) => (!isGear(it) ? 0 : Math.max(1, Math.floor(it.ilvl / 2)));
@@ -1045,6 +1046,16 @@
     const metal = (x0, y0, x1, y1, a = '#f4f7fb', b = '#5d6574') => { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, a); g.addColorStop(0.5, shadeHex(a, 0.78)); g.addColorStop(1, b); return g; };
     const gold = '#d4a94a';
     c.save();
+    if (it.slot === 'rstone') {
+      c.translate(32, 33);
+      const g = c.createLinearGradient(-12, -18, 12, 18); g.addColorStop(0, '#e6f6ff'); g.addColorStop(0.45, '#7cc8ff'); g.addColorStop(1, '#2a5fa8');
+      c.beginPath(); c.moveTo(0, -20); c.lineTo(13, -8); c.lineTo(10, 14); c.lineTo(0, 20); c.lineTo(-10, 14); c.lineTo(-13, -8); c.closePath();
+      c.fillStyle = g; c.fill(); ol();
+      c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 1.3;
+      c.beginPath(); c.moveTo(0, -20); c.lineTo(0, 20); c.moveTo(-13, -8); c.lineTo(0, -2); c.lineTo(13, -8); c.stroke();
+      c.fillStyle = 'rgba(255,255,255,0.85)'; c.beginPath(); c.moveTo(-7, -9); c.lineTo(-3, -13); c.lineTo(-2, -6); c.closePath(); c.fill();
+      c.restore(); return;
+    }
     if (it.slot === 'gmap') {
       c.translate(32, 32); c.rotate(0.2);
       c.beginPath(); c.moveTo(-18, -13); c.lineTo(-6, -16); c.lineTo(6, -12); c.lineTo(18, -15); c.lineTo(18, 13); c.lineTo(6, 16); c.lineTo(-6, 12); c.lineTo(-18, 15); c.closePath();
@@ -1796,6 +1807,8 @@
     setupEndgame();
     if (!P.gmapGift) { P.gmapGift = 1; if (!stackInto(P.bag, makeGoldMap(1), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeGoldMap(1), 9999); } }
     { const sh = loadShared(); P.stash = sh.stash || []; P.stashGold = sh.stashGold || 0; }
+    // stones used to be a counter: they become an item in the bag, or in the stash when the bag is full
+    if (P.rstone > 0) { const st = makeRStone(P.rstone); if (!stackInto(P.bag, st, BAG_MAX)) stackInto(P.stash, st, 9999); P.rstone = 0; }
     refreshStats();
     P.hp = P.hpMax;
   }
@@ -2114,7 +2127,7 @@
       for (let i = 0; i < 3; i++) dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, rollRarity(4)) });
       // each boss keeps two legendaries of its own: 1.5% on a normal floor, 20% in its challenge
       { const own = BOSS_LEGS[e.variant && e.variant.look]; if (own && Math.random() < (G.challenge ? 0.2 : 0.015)) { dropAt(e.x, e.y, { kind: 'item', item: makeBossLegend(lootDepth() + 1, pick(own)) }); logMsg(`${e.variant.name}掉落了專屬傳說！`, RAR.legendary.color); sfx('legend'); } }
-      { const n = ri(1, 3); P.rstone = (P.rstone || 0) + n; logMsg(`獲得精煉石 ×${n}`, '#9cd4ff'); }
+      dropAt(e.x, e.y, { kind: 'item', item: makeRStone(ri(1, 3)) });
       dropAt(e.x, e.y, { kind: 'potion' }); dropAt(e.x, e.y, { kind: 'potion' });
       G.boss = null;
       stat('bossKills'); { const st = statsOf(); st.bossTypes = [...new Set([...(st.bossTypes || []), e.variant.look])]; }
@@ -4587,12 +4600,12 @@
   function cellHtml(it, sel) {
     if (!it) return '';
     const col = RAR[it.rarity].color;
-    return `<div class="cell${sel ? ' sel' : ''}" style="border-color:${col};background:radial-gradient(circle, ${hexA(col, 0.16)}, var(--panel-2) 70%)"><img src="${itemIcon(it).url}" alt="${it.name}">${it.slot === 'scroll' || it.slot === 'gmap' ? '' : `<span class="lv">${it.ilvl}</span>`}${it.qty > 1 ? `<span class="qty">×${it.qty}</span>` : ''}</div>`;
+    return `<div class="cell${sel ? ' sel' : ''}" style="border-color:${col};background:radial-gradient(circle, ${hexA(col, 0.16)}, var(--panel-2) 70%)"><img src="${itemIcon(it).url}" alt="${it.name}">${it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' ? '' : `<span class="lv">${it.ilvl}</span>`}${it.qty > 1 ? `<span class="qty">×${it.qty}</span>` : ''}</div>`;
   }
   const speedTag = (sp) => (sp < 0.31 ? '很快' : sp < 0.4 ? '快' : sp < 0.52 ? '中' : sp < 0.72 ? '慢' : '很慢');
   function itemLines(it) {
     const r = RAR[it.rarity];
-    let h = `<img class="dicon" src="${itemIcon(it).url}" alt="" style="border-color:${r.color}"><div class="nm" style="color:${r.color}">${it.name}</div><div class="sub">${it.slot === 'gmap' ? `秘境地圖${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'scroll' ? `消耗品${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'gem' ? `寶石 · 第 ${it.tier} 級${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` :`${r.name}${SLOT_NAME[it.slot]} · ${it.base} · 物品等級 ${it.ilvl}`}</div>`;
+    let h = `<img class="dicon" src="${itemIcon(it).url}" alt="" style="border-color:${r.color}"><div class="nm" style="color:${r.color}">${it.name}</div><div class="sub">${it.slot === 'rstone' ? `材料${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` : it.slot === 'gmap' ? `秘境地圖${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'scroll' ? `消耗品${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'gem' ? `寶石 · 第 ${it.tier} 級${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` :`${r.name}${SLOT_NAME[it.slot]} · ${it.base} · 物品等級 ${it.ilvl}`}</div>`;
     if (isGear(it)) { const rq = reqLevel(it); h += `<div style="color:${levelOk(it) ? 'var(--muted)' : '#ff6b6b'}">需要等級 ${rq}${levelOk(it) ? '' : `（目前 ${P.lvl} 級）`}</div>`; }
     if (it.slot === 'weapon') { const wc = weaponClass(it); h += `<div style="color:${wc === curCls() ? CLASSES[wc].color : '#ff6b6b'}">${CLASSES[wc].name}武器${wc === curCls() ? '' : '（目前職業無法裝備）'}</div>`; }
     if (it.bq && (it.min || it.armor)) h += `<div class="rng">基礎品質 ${Math.round(it.bq * 100)}%（85–115%）</div>`;
@@ -4601,6 +4614,7 @@
     if (BELT_POT[it.base]) h += `<div>藥水上限 +${BELT_POT[it.base]}</div>`;
     for (const [k, v] of Object.entries(it.aff)) { const [lo, hi] = affRange(AFF[k], it.ilvl); h += `<div class="aff">${AFF[k].label(v)}<span class="rng">（${lo}–${hi}）</span></div>`; }
     if (it.special) h += `<div class="leg">${LEG[it.special].desc}</div>`;
+    if (it.slot === 'rstone') h += '<div class="aff">在營地的鐵匠精煉裝備詞綴時使用（要放在背包裡）。分解裝備或打倒魔王可以取得。可以放進倉庫。</div>';
     if (it.slot === 'gmap') h += '<div class="aff">回到營地，走進金色的「金幣秘境傳送門」就會用掉一張，進入 3 分鐘的金幣秘境。放在背包或倉庫都可以。</div>';
     if (it.slot === 'scroll') h += '<div class="aff">使用後回到營地，營火旁會出現回程傳送門；走進去就能回到使用時的位置（只能回去一次）。</div><div class="sub">在背包點兩下，或選取後按「使用」。</div>';
     h += socketLines(it);
@@ -4683,7 +4697,7 @@
       const cur = !isGear(it) ? null : P.equip[targetSlot(it)];
       if (cur) h += `<div class="cmp"><div class="sub">目前裝備</div>${itemLines(cur)}</div>`;
       const twoRings = it.slot === 'ring' && P.equip.ring && P.equip.ring2;
-      h += it.slot === 'gmap'
+      h += it.slot === 'gmap' || it.slot === 'rstone'
         ? `<div class="inv-actions"><button id="sellBtn" type="button">賣出（${itemValue(it)} 金）</button></div>`
         : it.slot === 'scroll'
         ? `<div class="inv-actions"><button class="primary" id="useBtn" type="button"${G.camp || G.realm || G.challenge || G.goldRealm || G.trialRealm ? ' disabled' : ''}>使用</button><button id="sellBtn" type="button">賣出（${itemValue(it)} 金）</button></div>${G.camp ? '<div class="sub">傳送卷軸要在地窟裡使用。</div>' : G.realm || G.challenge || G.goldRealm || G.trialRealm ? '<div class="sub">秘境和魔王挑戰裡不能使用。</div>' : ''}`
@@ -4758,6 +4772,7 @@
     if (it.slot === 'gem') { logMsg('寶石要到營地的鐵匠那裡鑲嵌', '#9a8fa6'); return; }
     if (it.slot === 'scroll') { closeInv(); useScroll(); return; }
     if (it.slot === 'gmap') { logMsg('金幣秘境地圖要到營地，走進金幣秘境傳送門使用', '#ffd34d'); return; }
+    if (it.slot === 'rstone') { logMsg('精煉石要到營地的鐵匠那裡精煉裝備時使用', '#9cd4ff'); return; }
     if (!canUse(it)) { logMsg(`這是${CLASSES[weaponClass(it)].name}的武器，${CLASSES[P.cls].name}不能裝備`, '#ff6b6b'); return; }
     if (!levelOk(it)) { logMsg(`需要等級 ${reqLevel(it)} 才能裝備 ${it.name}`, '#ff6b6b'); return; }
     sfx('ui');
@@ -4775,7 +4790,7 @@
     P.gold += itemValue(it); P.bag.splice(i, 1); selected = null; renderInv();
   }
   $('buyPotBtn').addEventListener('click', () => { if (P.gold >= 50 && P.potions < potMax()) { P.gold -= 50; P.potions++; renderInv(); } });
-  const RAR_ORDER = { legendary: 0, set: 1, rare: 2, magic: 3, common: 4, gem: 5, scroll: 6, gmap: 7 };
+  const RAR_ORDER = { legendary: 0, set: 1, rare: 2, magic: 3, common: 4, gem: 5, scroll: 6, gmap: 7, rstone: 8 };
   // one filter shared by the bag and the stash
   function itemMatch(it, f) {
     if (!it) return false;
@@ -4787,12 +4802,12 @@
     if (f === 'ring') return it.slot === 'ring' || it.slot === 'ring2';
     return it.slot === f;
   }
-  const SORT_SLOTS = [...ITEM_SLOTS, 'gem', 'scroll', 'gmap'], CLS_ORDER = ['warrior', 'mage', 'archer'];
+  const SORT_SLOTS = [...ITEM_SLOTS, 'gem', 'scroll', 'gmap', 'rstone'], CLS_ORDER = ['warrior', 'mage', 'archer'];
   const byQuality = (a, b) => (RAR_ORDER[a.rarity] ?? 9) - (RAR_ORDER[b.rarity] ?? 9) || (b.slot === 'gem' && a.slot === 'gem' ? a.gem.localeCompare(b.gem) || b.tier - a.tier : 0) || b.ilvl - a.ilvl;
   // by body part: weapons first (grouped by class), then armour pieces, jewellery and gems
   const sortBySlot = (a, b) => SORT_SLOTS.indexOf(a.slot) - SORT_SLOTS.indexOf(b.slot) || (a.slot === 'weapon' ? CLS_ORDER.indexOf(weaponClass(a)) - CLS_ORDER.indexOf(weaponClass(b)) : 0) || byQuality(a, b);
   // by class: each class's weapons, then gear anyone can wear, then gems
-  const clsGroup = (it) => (it.slot === 'weapon' ? CLS_ORDER.indexOf(weaponClass(it)) : it.slot === 'gem' ? 4 : it.slot === 'scroll' || it.slot === 'gmap' ? 5 : 3);
+  const clsGroup = (it) => (it.slot === 'weapon' ? CLS_ORDER.indexOf(weaponClass(it)) : it.slot === 'gem' ? 4 : it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' ? 5 : 3);
   const sortByCls = (a, b) => clsGroup(a) - clsGroup(b) || SORT_SLOTS.indexOf(a.slot) - SORT_SLOTS.indexOf(b.slot) || byQuality(a, b);
   $('bagFilter').addEventListener('change', () => { selected = null; renderInv(); });
   // select everything the filter shows, then confirm the sale in the multi-sell panel
@@ -5207,8 +5222,8 @@
     const det = $('forgeDetail'), it = forgeItem();
     // gems have no item level: show only gem actions, not the blacksmith's upgrade line about raising item level
     if (it && it.slot === 'gem') { det.innerHTML = itemLines(it) + forgeExtraHtml(it); bindForgeExtra(it); return; }
-    if (it && (it.slot === 'scroll' || it.slot === 'gmap')) { det.innerHTML = itemLines(it) + '<div class="sub">這個物品不能強化。</div>'; return; }
-    if (!it) { det.innerHTML = salvageAllHtml() + upgradeHtml('smith') + '<div class="sub-h">寶石合成</div><span class="sub">寶石合成請找營地裡的<b>寶石商人</b>（傳送門左邊）。</span>' + '<div class="sub-h">鍛造</div><span class="sub">選一件裝備或寶石。<br><b>鑲嵌</b>：把寶石放進裝備的鑲孔。<br><b>打孔</b>：為魔法以上的裝備增加鑲孔，失敗只扣金幣。<br><b>提升等級</b>：把裝備升到目前樓層的物品等級。<br><b>重鑄</b>：保留稀有度，重新隨機所有詞綴。<br><b>強化</b>：普通變魔法、魔法變稀有，並重新產生詞綴。<br><b>精煉</b>：花精煉石重骰一條詞綴，三選一。<br><b>分解</b>：把背包裡的裝備拆成精煉石。</span>'; bindUpgrade(det, renderForge); bindSalvageAll(); return; }
+    if (it && (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone')) { det.innerHTML = itemLines(it) + '<div class="sub">這個物品不能強化。</div>'; return; }
+    if (!it) { det.innerHTML = salvageAllHtml() + upgradeHtml('smith') + '<div class="sub-h">寶石合成</div><span class="sub">寶石合成請找營地裡的<b>寶石商人</b>（傳送門左邊）。</span>' + '<div class="sub-h">鍛造</div><span class="sub">選一件裝備或寶石。<br><b>鑲嵌</b>：把寶石放進裝備的鑲孔。<br><b>打孔</b>：為魔法以上的裝備增加鑲孔，失敗只扣金幣。<br><b>提升等級</b>：把裝備升到目前樓層的物品等級。<br><b>重鑄</b>：保留稀有度，重新隨機所有詞綴。<br><b>強化</b>：普通變魔法、魔法變稀有，並重新產生詞綴。<br><b>精煉</b>：花精煉石重骰一條詞綴，三選一。<br><b>分解</b>：把背包裡的裝備拆成精煉石，可以依物品等級、顏色、傳說或套裝篩選。</span>'; bindUpgrade(det, renderForge); bindSalvageAll(); return; }
     const rc = rerollCost(it), next = NEXT_RAR[it.rarity], uc = next ? upgradeCost(it) : 0;
     let h = itemLines(it);
     h += '<div class="inv-actions">';
@@ -5928,6 +5943,7 @@
   RAR.gem = { name: '寶石', color: '#f0d8ff', mult: 3 };
   RAR.scroll = { name: '消耗品', color: '#7fb8ff', mult: 150 };
   RAR.gmap = { name: '秘境地圖', color: '#ffd34d', mult: 100 };
+  RAR.rstone = { name: '精煉石', color: '#9cd4ff', mult: 5 };
   const SETS = [
     { id: 'frost', name: '冰霜之王', slots: ['helm', 'armor', 'gloves', 'boots'], b2: { fTaken: -10, lifePct: 10 }, b2d: '受到的傷害最終 −10%、生命 +10%',
       b3: 'setFrostNova', b3d: '受到攻擊時 25% 機率自動施放「冰霜新星」：120% 範圍傷害並冰凍 2 秒（6 秒冷卻）',
@@ -5997,7 +6013,7 @@
     return { id: uid(), slot: 'gem', gem: type, tier, rarity: 'gem', ilvl: tier, aff: {}, base: g.name, name: GEM_TIER[tier - 1] + g.name };
   }
   // gems of the same type and tier share one bag slot, counted by qty
-  function sameGem(a, b) { return a !== b && ((a.slot === 'gem' && b.slot === 'gem' && a.gem === b.gem && a.tier === b.tier) || (a.slot === 'scroll' && b.slot === 'scroll') || (a.slot === 'gmap' && b.slot === 'gmap')); }
+  function sameGem(a, b) { return a !== b && ((a.slot === 'gem' && b.slot === 'gem' && a.gem === b.gem && a.tier === b.tier) || (a.slot === 'scroll' && b.slot === 'scroll') || (a.slot === 'gmap' && b.slot === 'gmap') || (a.slot === 'rstone' && b.slot === 'rstone')); }
   function gemQty(g) { return g.qty || 1; }
   function canStash(arr, it, max) { return arr.length < max || (stacks(it) && arr.some((g) => sameGem(g, it))); }
   function stackInto(arr, it, max) {
@@ -6755,7 +6771,7 @@
     if (d.kind !== 'item') return true;
     const it = d.item;
     if (it.slot === 'gem') return CFG.pick.gem;
-    if (it.slot === 'scroll' || it.slot === 'gmap') return true;
+    if (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone') return true;
     if (it.slot === 'weapon' && !CFG.pick.otherCls && weaponClass(it) !== curCls()) return false;
     return CFG.pick[it.rarity] !== false;
   }
@@ -7223,7 +7239,7 @@
     if (!Array.isArray(P.tsets) || P.tsets.length !== 3) P.tsets = [{ t: P.talents || {}, k: P.kst || {} }, { t: {}, k: {} }, { t: {}, k: {} }];
     P.tslot = clamp(P.tslot || 0, 0, 2);
     P.talents = P.tsets[P.tslot].t; P.kst = P.tsets[P.tslot].k;
-    P.para = P.para || {}; P.keyMax = P.keyMax || 1; P.rstone = P.rstone || 0;
+    P.para = P.para || {}; P.keyMax = P.keyMax || 1;
     if (paraSpent() > Math.max(0, P.lvl - 99)) P.para = {};
   }
   // keystones, paragon points and boss pieces that change the stat sheet
@@ -7337,8 +7353,8 @@
   let refineOpts = null;
   function refineHtml(it, inEquip) {
     if (!isGear(it) || it.rarity === 'common' || !Object.keys(it.aff).length) return '';
-    const st = refineStones(it), gc = refineGold(it), can = (P.rstone || 0) >= st && P.gold >= gc;
-    let h = `<div class="sub-h">精煉詞綴（持有精煉石 ${P.rstone || 0} 顆）</div>`;
+    const st = refineStones(it), gc = refineGold(it), can = rstoneCount() >= st && P.gold >= gc;
+    let h = `<div class="sub-h">精煉詞綴（背包裡的精煉石 ${rstoneCount()} 顆）</div>`;
     if (refineOpts && refineOpts.id === it.id) {
       return h + '<div class="sub">選一個結果（也可以保留原本的數值）：</div><div class="inv-actions">' +
         refineOpts.opts.map(([k, v], i) => `<button type="button" class="${i ? 'primary' : ''}" data-rpick="${i}">${i ? '' : '保留：'}${AFF[k].label(v)}</button>`).join('') + '</div>';
@@ -7352,8 +7368,8 @@
     const det = $('forgeDetail');
     det.querySelectorAll('[data-rk]').forEach((b) => b.addEventListener('click', () => {
       const k = b.dataset.rk, st = refineStones(it), gc = refineGold(it);
-      if ((P.rstone || 0) < st || P.gold < gc || (it.refK && it.refK !== k)) return;
-      P.rstone -= st; P.gold -= gc;
+      if (rstoneCount() < st || P.gold < gc || (it.refK && it.refK !== k)) return;
+      takeRStones(st); P.gold -= gc;
       const others = new Set(Object.keys(it.aff).filter((x) => x !== k));
       const pool = AFFIXES.filter((a) => a.slots.includes(it.slot) && !others.has(a.k));
       const q = AFF_FLOOR[it.rarity] || 0;
@@ -7370,24 +7386,62 @@
     }));
     $('salvBtn')?.addEventListener('click', () => {
       if (!forgeSel || forgeSel.from !== 'bag' || P.bag[forgeSel.key] !== it) return;
-      const n = SALVAGE[it.rarity] || 0; P.bag.splice(forgeSel.key, 1); P.rstone = (P.rstone || 0) + n;
+      const n = salvageItems([it]); if (!n) return;
       forgeSel = null; refineOpts = null; sfx('forge'); logMsg(`分解得到精煉石 ×${n}`, '#9cd4ff'); renderForge(); save();
     });
   }
+  const rstoneCount = () => P.bag.reduce((n, x) => n + (x.slot === 'rstone' ? x.qty || 1 : 0), 0);
+  function takeRStones(n) {
+    for (let i = P.bag.length - 1; i >= 0 && n > 0; i--) {
+      const x = P.bag[i]; if (x.slot !== 'rstone') continue;
+      const k = Math.min(n, x.qty || 1); n -= k; x.qty = (x.qty || 1) - k;
+      if (x.qty <= 0) P.bag.splice(i, 1);
+    }
+  }
+  // removes the given bag items, hands back their socketed gems and adds the stones; returns the stones gained
+  function salvageItems(list) {
+    const gone = new Set(list); let n = 0;
+    const gems = [];
+    for (const it of list) { n += SALVAGE[it.rarity] || 0; for (const g of it.sockets || []) if (g) gems.push(g); }
+    P.bag = P.bag.filter((x) => !gone.has(x));
+    for (const g of gems) if (!stackInto(P.bag, g, BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, g, 9999); }
+    if (n && !stackInto(P.bag, makeRStone(n), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeRStone(n), 9999); logMsg('背包滿了，精煉石放進了倉庫', '#9cd4ff'); }
+    return n;
+  }
+  // batch salvage filter: item level range, colours, and which legendaries and sets are included
+  const SALV_RAR = [['magic', '魔法'], ['rare', '稀有'], ['legendary', '傳說'], ['set', '套裝']];
+  const salvF = { lo: 1, hi: 999, rar: { magic: true, rare: true, legendary: false, set: false }, skip: new Set(), refined: false };
   let salvageArm = false;
-  const salvageTargets = () => P.bag.filter((it) => isGear(it) && !it.refN && (it.rarity === 'magic' || it.rarity === 'rare'));
+  const salvKey = (it) => (it.rarity === 'set' ? 'S:' + it.set : it.rarity === 'legendary' ? 'L:' + it.special : '');
+  const salvName = (k) => (k[0] === 'S' ? (SET[k.slice(2)] ? SET[k.slice(2)].name : '套裝') : LEG[k.slice(2)] ? LEG[k.slice(2)].name : '傳說');
+  const salvageTargets = () => P.bag.filter((it) => isGear(it) && SALVAGE[it.rarity] && salvF.rar[it.rarity] && it.ilvl >= salvF.lo && it.ilvl <= salvF.hi
+    && (salvF.refined || !it.refN) && !(salvKey(it) && salvF.skip.has(salvKey(it))));
   function salvageAllHtml() {
+    const gear = P.bag.filter((it) => isGear(it) && SALVAGE[it.rarity]);
     const list = salvageTargets(), n = list.reduce((a, it) => a + SALVAGE[it.rarity], 0);
-    return `<div class="sub-h">分解（持有精煉石 ${P.rstone || 0} 顆）</div><div class="inv-actions"><button type="button" id="salvAll"${list.length ? '' : ' disabled'}>${salvageArm ? `再按一次確認：分解 ${list.length} 件` : `一鍵分解背包裡的魔法與稀有裝備（${list.length} 件，得到 ${n} 顆）`}</button></div><div class="sub">傳說、套裝和精煉過的裝備不會被一鍵分解，要單獨選擇才能分解（傳說與套裝各 15 顆）。</div>`;
+    const names = [...new Set(gear.filter((it) => salvKey(it) && salvF.rar[it.rarity]).map(salvKey))].sort();
+    const cnt = (k) => gear.filter((it) => salvKey(it) === k).length;
+    let h = `<div class="sub-h">批量分解（背包裡的精煉石 ${rstoneCount()} 顆）</div>` +
+      `<div class="sub">物品等級 <input type="number" id="salvLo" min="1" max="999" value="${salvF.lo}" inputmode="numeric" style="width:60px"> ～ <input type="number" id="salvHi" min="1" max="999" value="${salvF.hi}" inputmode="numeric" style="width:60px"></div>` +
+      '<div class="sub">' + SALV_RAR.map(([r, nm]) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sr="${r}"${salvF.rar[r] ? ' checked' : ''}> <span style="color:${RAR[r].color}">${nm}</span>（${gear.filter((it) => it.rarity === r).length}）</label>`).join('') + '</div>';
+    if (names.length) h += '<div class="sub">要分解的傳說與套裝（取消勾選就會保留）：<br>' + names.map((k) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sk="${k}"${salvF.skip.has(k) ? '' : ' checked'}> <span style="color:${RAR[k[0] === 'S' ? 'set' : 'legendary'].color}">${salvName(k)}</span>×${cnt(k)}</label>`).join('') + '</div>';
+    h += `<div class="sub"><label><input type="checkbox" id="salvRef"${salvF.refined ? ' checked' : ''}> 也分解精煉過的裝備</label></div>`;
+    h += `<div class="inv-actions"><button type="button" class="${salvageArm ? 'primary' : ''}" id="salvAll"${list.length ? '' : ' disabled'}>${salvageArm ? `再按一次確認：分解 ${list.length} 件` : `分解符合條件的 ${list.length} 件（得到 ${n} 顆精煉石）`}</button></div>`;
+    h += '<div class="sub">只分解背包裡的裝備，穿在身上的不會被分解。裝備上鑲嵌的寶石會退回背包。分解得到：魔法 1 顆、稀有 3 顆、傳說與套裝各 15 顆。</div>';
+    return h;
   }
   function bindSalvageAll() {
+    const det = $('forgeDetail'), re = () => { salvageArm = false; renderForge(); };
+    $('salvLo')?.addEventListener('change', (e) => { salvF.lo = clamp(Math.floor(+e.target.value) || 1, 1, 999); re(); });
+    $('salvHi')?.addEventListener('change', (e) => { salvF.hi = clamp(Math.floor(+e.target.value) || 999, 1, 999); re(); });
+    det.querySelectorAll('[data-sr]').forEach((b) => b.addEventListener('change', () => { salvF.rar[b.dataset.sr] = b.checked; re(); }));
+    det.querySelectorAll('[data-sk]').forEach((b) => b.addEventListener('change', () => { if (b.checked) salvF.skip.delete(b.dataset.sk); else salvF.skip.add(b.dataset.sk); re(); }));
+    $('salvRef')?.addEventListener('change', (e) => { salvF.refined = e.target.checked; re(); });
     $('salvAll')?.addEventListener('click', () => {
-      if (!salvageArm) { salvageArm = true; renderForge(); setTimeout(() => { salvageArm = false; }, 4000); return; }
+      if (!salvageArm) { salvageArm = true; renderForge(); setTimeout(() => { if (salvageArm) { salvageArm = false; if (mode === 'forge' && !forgeSel) renderForge(); } }, 4000); return; }
       salvageArm = false;
-      const list = new Set(salvageTargets()); let n = 0;
-      for (const it of list) n += SALVAGE[it.rarity];
-      P.bag = P.bag.filter((it) => !list.has(it)); P.rstone = (P.rstone || 0) + n;
-      sfx('forge'); logMsg(`分解了 ${list.size} 件裝備，得到精煉石 ×${n}`, '#9cd4ff'); renderForge(); save();
+      const list = salvageTargets(), n = salvageItems(list);
+      sfx('forge'); logMsg(`分解了 ${list.length} 件裝備，得到精煉石 ×${n}`, '#9cd4ff'); renderForge(); save();
     });
   }
 
