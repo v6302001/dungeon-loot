@@ -2470,6 +2470,16 @@
     el.addEventListener('pointerdown', (e) => { e.preventDefault(); on(); });
     if (off) { el.addEventListener('pointerup', off); el.addEventListener('pointerleave', off); el.addEventListener('pointercancel', off); }
   };
+  // touch buttons act on finger-down, so the lift that follows lands on whatever window just opened
+  // under the finger (the dragon's "leave" button, a floor number): ignore taps on a window for a
+  // moment after it appears
+  let overlayShownAt = 0;
+  new MutationObserver((ms) => { for (const m of ms) if (m.target.classList && m.target.classList.contains('overlay') && !m.target.hidden) overlayShownAt = performance.now(); })
+    .observe(document.body, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+  addEventListener('click', (e) => {
+    if (e.detail === 0 || performance.now() - overlayShownAt > 450) return;
+    if (e.target.closest && e.target.closest('.overlay')) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
   const buzz = () => { if (CFG.haptic !== false && navigator.vibrate) try { navigator.vibrate(8); } catch (e) { /* not supported */ } };
   // attack: hold to swing, a quick tap toggles auto-attack
   let atkDownAt = 0;
