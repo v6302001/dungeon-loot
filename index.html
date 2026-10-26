@@ -351,7 +351,7 @@
   .pick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
   .pick-grid .cell, .stash-grid .cell { width: 100%; height: auto; aspect-ratio: 1; }
   .pick-grid .cell img, .stash-grid .cell img { width: 88%; height: 88%; }
-  .stash { max-width: 640px; padding: 18px; display: grid; gap: 10px; }
+  .stash { max-width: 640px; padding: 18px; display: grid; gap: 10px; overflow-anchor: none; }
   .stash .count { font-family: var(--font-body); font-size: 12px; color: var(--muted); letter-spacing: 0; }
   .stash .sub { font-size: 12px; color: var(--muted); }
   .stash-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 5px; }
@@ -5116,6 +5116,8 @@
   // ---------- stash ----------
   function openStash() { mode = 'stash'; mouse.down = false; P.stash = P.stash || []; renderStash(); renderStashGold(); $('stashScreen').hidden = false; }
   function renderStash() {
+    // rebuilding the grids must not move the window: keep the scroll position across the re-render
+    const pane = $('stashScreen').querySelector('.panel'), keepTop = pane.scrollTop;
     const cells = (arr, max, from) => {
       let h = '';
       for (let i = 0; i < max; i++) h += arr[i] ? cellHtml(arr[i], false).replace('<div class="cell', `<div data-from="${from}" data-i="${i}" class="cell`) : '<div class="cell empty"></div>';
@@ -5150,6 +5152,7 @@
       else if (stackInto(P.bag, P.stash[i], BAG_MAX)) P.stash.splice(i, 1);
       renderStash();
     }));
+    pane.scrollTop = keepTop;
   }
   // gold kept in the stash survives death
   function renderStashGold() {
