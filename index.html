@@ -539,7 +539,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v101</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v102</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -799,7 +799,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v101</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v102</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -1841,7 +1841,7 @@
     setupEndgame();
     if (!P.gmapGift) { P.gmapGift = 1; if (!stackInto(P.bag, makeGoldMap(1), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeGoldMap(1), 9999); } }
     { const sh = loadShared(); P.stash = sh.stash || []; P.stashGold = sh.stashGold || 0; }
-    for (const it of [...P.bag, ...Object.values(P.equip || {}), ...P.stash]) if (it && it.set === 'dragon') it.rarity = 'lset';
+    for (const it of [...P.bag, ...Object.values(P.equip || {}), ...P.stash]) if (it && it.set === 'dragon') { it.rarity = 'lset'; it.sockets = it.sockets || []; while (it.sockets.length < 3) it.sockets.push(null); }
     // stones used to be a counter: they become an item in the bag, or in the stash when the bag is full
     if (P.rstone > 0) { const st = makeRStone(P.rstone); if (!stackInto(P.bag, st, BAG_MAX)) stackInto(P.stash, st, 9999); P.rstone = 0; }
     refreshStats();
@@ -8058,7 +8058,7 @@
         else h += `<div class="sock-row"><span class="gemdot empty"></span>空的鑲孔${gems.length ? gems.map((g) => `<button type="button" data-sock="${k}:${g.id}" title="${gemText(g)}"><span class="gemdot" style="background:${GEMS[g.gem].color}"></span>${g.name}${gemQty(g) > 1 ? ` ×${gemQty(g)}` : ''}</button>`).join('') : '<span class="sub">（背包裡沒有寶石）</span>'}</div>`;
       });
     }
-    const maxS = it.rarity === 'legendary' ? 3 : 2, cur = it.sockets ? it.sockets.length : 0, pc = punchCost(it);
+    const maxS = it.rarity === 'legendary' || it.rarity === 'lset' ? 3 : 2, cur = it.sockets ? it.sockets.length : 0, pc = punchCost(it);
     const t = ilvlTarget();
     if ((it.min || it.armor) && t > it.ilvl) { const c2 = ilvlCost(it, t); h += `<div class="inv-actions"><button id="ilvlBtn" type="button"${P.gold < c2 ? ' disabled' : ''}>提升物品等級 ${it.ilvl} → ${t}（${c2} 金）</button></div><div class="sub">只提升武器傷害或護甲，詞綴不變。最高到目前最深樓層的物品等級，而且不會超過你的等級能穿的上限。</div>`; }
     if (!SOCKET_SLOTS.has(it.slot)) h += '<div class="sub">戒指和項鍊不能有鑲孔。</div>';
@@ -8705,7 +8705,7 @@
   function makeDragonPiece(ilvl, slot) {
     const it = makeItem(ilvl, 'rare', slot);
     it.rarity = 'lset'; it.set = 'dragon'; it.name = SET.dragon.pieceNames[slot];
-    rollAffixes(it, ilvl, 'set'); delete it.sockets; rollSockets(it);
+    rollAffixes(it, ilvl, 'set'); it.sockets = [null, null, null];
     return it;
   }
   function trialReward(e) {
