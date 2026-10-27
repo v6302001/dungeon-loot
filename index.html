@@ -253,6 +253,11 @@
   .sigil-row button, .scholar .inv-actions button { padding: 6px 10px; font-size: 13px; }
   .letter-card { max-width: 460px; }
   .transfer { max-width: 560px; }
+  .cloud-form { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; align-items: center; margin: 8px 0; }
+  .cloud-form input { width: 100%; }
+  .cloud-code { font: 700 30px/1.2 ui-monospace, Consolas, monospace; letter-spacing: 6px; color: var(--gold); text-align: center; padding: 10px; border: 1px dashed var(--gold); border-radius: 8px; margin: 8px 0; user-select: all; -webkit-user-select: all; }
+  .cloud-pick { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 8px 0; }
+  .cloud-pick > div { border: 1px solid var(--line); border-radius: 8px; padding: 8px; font-size: 13px; }
   .party { max-width: 500px; }
   .party input { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px; font: inherit; }
   .party-code { font: 700 26px/1 monospace; color: var(--gold); letter-spacing: 0.12em; margin: 0 8px; }
@@ -534,7 +539,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v99</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v100</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -564,6 +569,7 @@
       <button id="rankBtn" type="button">排行榜</button>
       <button id="titleSetBtn" type="button">設定</button>
       <button id="transferBtn" type="button">存檔搬家</button>
+      <button id="cloudBtn" type="button">雲端存檔</button>
     </div>
     <p class="muted" id="saveNote">三個欄位各自獨立存檔（等級、裝備、背包、身上金幣分開），倉庫的物品和金幣由三個角色共用。進度會自動存在這台裝置的瀏覽器裡。</p>
   </div>
@@ -685,6 +691,14 @@
     <div class="row"><button id="transferClose" type="button">關閉</button></div>
   </div>
 </div>
+<div class="overlay" id="cloudScreen" hidden>
+  <div class="panel card transfer">
+    <h2 class="pick-title">雲端存檔</h2>
+    <div id="cloudBody"></div>
+    <p class="sub" id="cloudMsg"></p>
+    <div class="row"><button id="cloudClose" type="button">關閉</button></div>
+  </div>
+</div>
 <div class="overlay" id="dragonTalk" hidden>
   <div class="panel card dragon-talk">
     <h2 class="pick-title">火龍</h2>
@@ -785,7 +799,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v99</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v100</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -1800,6 +1814,7 @@
         tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0,
       }));
     } catch (e) { /* storage unavailable: play continues without saving */ }
+    try { cloudTouch(); } catch (e) { /* cloud sync not ready yet */ }
   }
   function loadSave(slot = saveSlot) {
     try {
@@ -7243,6 +7258,198 @@
 
 
 
+
+  // ================= cloud save: an account keeps the same progress on every device =================
+  const CLOUD_KEY = 'dungeon-loot-cloud', CLOUD_BACKUP = 'dungeon-loot-cloud-backup', CLOUD_EVERY = 60000;
+  // the three slots, the shared stash and the leaderboard identity travel; settings stay with each device
+  const cloudKeys = () => [...Array.from({ length: SLOT_COUNT }, (_, i) => slotKey(i)), SHARED_KEY, LOCAL_SCORES, PID_KEY, PID_SECRET_KEY];
+  const cloudOn = () => !window.claude && !!SUPABASE_KEY;
+  function cloudState() { try { return JSON.parse(localStorage.getItem(CLOUD_KEY) || 'null') || {}; } catch (e) { return {}; } }
+  function cloudSet(o) { try { localStorage.setItem(CLOUD_KEY, JSON.stringify(o)); } catch (e) { /* storage unavailable */ } }
+  const CLOUD_ERR = {
+    wrong: '帳號、密碼或救援碼不正確', locked: '輸入錯誤太多次，請 10 分鐘後再試', taken: '這個帳號名稱已經有人使用',
+    bad_account: '帳號要 4–20 個英文字母或數字', bad_password: '密碼要 6–64 個字', too_big: '存檔太大，無法上傳',
+    auth: '這台裝置的登入已失效，請重新登入', net: '連不到雲端：請確認網路連線（或還沒在 Supabase 執行雲端存檔的 SQL）',
+  };
+  async function cloudRpc(fn, args) {
+    let r;
+    try { r = await sbFetch('rpc/' + fn, { method: 'POST', body: JSON.stringify(args) }); } catch (e) { throw Object.assign(new Error('net'), { code: 'net' }); }
+    const txt = await r.text(); let v = null;
+    try { v = txt ? JSON.parse(txt) : null; } catch (e) { v = txt; }
+    if (!r.ok) { const m = String((v && v.message) || ''); throw Object.assign(new Error(m), { code: Object.keys(CLOUD_ERR).find((k) => m.includes(k)) || 'net' }); }
+    if (v && v.error) throw Object.assign(new Error(v.error), { code: v.error });
+    return v;
+  }
+  function cloudPack() {
+    const data = {};
+    try { for (const k of cloudKeys()) { const v = localStorage.getItem(k); if (v !== null) data[k] = v; } } catch (e) { /* storage unavailable */ }
+    return { v: 1, data };
+  }
+  function cloudSummary(data) {
+    return Array.from({ length: SLOT_COUNT }, (_, i) => {
+      try { const sv = JSON.parse((data || {})[slotKey(i)] || 'null'); return sv ? `欄位 ${i + 1}：${CLASSES[sv.cls || 'warrior'].name} ${sv.lvl} 級・最深第 ${sv.best || 1} 層` : `欄位 ${i + 1}：空的`; }
+      catch (e) { return `欄位 ${i + 1}：無法讀取`; }
+    }).join('<br>');
+  }
+  // a fingerprint of what would be uploaded, so re-saving unchanged data never counts as new progress
+  function cloudHash() { const t = JSON.stringify(cloudPack().data); let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36) + ':' + t.length; }
+  const cloudChanged = (st) => !!st.dirty && cloudHash() !== st.hash;
+  const localHasSaves = () => { try { return Array.from({ length: SLOT_COUNT }, (_, i) => localStorage.getItem(slotKey(i))).some(Boolean); } catch (e) { return false; } };
+  // writes a cloud copy into this browser; whatever it replaces is kept once as a backup
+  function cloudApply(pack, rev) {
+    try {
+      localStorage.setItem(CLOUD_BACKUP, JSON.stringify({ t: Date.now(), ...cloudPack() }));
+      for (const k of cloudKeys()) localStorage.removeItem(k);
+      for (const [k, v] of Object.entries((pack && pack.data) || {})) if (cloudKeys().includes(k)) localStorage.setItem(k, v);
+    } catch (e) { return false; }
+    const st = cloudState(); Object.assign(st, { rev, dirty: false, at: Date.now(), hash: cloudHash() }); cloudSet(st);
+    return true;
+  }
+  const cloudMsg = (txt, ok) => { const m = $('cloudMsg'); if (!m) return; m.textContent = txt; m.className = 'sub ' + (ok ? 'ok' : 'bad'); };
+  let cloudTimer = null, cloudBusy = false, cloudSeq = 0;
+  function cloudTouch() {
+    if (!cloudOn()) return;
+    cloudSeq++;
+    const st = cloudState(); if (!st.token) return;
+    if (!st.dirty) { st.dirty = true; cloudSet(st); }
+    if (!cloudTimer) cloudTimer = setTimeout(() => { cloudTimer = null; cloudUpload(false); }, CLOUD_EVERY);
+  }
+  async function cloudUpload(force) {
+    const st = cloudState(); if (!st.token || cloudBusy) return;
+    cloudBusy = true; const seq = cloudSeq, sentHash = cloudHash();
+    try {
+      const r = await cloudRpc('cloud_save', { p_account: st.account, p_token: st.token, p_data: cloudPack(), p_base: st.rev || 0, p_force: !!force });
+      if (r && r.ok) { const s2 = cloudState(); Object.assign(s2, { rev: r.rev, dirty: cloudSeq !== seq, at: Date.now(), hash: sentHash }); cloudSet(s2); if (!$('cloudScreen').hidden) renderCloud(); }
+      else if (r) cloudConflict();
+    } catch (e) { if (e.code === 'auth') cloudDrop(); else if (!$('cloudScreen').hidden) cloudMsg(CLOUD_ERR[e.code] || CLOUD_ERR.net, false); }
+    cloudBusy = false;
+  }
+  function cloudDrop() { const st = cloudState(); cloudSet({ lastAccount: st.account }); logMsg('雲端存檔的登入已失效，請到「雲端存檔」重新登入', '#ff6b6b'); }
+  const onTitle = () => mode === 'title' && !menuFromCamp;
+  // at start-up: take a newer cloud copy before a slot is chosen, or send this device's unsent progress
+  async function cloudBoot() {
+    if (!cloudOn()) return;
+    const st = cloudState(); if (!st.token) return;
+    try {
+      const h = await cloudRpc('cloud_head', { p_account: st.account, p_token: st.token });
+      if (h.rev > (st.rev || 0) && !st.force) {
+        if (cloudChanged(st) || !onTitle()) { cloudConflict(); return; }
+        const l = await cloudRpc('cloud_load', { p_account: st.account, p_token: st.token });
+        if (onTitle() && cloudApply(l.data, l.rev)) location.reload();
+      } else if (cloudChanged(st) || st.force || h.rev < (st.rev || 0)) { const f = st.force || h.rev < (st.rev || 0); if (st.force) { delete st.force; cloudSet(st); } cloudUpload(f); }
+    } catch (e) { if (e.code === 'auth') cloudDrop(); }
+  }
+  addEventListener('visibilitychange', () => {
+    if (!document.hidden || !cloudOn()) return;
+    if (P && mode === 'play') save();
+    const st = cloudState(); if (st.token && cloudChanged(st)) { clearTimeout(cloudTimer); cloudTimer = null; cloudUpload(false); }
+  });
+
+  // ---------- the cloud window ----------
+  let cloudView = null; // null = normal, { code } = show a rescue code, { cloud } = choose between two copies
+  function openCloud() { cloudView = null; cloudMsg('', true); renderCloud(); $('cloudScreen').hidden = false; }
+  $('cloudBtn').addEventListener('click', openCloud);
+  $('cloudClose').addEventListener('click', () => { $('cloudScreen').hidden = true; });
+  async function cloudConflict() {
+    const st = cloudState();
+    try {
+      const l = await cloudRpc('cloud_load', { p_account: st.account, p_token: st.token });
+      cloudView = { cloud: l }; renderCloud(); $('cloudScreen').hidden = false;
+    } catch (e) { if (e.code === 'auth') cloudDrop(); }
+  }
+  // after logging in on a device: decide which copy to keep
+  async function cloudAfterLogin() {
+    const st = cloudState();
+    const l = await cloudRpc('cloud_load', { p_account: st.account, p_token: st.token });
+    if (!l.rev) { st.rev = 0; st.dirty = true; cloudSet(st); await cloudUpload(false); cloudMsg('已登入，這台裝置的進度已上傳到雲端。', true); renderCloud(); return; }
+    if (!localHasSaves()) { if (cloudApply(l.data, l.rev)) { cloudMsg('已登入並載入雲端進度，重新整理中……', true); setTimeout(() => location.reload(), 800); } return; }
+    cloudView = { cloud: l }; renderCloud();
+  }
+  function renderCloud() {
+    const body = $('cloudBody'), st = cloudState();
+    if (!cloudOn()) { body.innerHTML = '<div class="sub">雲端存檔只在 GitHub 網頁版提供。在 Claude 裡遊玩時，請用「存檔搬家」。</div>'; return; }
+    let h = '';
+    if (cloudView && cloudView.code) {
+      h = `<div class="sub-h">你的救援碼</div><div class="cloud-code">${cloudView.code}</div>` +
+        '<div class="sub">忘記密碼時，要用「帳號＋救援碼」設定新密碼。請抄下來或截圖保存，不要給別人。之前的救援碼已經失效。</div>' +
+        '<div class="row"><button type="button" id="cCopy">複製救援碼</button><button class="primary" type="button" id="cDone">我已經存好了</button></div>';
+    } else if (cloudView && cloudView.cloud) {
+      const c = cloudView.cloud;
+      h = '<div class="sub-h">雲端和這台裝置的進度不同，要保留哪一份？</div><div class="cloud-pick">' +
+        `<div><b>雲端（第 ${c.rev} 版，${c.at ? new Date(c.at).toLocaleString() : ''}）</b><br>${cloudSummary(c.data && c.data.data)}</div>` +
+        `<div><b>這台裝置</b><br>${cloudSummary(cloudPack().data)}</div></div>` +
+        '<div class="row"><button class="primary" type="button" id="cUseCloud">用雲端的</button><button type="button" id="cUseLocal">用這台的（覆蓋雲端）</button></div>' +
+        '<div class="sub">沒選到的那一份會先自動備份在這台裝置，之後可以在這裡還原一次。</div>';
+    } else if (st.token) {
+      h = `<div class="sub">已登入帳號 <b>${escapeHtml(st.account)}</b>　雲端第 ${st.rev || 0} 版${st.at ? `・上次同步 ${new Date(st.at).toLocaleString()}` : ''}${cloudChanged(st) ? '・<span style="color:#ff8a5a">有尚未上傳的進度</span>' : ''}</div>` +
+        '<div class="sub">進度會在存檔時自動上傳（最多每 60 秒一次），切換或關閉網頁時也會上傳；打開遊戲時會先檢查雲端有沒有比較新的進度。</div>' +
+        '<div class="row"><button class="primary" type="button" id="cSync">立即同步</button><button type="button" id="cRescueNew">重新產生救援碼</button></div>' +
+        '<div class="row"><button type="button" id="cLogout">登出這台裝置</button><button type="button" id="cLogoutAll">登出所有裝置</button>' +
+        (localStorage.getItem(CLOUD_BACKUP) ? '<button type="button" id="cRestore">還原被取代的存檔</button>' : '') + '</div>';
+    } else {
+      h = '<div class="sub">用帳號密碼把進度存在雲端，電腦、手機、平板都能接著玩。帳號 4–20 個英文字母或數字，密碼至少 6 個字。請不要使用其他網站的密碼。</div>' +
+        `<div class="cloud-form"><label for="cAcc">帳號</label><input id="cAcc" autocomplete="username" maxlength="20" value="${escapeHtml(st.lastAccount || '')}"><label for="cPass">密碼</label><input id="cPass" type="password" autocomplete="current-password" maxlength="64"></div>` +
+        '<div class="row"><button class="primary" type="button" id="cLogin">登入</button><button type="button" id="cRegister">建立帳號</button></div>' +
+        '<div class="sub-h">忘記密碼</div><div class="sub">輸入上面的帳號，再填建立帳號時拿到的 6 碼救援碼和新密碼。</div>' +
+        '<div class="cloud-form"><label for="cRescue">救援碼</label><input id="cRescue" maxlength="6" autocomplete="off" style="text-transform:uppercase"><label for="cNew">新密碼</label><input id="cNew" type="password" autocomplete="new-password" maxlength="64"></div>' +
+        '<div class="row"><button type="button" id="cReset">用救援碼設定新密碼</button></div>';
+    }
+    body.innerHTML = h;
+    const busy = (fn) => async () => { cloudMsg('處理中……', true); try { await fn(); } catch (e) { cloudMsg(CLOUD_ERR[e.code] || CLOUD_ERR.net, false); if (e.code === 'auth') { cloudDrop(); renderCloud(); } } };
+    const acc = () => ($('cAcc').value || '').trim().toLowerCase();
+    $('cCopy')?.addEventListener('click', async () => { try { await navigator.clipboard.writeText(cloudView.code); cloudMsg('已複製救援碼', true); } catch (e) { cloudMsg('無法自動複製，請手動抄下來', false); } });
+    $('cDone')?.addEventListener('click', busy(async () => { const next = cloudView.after; cloudView = null; renderCloud(); cloudMsg('', true); if (next) await next(); }));
+    $('cRegister')?.addEventListener('click', busy(async () => {
+      const r = await cloudRpc('cloud_register', { p_account: acc(), p_pass: $('cPass').value });
+      cloudSet({ account: acc(), token: r.token, rev: 0, dirty: true });
+      cloudView = { code: r.rescue, after: async () => { await cloudUpload(false); cloudMsg('帳號已建立，這台裝置的進度已上傳到雲端。', true); renderCloud(); } };
+      renderCloud(); cloudMsg('帳號已建立', true);
+    }));
+    $('cLogin')?.addEventListener('click', busy(async () => {
+      const r = await cloudRpc('cloud_login', { p_account: acc(), p_pass: $('cPass').value });
+      cloudSet({ account: acc(), token: r.token, rev: 0, dirty: false });
+      await cloudAfterLogin();
+    }));
+    $('cReset')?.addEventListener('click', busy(async () => {
+      const r = await cloudRpc('cloud_reset', { p_account: acc(), p_rescue: ($('cRescue').value || '').trim().toUpperCase(), p_pass: $('cNew').value });
+      cloudSet({ account: acc(), token: r.token, rev: 0, dirty: false });
+      cloudView = { code: r.rescue, after: cloudAfterLogin };
+      renderCloud(); cloudMsg('新密碼已設定，其他裝置都已登出。這是新的救援碼：', true);
+    }));
+    $('cSync')?.addEventListener('click', busy(async () => {
+      if (P && mode !== 'title') save(); else if (P && menuFromCamp) save();
+      const h2 = await cloudRpc('cloud_head', { p_account: st.account, p_token: st.token });
+      if (h2.rev > (st.rev || 0)) { await cloudConflict(); cloudMsg('雲端有比較新的進度', true); return; }
+      const s2 = cloudState(); s2.dirty = true; cloudSet(s2); await cloudUpload(false); cloudMsg('已同步到雲端', true);
+    }));
+    $('cRescueNew')?.addEventListener('click', busy(async () => {
+      const code = await cloudRpc('cloud_new_rescue', { p_account: st.account, p_token: st.token });
+      cloudView = { code }; renderCloud(); cloudMsg('已產生新的救援碼，舊的失效了', true);
+    }));
+    const logout = (all) => busy(async () => {
+      await cloudRpc('cloud_logout', { p_account: st.account, p_token: st.token, p_all: all });
+      cloudSet({ lastAccount: st.account }); renderCloud(); cloudMsg(all ? '所有裝置都已登出' : '這台裝置已登出（本機存檔仍然保留）', true);
+    });
+    $('cLogout')?.addEventListener('click', logout(false));
+    $('cLogoutAll')?.addEventListener('click', logout(true));
+    $('cRestore')?.addEventListener('click', () => {
+      let b = null; try { b = JSON.parse(localStorage.getItem(CLOUD_BACKUP) || 'null'); } catch (e) { b = null; }
+      if (!b) return;
+      askConfirm('還原被取代的存檔', `會把這台裝置的進度換回 ${new Date(b.t).toLocaleString()} 被取代前的那一份，並上傳覆蓋雲端：<br><br>${cloudSummary(b.data)}`, '確定還原', () => {
+        try { for (const k of cloudKeys()) localStorage.removeItem(k); for (const [k, v] of Object.entries(b.data || {})) if (cloudKeys().includes(k)) localStorage.setItem(k, v); localStorage.removeItem(CLOUD_BACKUP); } catch (e) { return; }
+        const s2 = cloudState(); s2.dirty = true; s2.force = true; cloudSet(s2); location.reload();
+      });
+    });
+    $('cUseCloud')?.addEventListener('click', () => {
+      const c = cloudView.cloud;
+      askConfirm('使用雲端進度', '這台裝置目前的進度會被雲端那份取代（會先自動備份一份），然後重新整理遊戲。', '用雲端的', () => { if (cloudApply(c.data, c.rev)) location.reload(); });
+    });
+    $('cUseLocal')?.addEventListener('click', busy(async () => {
+      const s2 = cloudState(); s2.rev = cloudView.cloud.rev; s2.dirty = true; cloudSet(s2);
+      cloudView = null; await cloudUpload(true); cloudMsg('已用這台裝置的進度覆蓋雲端', true); renderCloud();
+    }));
+  }
+
   // ================= endgame: paragon, keystones, loadouts, boss legendaries, refining, realm keys =================
   // ---------- keystone talents: one of two at the end of each tree ----------
   const KS_COST = 5, KS_NEED = 15;
@@ -9206,6 +9413,7 @@
       }
     } catch (err) { console.error(err); }
   }
+  cloudBoot();
   requestAnimationFrame(frame);
 })();
 </script>
