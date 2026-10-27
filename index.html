@@ -539,7 +539,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v100</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v101</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -736,7 +736,7 @@
     <div class="stash-tools">
       <button type="button" data-ssort="slot">整理：依部位</button><button type="button" data-ssort="cls">整理：依職業</button>
       <label for="stashFilter" class="sub">顯示</label>
-      <select id="stashFilter"><option value="all">全部</option><optgroup label="品質"><option value="rar:set">套裝</option><option value="rar:legendary">傳說</option><option value="rar:rare">稀有</option><option value="rar:magic">魔法</option><option value="rar:common">普通</option></optgroup><optgroup label="部位"><option value="weapon">武器</option><option value="helm">頭盔</option><option value="armor">護甲</option><option value="gloves">手套</option><option value="belt">腰帶</option><option value="boots">靴子</option><option value="ring">戒指</option><option value="amulet">項鍊</option><option value="gem">寶石</option></optgroup><optgroup label="職業武器"><option value="cls:warrior">戰士武器</option><option value="cls:mage">法師武器</option><option value="cls:archer">弓手武器</option></optgroup><optgroup label="其他"><option value="nouse">目前不能裝備</option><option value="noup">不比身上強</option></optgroup></select>
+      <select id="stashFilter"><option value="all">全部</option><optgroup label="品質"><option value="rar:lset">傳說套裝</option><option value="rar:set">套裝</option><option value="rar:legendary">傳說</option><option value="rar:rare">稀有</option><option value="rar:magic">魔法</option><option value="rar:common">普通</option></optgroup><optgroup label="部位"><option value="weapon">武器</option><option value="helm">頭盔</option><option value="armor">護甲</option><option value="gloves">手套</option><option value="belt">腰帶</option><option value="boots">靴子</option><option value="ring">戒指</option><option value="amulet">項鍊</option><option value="gem">寶石</option></optgroup><optgroup label="職業武器"><option value="cls:warrior">戰士武器</option><option value="cls:mage">法師武器</option><option value="cls:archer">弓手武器</option></optgroup><optgroup label="其他"><option value="nouse">目前不能裝備</option><option value="noup">不比身上強</option></optgroup></select>
     </div>
     <div class="stash-grid" id="stashGrid"></div>
     <div class="shop-head"><h3>背包 <span class="count" id="stashBagCount"></span></h3></div>
@@ -799,7 +799,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v100</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v101</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -829,7 +829,7 @@
     </div>
     <div>
       <h3>背包 <span class="muted" id="bagCount" style="font-family:var(--font-body);font-size:12px;color:var(--muted)"></span></h3>
-      <div class="stash-tools"><label for="bagFilter" class="sub">篩選</label><select id="bagFilter"><option value="all">全部</option><optgroup label="品質"><option value="rar:set">套裝</option><option value="rar:legendary">傳說</option><option value="rar:rare">稀有</option><option value="rar:magic">魔法</option><option value="rar:common">普通</option></optgroup><optgroup label="部位"><option value="weapon">武器</option><option value="helm">頭盔</option><option value="armor">護甲</option><option value="gloves">手套</option><option value="belt">腰帶</option><option value="boots">靴子</option><option value="ring">戒指</option><option value="amulet">項鍊</option><option value="gem">寶石</option></optgroup><optgroup label="職業武器"><option value="cls:warrior">戰士武器</option><option value="cls:mage">法師武器</option><option value="cls:archer">弓手武器</option></optgroup><optgroup label="其他"><option value="nouse">目前不能裝備</option><option value="noup">不比身上強</option></optgroup></select><button id="bagSellFilter" type="button" hidden>一鍵賣出篩選結果</button></div>
+      <div class="stash-tools"><label for="bagFilter" class="sub">篩選</label><select id="bagFilter"><option value="all">全部</option><optgroup label="品質"><option value="rar:lset">傳說套裝</option><option value="rar:set">套裝</option><option value="rar:legendary">傳說</option><option value="rar:rare">稀有</option><option value="rar:magic">魔法</option><option value="rar:common">普通</option></optgroup><optgroup label="部位"><option value="weapon">武器</option><option value="helm">頭盔</option><option value="armor">護甲</option><option value="gloves">手套</option><option value="belt">腰帶</option><option value="boots">靴子</option><option value="ring">戒指</option><option value="amulet">項鍊</option><option value="gem">寶石</option></optgroup><optgroup label="職業武器"><option value="cls:warrior">戰士武器</option><option value="cls:mage">法師武器</option><option value="cls:archer">弓手武器</option></optgroup><optgroup label="其他"><option value="nouse">目前不能裝備</option><option value="noup">不比身上強</option></optgroup></select><button id="bagSellFilter" type="button" hidden>一鍵賣出篩選結果</button></div>
       <div class="bag" id="bagGrid"></div>
       <div class="inv-actions">
         <button id="sortBtn" type="button">整理</button>
@@ -1066,7 +1066,7 @@
     const col = RAR[it.rarity].color;
     const trim = it.rarity === 'common' ? '#9a8f80' : col;
     const bg = c.createRadialGradient(32, 32, 2, 32, 32, 34);
-    bg.addColorStop(0, hexA(col, it.rarity === 'common' ? 0.1 : it.rarity === 'legendary' ? 0.45 : 0.28));
+    bg.addColorStop(0, hexA(col, it.rarity === 'common' ? 0.1 : it.rarity === 'legendary' || it.rarity === 'lset' ? 0.45 : 0.28));
     bg.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = bg; c.fillRect(0, 0, 64, 64);
     c.lineJoin = 'round'; c.lineCap = 'round';
@@ -1295,9 +1295,9 @@
       }
     }
     c.restore();
-    if (it.rarity === 'legendary' || it.rarity === 'rare') {
-      const stars = it.rarity === 'legendary' ? [[10, 12, 4], [54, 50, 3], [52, 12, 2.5]] : [[52, 12, 2.5]];
-      c.fillStyle = it.rarity === 'legendary' ? '#fff3c4' : hexA(col, 0.9);
+    if (it.rarity === 'legendary' || it.rarity === 'lset' || it.rarity === 'rare') {
+      const stars = it.rarity !== 'rare' ? [[10, 12, 4], [54, 50, 3], [52, 12, 2.5]] : [[52, 12, 2.5]];
+      c.fillStyle = it.rarity !== 'rare' ? '#fff3c4' : hexA(col, 0.9);
       for (const [x, y, s] of stars) { c.beginPath(); c.moveTo(x, y - s * 2); c.lineTo(x + s * 0.5, y - s * 0.5); c.lineTo(x + s * 2, y); c.lineTo(x + s * 0.5, y + s * 0.5); c.lineTo(x, y + s * 2); c.lineTo(x - s * 0.5, y + s * 0.5); c.lineTo(x - s * 2, y); c.lineTo(x - s * 0.5, y - s * 0.5); c.closePath(); c.fill(); }
     }
   }
@@ -1841,6 +1841,7 @@
     setupEndgame();
     if (!P.gmapGift) { P.gmapGift = 1; if (!stackInto(P.bag, makeGoldMap(1), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeGoldMap(1), 9999); } }
     { const sh = loadShared(); P.stash = sh.stash || []; P.stashGold = sh.stashGold || 0; }
+    for (const it of [...P.bag, ...Object.values(P.equip || {}), ...P.stash]) if (it && it.set === 'dragon') it.rarity = 'lset';
     // stones used to be a counter: they become an item in the bag, or in the stash when the bag is full
     if (P.rstone > 0) { const st = makeRStone(P.rstone); if (!stackInto(P.bag, st, BAG_MAX)) stackInto(P.stash, st, 9999); P.rstone = 0; }
     refreshStats();
@@ -2248,6 +2249,7 @@
     G.drops.push({ ...d, x: dx, y: dy, t: 0 });
     if (d.kind === 'item' && d.item.rarity === 'legendary') { logMsg(`傳說物品掉落了！`, RAR.legendary.color); sfx('legend'); }
     if (d.kind === 'item' && d.item.rarity === 'set') { logMsg(`套裝物品掉落了！`, RAR.set.color); sfx('legend'); }
+    if (d.kind === 'item' && d.item.rarity === 'lset') { logMsg(`傳說套裝掉落了！`, RAR.lset.color); sfx('legend'); }
   }
 
   function die() {
@@ -3204,7 +3206,7 @@
           gainColl(d); d.taken = true;
         } else if (d.kind === 'item') {
           if (stackInto(P.bag, d.item, BAG_MAX)) {
-            d.taken = true; codexAdd(d.item); sfx(d.item.rarity === 'legendary' || d.item.rarity === 'set' ? 'chest' : 'pickup');
+            d.taken = true; codexAdd(d.item); sfx(d.item.rarity === 'legendary' || d.item.rarity === 'set' || d.item.rarity === 'lset' ? 'chest' : 'pickup');
             logMsg(`撿到 ${RAR[d.item.rarity].name}：${d.item.name}`, RAR[d.item.rarity].color);
             if (isGear(d.item)) suggestUpgrade(d.item);
             save();
@@ -3532,7 +3534,7 @@
     for (const s2 of G.pshots) { if (s2.kind === 'fireball') light(s2.x, s2.y, 130, 0.9); else if (s2.kind === 'bolt') light(s2.x, s2.y, 75, 0.7); }
     for (const s2 of G.shots) light(s2.x, s2.y, 40, 0.5);
     for (const z of G.zones) light(z.x, z.y, z.r + 20, 0.45);
-    for (const d of G.drops) if (d.kind === 'item' && d.item.rarity !== 'common' && seenAt(d.x, d.y)) light(d.x, d.y, d.item.rarity === 'legendary' ? 80 : 46, 0.6);
+    for (const d of G.drops) if (d.kind === 'item' && d.item.rarity !== 'common' && seenAt(d.x, d.y)) light(d.x, d.y, d.item.rarity === 'legendary' || d.item.rarity === 'lset' ? 80 : 46, 0.6);
     if (!G.boss && G.seen[G.stairs.y * MW + G.stairs.x]) light((G.stairs.x + 0.5) * TILE, (G.stairs.y + 0.5) * TILE, 70, 0.7);
     if (G.boss && seenAt(G.boss.x, G.boss.y)) light(G.boss.x, G.boss.y, 90, 0.5);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -4855,7 +4857,7 @@
     P.gold += itemValue(it); P.bag.splice(i, 1); selected = null; renderInv();
   }
   $('buyPotBtn').addEventListener('click', () => { if (P.gold >= 50 && P.potions < potMax()) { P.gold -= 50; P.potions++; renderInv(); } });
-  const RAR_ORDER = { legendary: 0, set: 1, rare: 2, magic: 3, common: 4, gem: 5, scroll: 6, gmap: 7, rstone: 8, dcrystal: 9 };
+  const RAR_ORDER = { lset: -1, legendary: 0, set: 1, rare: 2, magic: 3, common: 4, gem: 5, scroll: 6, gmap: 7, rstone: 8, dcrystal: 9 };
   // one filter shared by the bag and the stash
   function itemMatch(it, f) {
     if (!it) return false;
@@ -5265,16 +5267,16 @@
   // ---------- blacksmith ----------
   let forgeSel = null; // { from: 'bag'|'equip', key }
   const NEXT_RAR = { common: 'magic', magic: 'rare' };
-  const RAR_MUL = { common: 1, magic: 1, rare: 2, legendary: 4, set: 3, gem: 1 };
+  const RAR_MUL = { common: 1, magic: 1, rare: 2, legendary: 4, set: 3, lset: 5, gem: 1 };
   const rerollCost = (it) => Math.round((30 + it.ilvl * 15) * RAR_MUL[it.rarity]);
   const upgradeCost = (it) => (it.rarity === 'common' ? 40 + it.ilvl * 10 : 150 + it.ilvl * 40);
   function openForge() { mode = 'forge'; mouse.down = false; forgeSel = null; renderForge(); $('forgeScreen').hidden = false; }
   function forgeItem() { if (!forgeSel) return null; return forgeSel.from === 'bag' ? P.bag[forgeSel.key] : P.equip[forgeSel.key]; }
   function setForgeItem(it) { if (forgeSel.from === 'bag') P.bag[forgeSel.key] = it; else { P.equip[forgeSel.key] = it; refreshStats(); } }
   function reforged(old, rarity) {
-    const it = makeItem(old.ilvl, rarity === 'set' ? 'rare' : rarity, old.slot, old.base);
+    const it = makeItem(old.ilvl, rarity === 'set' || rarity === 'lset' ? 'rare' : rarity, old.slot, old.base);
     it.id = old.id; if (old.sockets) it.sockets = old.sockets;
-    if (old.set) { it.set = old.set; it.rarity = 'set'; it.name = old.name; rollAffixes(it, it.ilvl, 'set'); }
+    if (old.set) { it.set = old.set; it.rarity = old.rarity; it.name = old.name; rollAffixes(it, it.ilvl, 'set'); }
     stat('forges'); sfx('forge');
     if (old.special && rarity === 'legendary') { it.special = old.special; it.name = old.name; }
     return it;
@@ -5664,7 +5666,7 @@
     const b = calcStats({ ...P.equip, [targetSlot(it)]: it }, P.lvl, P.cls);
     return dps(b) > dps(S) + 0.5 || b.life > S.life || b.armor > S.armor;
   }
-  const cleanupList = () => P.bag.filter((it) => it.rarity !== 'legendary' && it.rarity !== 'set' && isGear(it) && cleanOpts[it.rarity] && !(cleanOpts.keepUp && isUpgrade(it)));
+  const cleanupList = () => P.bag.filter((it) => it.rarity !== 'legendary' && it.rarity !== 'set' && it.rarity !== 'lset' && isGear(it) && cleanOpts[it.rarity] && !(cleanOpts.keepUp && isUpgrade(it)));
   function renderCleanup(det) {
     const list = cleanupList(), gold = list.reduce((s, it) => s + itemValue(it), 0);
     const box = (k, label, col) => `<label class="chk"><input type="checkbox" id="cl-${k}"${cleanOpts[k] ? ' checked' : ''}><span${col ? ` style="color:${col}"` : ''}>${label}</span></label>`;
@@ -6022,6 +6024,8 @@
 
   // ================= sets =================
   RAR.set = { name: '套裝', color: '#4fd18b', mult: 8 };
+  // the fire dragon's set sits above legendary and set gear
+  RAR.lset = { name: '傳說套裝', color: '#ff4f6e', mult: 14 };
   RAR.gem = { name: '寶石', color: '#f0d8ff', mult: 3 };
   RAR.scroll = { name: '消耗品', color: '#7fb8ff', mult: 150 };
   RAR.gmap = { name: '秘境地圖', color: '#ffd34d', mult: 100 };
@@ -6088,7 +6092,7 @@
     const st = SET[it.set]; if (!st) return '';
     const have = SLOTS.filter((k) => P.equip[k] && P.equip[k].set === st.id).map((k) => (P.equip[k].slot === 'ring2' ? 'ring' : P.equip[k].slot));
     const n = setPieces(P.equip)[st.id] || 0;
-    return `<div class="setbox"><div style="color:${RAR.set.color}">${st.name}（${n}/${st.slots.length}）${st.cls ? `・${CLASSES[st.cls].name}套裝` : ''}${st.dragon ? '・火龍專屬' : ''}</div>` +
+    return `<div class="setbox"><div style="color:${RAR[st.dragon ? 'lset' : 'set'].color}">${st.name}（${n}/${st.slots.length}）${st.cls ? `・${CLASSES[st.cls].name}套裝` : ''}${st.dragon ? '・火龍專屬傳說套裝' : ''}</div>` +
       st.slots.map((sl) => `<div class="${have.includes(sl) ? 'on' : 'off'}">・${setPieceName(st, sl)}</div>`).join('') +
       `<div class="${n >= 2 ? 'on' : 'off'}">2 件：${st.b2d}</div><div class="${n >= 3 ? 'on' : 'off'}">3 件：${st.b3d}</div><div class="${n >= 4 ? 'on' : 'off'}">4 件：${st.b4d}</div>` +
       (st.b5d ? `<div class="${n >= 5 ? 'on' : 'off'}">5 件：${st.b5d}</div>` : '') + '</div>';
@@ -6149,7 +6153,7 @@
     if (it.rarity === 'magic') n = r < 0.15 ? 1 : 0;
     if (it.rarity === 'rare') n = r < 0.1 ? 2 : r < 0.45 ? 1 : 0;
     if (it.rarity === 'legendary') n = 2;
-    if (it.rarity === 'set') n = r < 0.4 ? 2 : 1;
+    if (it.rarity === 'set' || it.rarity === 'lset') n = r < 0.4 ? 2 : 1;
     if (n && SOCKET_SLOTS.has(it.slot)) it.sockets = Array(n).fill(null);
   }
   function applyGems(s, equip) {
@@ -6875,7 +6879,7 @@
     for (const d of G.drops) { if (wantPick(d)) continue; const dd = Math.hypot(d.x - P.x, d.y - P.y); if (dd < bd) { bd = dd; best = d; } }
     return best;
   }
-  const PICK_LABELS = [['common', '普通裝備'], ['magic', '魔法裝備'], ['rare', '稀有裝備'], ['legendary', '傳說裝備'], ['set', '套裝'], ['gem', '寶石'], ['potion', '藥水'], ['otherCls', '其他職業的武器']];
+  const PICK_LABELS = [['common', '普通裝備'], ['magic', '魔法裝備'], ['rare', '稀有裝備'], ['legendary', '傳說裝備'], ['set', '套裝'], ['lset', '傳說套裝'], ['gem', '寶石'], ['potion', '藥水'], ['otherCls', '其他職業的武器']];
   function renderPickGrid() {
     $('pickGrid').innerHTML = PICK_LABELS.map(([k, n]) => `<label><input type="checkbox" data-pick="${k}"${CFG.pick[k] ? ' checked' : ''}> ${n}</label>`).join('');
     $('pickGrid').querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('change', () => { CFG.pick[b.dataset.pick] = b.checked; saveCfg(); }));
@@ -7667,8 +7671,8 @@
   }
 
   // ---------- refining and salvage at the blacksmith ----------
-  const SALVAGE = { magic: 1, rare: 3, legendary: 15, set: 15 };
-  const refineStones = (it) => (it.rarity === 'legendary' || it.rarity === 'set' ? 15 : 5);
+  const SALVAGE = { magic: 1, rare: 3, legendary: 15, set: 15, lset: 30 };
+  const refineStones = (it) => (it.rarity === 'legendary' || it.rarity === 'set' || it.rarity === 'lset' ? 15 : 5);
   const refineGold = (it) => it.ilvl * 50 * ((it.refN || 0) + 1);
   let refineOpts = null;
   function refineHtml(it, inEquip) {
@@ -7729,10 +7733,10 @@
     return n;
   }
   // batch salvage filter: item level range, colours, and which legendaries and sets are included
-  const SALV_RAR = [['magic', '魔法'], ['rare', '稀有'], ['legendary', '傳說'], ['set', '套裝']];
-  const salvF = { lo: 1, hi: 999, rar: { magic: true, rare: true, legendary: false, set: false }, skip: new Set(), refined: false };
+  const SALV_RAR = [['magic', '魔法'], ['rare', '稀有'], ['legendary', '傳說'], ['set', '套裝'], ['lset', '傳說套裝']];
+  const salvF = { lo: 1, hi: 999, rar: { magic: true, rare: true, legendary: false, set: false, lset: false }, skip: new Set(), refined: false };
   let salvageArm = false;
-  const salvKey = (it) => (it.rarity === 'set' ? 'S:' + it.set : it.rarity === 'legendary' ? 'L:' + it.special : '');
+  const salvKey = (it) => (it.rarity === 'set' || it.rarity === 'lset' ? 'S:' + it.set : it.rarity === 'legendary' ? 'L:' + it.special : '');
   const salvName = (k) => (k[0] === 'S' ? (SET[k.slice(2)] ? SET[k.slice(2)].name : '套裝') : LEG[k.slice(2)] ? LEG[k.slice(2)].name : '傳說');
   const salvageTargets = () => P.bag.filter((it) => isGear(it) && SALVAGE[it.rarity] && salvF.rar[it.rarity] && it.ilvl >= salvF.lo && it.ilvl <= salvF.hi
     && (salvF.refined || !it.refN) && !(salvKey(it) && salvF.skip.has(salvKey(it))));
@@ -7744,7 +7748,7 @@
     let h = `<div class="sub-h">批量分解（背包裡的精煉石 ${rstoneCount()} 顆）</div>` +
       `<div class="sub">物品等級 <input type="number" id="salvLo" min="1" max="999" value="${salvF.lo}" inputmode="numeric" style="width:60px"> ～ <input type="number" id="salvHi" min="1" max="999" value="${salvF.hi}" inputmode="numeric" style="width:60px"></div>` +
       '<div class="sub">' + SALV_RAR.map(([r, nm]) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sr="${r}"${salvF.rar[r] ? ' checked' : ''}> <span style="color:${RAR[r].color}">${nm}</span>（${gear.filter((it) => it.rarity === r).length}）</label>`).join('') + '</div>';
-    if (names.length) h += '<div class="sub">要分解的傳說與套裝（取消勾選就會保留）：<br>' + names.map((k) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sk="${k}"${salvF.skip.has(k) ? '' : ' checked'}> <span style="color:${RAR[k[0] === 'S' ? 'set' : 'legendary'].color}">${salvName(k)}</span>×${cnt(k)}</label>`).join('') + '</div>';
+    if (names.length) h += '<div class="sub">要分解的傳說與套裝（取消勾選就會保留）：<br>' + names.map((k) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sk="${k}"${salvF.skip.has(k) ? '' : ' checked'}> <span style="color:${RAR[k === 'S:dragon' ? 'lset' : k[0] === 'S' ? 'set' : 'legendary'].color}">${salvName(k)}</span>×${cnt(k)}</label>`).join('') + '</div>';
     h += `<div class="sub"><label><input type="checkbox" id="salvRef"${salvF.refined ? ' checked' : ''}> 也分解精煉過的裝備</label></div>`;
     h += `<div class="inv-actions"><button type="button" class="${salvageArm ? 'primary' : ''}" id="salvAll"${list.length ? '' : ' disabled'}>${salvageArm ? `再按一次確認：分解 ${list.length} 件` : `分解符合條件的 ${list.length} 件（得到 ${n} 顆精煉石）`}</button></div>`;
     h += '<div class="sub">只分解背包裡的裝備，穿在身上的不會被分解。裝備上鑲嵌的寶石會退回背包。分解得到：魔法 1 顆、稀有 3 顆、傳說與套裝各 15 顆。</div>';
@@ -7906,7 +7910,7 @@
     } else {
       P.codex = P.codex || {};
       const legs = LEGENDS.map((l) => ({ key: 'L:' + l.key, name: l.name, desc: l.desc, slot: l.slot, cls: l.cls, rarity: 'legendary' }));
-      const sets = SETS.flatMap((s) => s.slots.map((sl) => ({ key: `S:${s.id}:${sl}`, name: setPieceName(s, sl), desc: `${s.name} 套裝`, slot: sl, rarity: 'set' })));
+      const sets = SETS.flatMap((s) => s.slots.map((sl) => ({ key: `S:${s.id}:${sl}`, name: setPieceName(s, sl), desc: `${s.name} ${s.dragon ? '傳說套裝' : '套裝'}`, slot: sl, rarity: s.dragon ? 'lset' : 'set' })));
       const all = [...legs, ...sets];
       body.innerHTML = `<div class="ach-count">已收集 ${all.filter((x) => P.codex[x.key]).length} / ${all.length}</div><div class="codex-grid">` +
         all.map((x) => {
@@ -8700,7 +8704,7 @@
   // the fire dragon's loot: every party member rolls their own
   function makeDragonPiece(ilvl, slot) {
     const it = makeItem(ilvl, 'rare', slot);
-    it.rarity = 'set'; it.set = 'dragon'; it.name = SET.dragon.pieceNames[slot];
+    it.rarity = 'lset'; it.set = 'dragon'; it.name = SET.dragon.pieceNames[slot];
     rollAffixes(it, ilvl, 'set'); delete it.sockets; rollSockets(it);
     return it;
   }
@@ -8712,7 +8716,7 @@
     for (let k = 0; k < 3; k++) dropAt(e.x, e.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), Math.random() < 0.2 ? 5 : 4) });
     dropAt(e.x, e.y, { kind: 'item', item: makeDCrystal(ri(3, 5)) });
     dropAt(e.x, e.y, { kind: 'item', item: makeRStone(ri(5, 10)) });
-    if (first || Math.random() < 0.25) { dropAt(e.x, e.y, { kind: 'item', item: makeDragonPiece(105, pick(SET.dragon.slots)) }); logMsg('火龍掉落了炎龍之魂套裝！', RAR.set.color); }
+    if (first || Math.random() < 0.25) { dropAt(e.x, e.y, { kind: 'item', item: makeDragonPiece(105, pick(SET.dragon.slots)) }); logMsg('火龍掉落了炎龍之魂（傳說套裝）！', RAR.lset.color); }
     const c = coll();
     const award = (t, cape) => { if (c.titles.includes(t)) return; c.titles.push(t); if (cape) c.capes.push(cape); logMsg(`獲得稱號「${t}」${cape ? '和新的披風顏色' : ''}（按 H 設定）`, '#ffd34d'); };
     award('屠龍者');
@@ -8886,18 +8890,18 @@
       const it = makeDragonPiece(105, b.dataset.swap);
       takeDC(DC_SWAP);
       if (!stackInto(P.bag, it, BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, it, 9999); logMsg('背包滿了，兌換的裝備放進了倉庫', '#ff8a5a'); }
-      sfx('legend'); logMsg(`用龍魂結晶兌換了${it.name}`, RAR.set.color); save(); renderAltar();
+      sfx('legend'); logMsg(`用龍魂結晶兌換了${it.name}`, RAR.lset.color); save(); renderAltar();
     }));
     $('altarBody').querySelectorAll('[data-ap]').forEach((b) => b.addEventListener('click', () => { altarSel = pieces[+b.dataset.ap]; renderAltar(); }));
     $('altarReforge')?.addEventListener('click', () => {
       if (!altarSel || dcCount() < DC_REFORGE) return;
       takeDC(DC_REFORGE); rollAffixes(altarSel, altarSel.ilvl, 'set'); delete altarSel.refK; delete altarSel.refN;
-      refreshStats(); sfx('forge'); logMsg(`龍魂重鑄了${altarSel.name}`, RAR.set.color); save(); renderAltar();
+      refreshStats(); sfx('forge'); logMsg(`龍魂重鑄了${altarSel.name}`, RAR.lset.color); save(); renderAltar();
     });
     $('altarTemper')?.addEventListener('click', () => {
       if (!altarSel || dcCount() < DC_TEMPER || (altarSel.dTemper || 0) >= TEMPER_MAX) return;
       takeDC(DC_TEMPER); raiseIlvl(altarSel, altarSel.ilvl + 2); altarSel.dTemper = (altarSel.dTemper || 0) + 1;
-      refreshStats(); sfx('forge'); logMsg(`龍魂淬煉：${altarSel.name} 物品等級提升到 ${altarSel.ilvl}`, RAR.set.color); save(); renderAltar();
+      refreshStats(); sfx('forge'); logMsg(`龍魂淬煉：${altarSel.name} 物品等級提升到 ${altarSel.ilvl}`, RAR.lset.color); save(); renderAltar();
     });
   }
 
