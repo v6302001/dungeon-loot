@@ -213,6 +213,8 @@
   .cell.empty { cursor: default; color: #ffffff22; font-size: 13px; font-family: var(--font-body); }
   .cell.sel { box-shadow: 0 0 0 2px var(--text); }
   .rng { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .cell .anc { position: absolute; left: 3px; top: 0; font-size: 12px; color: #ffb347; text-shadow: 0 0 4px #000; }
+  .cell.ancient { box-shadow: inset 0 0 0 1px #ffb347, 0 0 6px rgba(255, 179, 71, 0.55); }
   .cell .lv { position: absolute; right: 3px; bottom: 1px; font-size: 10px; font-family: var(--font-body); color: var(--muted); }
   .cell .qty { position: absolute; left: 3px; top: 1px; font-size: 11px; font-weight: 700; font-family: var(--font-body); color: #fff; text-shadow: 0 0 2px #000, 0 0 2px #000; }
   .bag { display: grid; grid-template-columns: repeat(10, minmax(0, 44px)); gap: 5px; }
@@ -462,7 +464,7 @@
   .set-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px 14px; align-items: center; margin: 14px 0; font-size: 14px; }
   .set-grid input[type="range"] { width: 100%; accent-color: var(--gold); }
   .set-grid input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--gold); justify-self: start; }
-  .diff-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+  .diff-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin-top: 12px; max-height: 46vh; overflow-y: auto; }
   .diff { display: grid; gap: 2px; text-align: left; font-weight: 400; padding: 8px; }
   .diff b { color: var(--dc); } .diff small { font-size: 10px; color: var(--muted); }
   .diff.on { border-color: var(--dc); box-shadow: 0 0 0 1px var(--dc); }
@@ -539,7 +541,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v103</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v107</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -760,9 +762,10 @@
 <div class="overlay" id="rankScreen" hidden>
   <div class="panel rank">
     <h2 class="pick-title">排行榜・前 10 名</h2>
+    <div class="tabs" id="rankTabs"><button type="button" data-rt="main" class="on">地窟</button><button type="button" data-rt="solo">無盡深淵・單人</button><button type="button" data-rt="party">無盡深淵・組隊</button></div>
     <p class="muted" id="rankNote"></p>
     <div class="row nick-row" id="nickRow" hidden><label for="nickInput">排行榜上顯示的名稱</label><input id="nickInput" maxlength="12" placeholder="例如：火球大師"><button id="nickSave" type="button">儲存</button></div>
-    <div class="rank-wrap"><table class="rank-table"><thead><tr><th>名次</th><th>玩家</th><th>職業</th><th>最深</th><th>等級</th><th>擊殺</th><th>鑰匙</th></tr></thead><tbody id="rankBody"></tbody></table></div>
+    <div class="rank-wrap"><table class="rank-table"><thead id="rankHead"><tr><th>名次</th><th>玩家</th><th>職業</th><th>最深</th><th>等級</th><th>擊殺</th><th>鑰匙</th></tr></thead><tbody id="rankBody"></tbody></table></div>
     <div class="row"><button class="primary" id="rankClose" type="button">關閉</button></div>
   </div>
 </div>
@@ -799,12 +802,14 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v103</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v107</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
       <label for="setShake">畫面震動</label><input type="checkbox" id="setShake">
       <label for="setNums">顯示傷害數字</label><input type="checkbox" id="setNums">
+      <label for="setShort">大數字簡寫（萬／億／兆）</label><input type="checkbox" id="setShort">
+      <label for="setSteps">火焰足跡（覺醒屠龍者外觀）</label><input type="checkbox" id="setSteps">
       <label for="setTSize" class="touch-only">觸控按鈕大小</label><select id="setTSize" class="touch-only"><option value="0.85">小</option><option value="1">中</option><option value="1.15">大</option></select>
       <label for="setLefty" class="touch-only">按鈕放左邊（左撇子）</label><input type="checkbox" id="setLefty" class="touch-only">
       <label for="setHaptic" class="touch-only">按鈕震動</label><input type="checkbox" id="setHaptic" class="touch-only">
@@ -1017,6 +1022,7 @@
   Object.assign(EDEF, {
     spider: { name: '毒蜘蛛', hp: 18, dmg: 5, speed: 125, r: 10, xp: 7, reach: 6, windup: 0.22, cd: 0.8, color: '#4a3048' },
     shroom: { name: '爆裂菇', hp: 24, dmg: 12, speed: 48, r: 12, xp: 8, reach: 0, windup: 0.9, cd: 1, color: '#c8503c' },
+    dragonEgg: { name: '龍蛋', hp: 1, dmg: 0, speed: 0, r: 18, xp: 0, reach: 0, windup: 1, cd: 99, color: '#e8c27a' },
     necro: { name: '死靈法師', hp: 34, dmg: 9, speed: 60, r: 12, xp: 14, reach: 0, windup: 0.55, cd: 2.2, color: '#8a5ac8' },
   });
 
@@ -1456,7 +1462,7 @@
     }
     if (P.slowT > 0) P.slowT -= dt;
     P.dotShow = (P.dotShow || 0) - dt;
-    if (P.dotShow <= 0 && P.dotAcc >= 1) { addText(`-${Math.round(P.dotAcc)}`, P.x + rnd(-6, 6), P.y - 22, P.dotColor, 13); P.dotAcc = 0; P.dotShow = 0.5; }
+    if (P.dotShow <= 0 && P.dotAcc >= 1) { addText(`-${fmtN(P.dotAcc)}`, P.x + rnd(-6, 6), P.y - 22, P.dotColor, 13); P.dotAcc = 0; P.dotShow = 0.5; }
   }
 
   // ---------- monster behaviours ----------
@@ -1632,7 +1638,7 @@
   const AFF_COUNT = { common: () => 0, magic: () => ri(1, 2), rare: () => ri(3, 4), legendary: () => 4, set: () => 4 };
   const AFF_FLOOR = { legendary: 0.5, set: 0.4 };
   // dragon set pieces roll at least 60% of each affix range, other sets 40%, legendaries 50%
-  const affFloor = (it, rarity) => (it.set === 'dragon' ? 0.6 : AFF_FLOOR[rarity] || 0);
+  const affFloor = (it, rarity) => (it.ancient ? 1 : it.set === 'dragon' ? 0.6 : AFF_FLOOR[rarity] || 0);
   function rollAffixes(it, ilvl, rarity) {
     it.aff = {};
     const n = (AFF_COUNT[rarity] || AFF_COUNT.common)(), q = affFloor(it, rarity);
@@ -1640,6 +1646,7 @@
     for (const a of pool.slice(0, n)) { const [lo, hi] = affRange(a, ilvl); it.aff[a.k] = ri(Math.floor(lo + (hi - lo) * q), hi); }
   }
   function makeItem(ilvl, rarity, slot, baseName, forCls) {
+    ilvl = Math.min(ilvl, ILVL_MAX);
     let setDef = null;
     if (rarity === 'set') {
       const opts = SETS.filter((st) => !st.dragon && (!slot || st.slots.includes(slot)));
@@ -1678,6 +1685,23 @@
     else if (rarity === 'magic') it.name = AFF[Object.keys(it.aff)[0]].prefix + base.name;
     else it.name = base.name;
     rollSockets(it);
+    if (rarity === 'legendary' || rarity === 'set') maybeAncient(it);
+    return it;
+  }
+  // ancient: every affix at its maximum and +30% base damage or armor; only rolled for drops outside the camp on T6+
+  const ILVL_MAX = 150, ANC_BASE = 1.3;
+  function ancientize(it) {
+    if (it.ancient) return it;
+    it.ancient = true;
+    if (it.min) { it.min = Math.round(it.min * ANC_BASE); it.max = Math.round(it.max * ANC_BASE); }
+    if (it.armor) it.armor = Math.round(it.armor * ANC_BASE);
+    for (const k of Object.keys(it.aff)) if (AFF[k]) it.aff[k] = affRange(AFF[k], it.ilvl)[1];
+    if (!String(it.name).startsWith('太古・')) it.name = '太古・' + it.name;
+    return it;
+  }
+  function maybeAncient(it) {
+    const ch = (G && !G.camp && diffOf().anc) || 0;
+    if (ch && Math.random() < ch) { ancientize(it); logMsg(`掉落了太古裝備：${it.name}！`, '#ffb347'); }
     return it;
   }
   const itemValue = (it) => Math.round((Math.pow(it.ilvl, 0.75) * 6 + Object.keys(it.aff).length * 6 + 4) * RAR[it.rarity].mult) * (it.qty || 1);
@@ -1778,7 +1802,7 @@
     if (P.potions > potMax()) P.potions = potMax();
     P.hpMax = S.life; P.hp = Math.min(P.hp, P.hpMax);
   }
-  const LVL_CAP = 150;
+  const LVL_CAP = 200;
   const xpNeed = (lvl) => Math.floor(40 * Math.pow(lvl, 1.6) * (lvl >= 99 ? 1.5 : 1));
 
   // ================= save =================
@@ -1811,7 +1835,7 @@
         runBest: P.runBest || 0, runKills: P.runKills || 0, runId: P.runId,
         talents: P.talents || {}, runes: P.runes || {}, diff: P.diff || 0, diffUnlock: P.diffUnlock || 0, stats: P.stats || {}, ach: P.ach || {},
         title: P.title || '', cape: P.cape || null, nick: P.nick || '', coll: P.coll || {}, codex: P.codex || {}, elix: P.elix || {}, campLv: P.campLv || {}, pet: P.pet || null,
-        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0,
+        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0, abyss: P.abyss || {}, templeClears: P.templeClears || 0, awakeOpen: !!P.awakeOpen, awakeKills: P.awakeKills || 0, fireSteps: !!P.fireSteps,
       }));
     } catch (e) { /* storage unavailable: play continues without saving */ }
     try { cloudTouch(); } catch (e) { /* cloud sync not ready yet */ }
@@ -1891,7 +1915,7 @@
     if (depth >= 11) pool.push('assassin');
     if (depth >= 14) pool.push('priest');
     if (depth >= 17) pool.push('bigslime');
-    const count = 10 + depth * 2;
+    const count = 10 + Math.min(depth, MAX_DEPTH) * 2;
     const others = rooms.filter((r) => r !== start);
     for (let i = 0; i < count; i++) {
       const r = pick(others);
@@ -1916,7 +1940,7 @@
     sizeMinimap();
   }
 
-  const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 1 : G.map[ty * MW + tx];
+  const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 1 : (G.doorT && G.doorT.has(ty * MW + tx)) ? 1 : G.map[ty * MW + tx];
   const solidAt = (x, y) => tileAt(Math.floor(x / TILE), Math.floor(y / TILE)) === 1;
   function collides(x, y, r) {
     return solidAt(x - r, y - r) || solidAt(x + r, y - r) || solidAt(x - r, y + r) || solidAt(x + r, y + r);
@@ -1967,6 +1991,7 @@
   }
 
   function updateEnemy(e, dt) {
+    if (e.type === 'dragonEgg') { e.flash = Math.max(0, e.flash - dt); e.kx = 0; e.ky = 0; return; }
     const d = EDEF[e.type];
     const dx = P.x - e.x, dy = P.y - e.y, dist = Math.hypot(dx, dy) || 1;
     e.flash = Math.max(0, e.flash - dt);
@@ -2060,6 +2085,8 @@
     if (P.rage > 0) dmg *= 1 + 0.04 * P.rage;
     if (P.bsoul > 0 && S.specials.has('bSoul') && S.specials.has('bBone')) dmg *= 1 + 0.01 * P.bsoul;
     if (P.phaseT > 0) dmg *= 1.25;
+    if (P.sunT > 0) dmg *= 1.2;
+    dmg *= twinPairMul();
     if (P.moving && ks('ksGuerrilla')) dmg *= 1.2;
     if (skillCtx) dmg *= S.fSkill || 1;
     if (skillCtx && P.shield > 0 && S.specials.has('setArcaneShield')) dmg *= 1.3;
@@ -2079,17 +2106,24 @@
     if (NET.mode === 'client') netSend(null, { t: 'hit', i: e.nid, d: dmg, c: crit ? 1 : 0, x: Math.round(fromX), y: Math.round(fromY), kb: Math.round(kb) });
     else {
       if (e.armorMul) dmg = Math.max(1, Math.round(dmg * e.armorMul));
+      if (G.tp) dmg = templeDmg(e, dmg);
+      if (e.awake || e.capPct) {
+        if (e.fly) dmg = 0;
+        if (!(G.time - (e.capT ?? -9) < 1)) { e.capT = G.time; e.capD = 0; }
+        dmg = Math.max(0, Math.min(dmg, e.maxHp * (e.capPct || AW_CAP) - e.capD)); e.capD += dmg;
+      }
       e.hp -= dmg;
     }
     e.flash = 0.12; e.aggro = true;
     const a = Math.atan2(e.y - fromY, e.x - fromX);
     const kbm = e.type === 'boss' ? 0.15 : 1;
     e.kx += Math.cos(a) * kb * kbm; e.ky += Math.sin(a) * kb * kbm;
-    if (CFG.dmgNums) addText(String(Math.round(dmg)), e.x + rnd(-6, 6), e.y - e.r - 6, crit ? '#ffd34d' : '#ffffff', crit ? 18 : 14);
+    if (CFG.dmgNums) addText(fmtN(dmg), e.x + rnd(-6, 6), e.y - e.r - 6, crit ? '#ffd34d' : '#ffffff', crit ? 18 : 14);
     if (!dotHit) sfx(crit ? 'crit' : 'hit');
     if (e.type === 'assassin') e.revealT = 2;
     if (own && !dotHit && S.specials.has('setFreeze') && Math.random() < 0.1 && e.type !== 'boss' && !(e.frzImm > G.time)) { e.frozen = Math.max(e.frozen || 0, 1.5); e.frzImm = G.time + 5.5; }
     if (own && !dotHit && S.specials.has('setRage')) { P.rage = Math.min(10, (P.rage || 0) + 1); P.rageT = 5; }
+    if (own && crit && S.specials.has('tSun') && !(P.sunCd > 0)) { P.sunCd = 1; twinSend('sun'); }
     if (own && crit && S.specials.has('setRicochet') && P.cls === 'archer') P.skillCd[2] = Math.max(0, P.skillCd[2] - 0.5);
     if (own && !dotHit && S.specials.has('setFireball') && !(P.setFbCd > 0) && Math.random() < 0.2 && !e.dead) {
       P.setFbCd = 2;
@@ -2127,6 +2161,8 @@
     // in a party every kill is announced, so all teammates get the experience and roll their own loot
     if (NET.mode === 'host' && e.nid) netSend(null, { t: 'k', i: e.nid });
     deathFx(e);
+    if (e.type === 'dragonEgg') { sfx('kill'); logMsg('打破了一顆龍蛋！', '#ffb347'); return; }
+    if (G.tp && e.type === 'boss') { gainXp(e.xp); templeBossDown(e); return; }
     gainXp(e.xp);
     P.kills = (P.kills || 0) + 1; P.runKills = (P.runKills || 0) + 1;
     stat('kills'); sfx(e.type === 'boss' ? 'boom' : 'kill');
@@ -2162,6 +2198,7 @@
       for (let i = 0; i < 3; i++) dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, rollRarity(4)) });
       // each boss keeps two legendaries of its own: 1.5% on a normal floor, 20% in its challenge
       { const own = BOSS_LEGS[e.variant && e.variant.look]; if (own && Math.random() < (G.challenge ? 0.2 : 0.015)) { dropAt(e.x, e.y, { kind: 'item', item: makeBossLegend(lootDepth() + 1, pick(own)) }); logMsg(`${e.variant.name}掉落了專屬傳說！`, RAR.legendary.color); sfx('legend'); } }
+      if (G.abyss && G.depth % 10 === 0) abyssChest(e);
       dropAt(e.x, e.y, { kind: 'item', item: makeRStone(ri(1, 3)) });
       dropAt(e.x, e.y, { kind: 'potion' }); dropAt(e.x, e.y, { kind: 'potion' });
       G.boss = null;
@@ -2193,6 +2230,7 @@
       if (P.hp <= 0) die();
       return;
     }
+    if (S.specials.has('tMoon') && !(P.moonCd > 0)) { P.moonCd = 4; twinSend('moon'); }
     const armor = S.armor * (P.buffT > 0 && P.buffKind !== 'rage' ? 1.5 : 1);
     let dmg = Math.max(1, Math.round(raw * 100 / (100 + armor) * (shrineOn('guard') ? 0.6 : 1) * (1 - S.dmgReduce / 100) * (S.specials.has('deathless') ? 0.8 : 1)
       * (S.fTaken || 1) * (P.spin > 0 && S.specials.has('setSpin') ? 0.7 : 1) * liveTakenMul()
@@ -2221,7 +2259,7 @@
     }
     if (src && S.thornsPct > 0) hitEnemy(src, Math.max(1, Math.round(raw * S.thornsPct / 100)), false, P.x, P.y, 80, false);
     cancelRecall();
-    addText(`-${Math.round(dmg)}`, P.x, P.y - 20, '#ff6b6b', 15);
+    addText(`-${fmtN(dmg)}`, P.x, P.y - 20, '#ff6b6b', 15);
     shakeIt(5);
     sparks(P.x, P.y - 4, '#ff6b6b', 6, 180);
     flash(P.x, P.y, 50, 'rgba(255,80,80,0.8)', 0.12);
@@ -2252,12 +2290,14 @@
     if (d.kind === 'item' && d.item.rarity === 'lset') { logMsg(`傳說套裝掉落了！`, RAR.lset.color); sfx('legend'); }
   }
 
-  function die() {
+  function die(force) {
     if (G && G.pvp) { if (!(P.pvpDownT > 0)) pvpDown(null); return; }
+    if (G && (G.abyss || G.temple) && !force) { if (P.pvpDownT > 0) return; if (inParty() && visibleMates().length) { abyssDown(); return; } }
+    if (mode === 'dead') return;
     mode = 'dead';
     const lost = Math.floor(P.gold * 0.3);
     P.gold -= lost;
-    P.best = Math.max(P.best, G.depth);
+    if (!G.abyss) P.best = Math.max(P.best, G.depth);
     stat('deaths'); sfx('die');
     // the run ends: everything carried is lost, the stash is untouched
     submitScore();
@@ -2267,7 +2307,7 @@
     P.runBest = 0; P.runKills = 0; P.runId = uid();
     refreshStats();
     save();
-    $('deathText').textContent = `你在${G.trialRealm ? '試煉秘境' : G.goldRealm ? '金幣秘境' : G.realm ? '秘境' : `第 ${G.depth} 層`}倒下。背包裡的 ${lostItems} 件物品遺失，也掉了 ${lost} 金幣；身上穿的裝備、等級和經驗都保留，倉庫裡的東西也都還在。這次冒險最深到第 ${runDepth} 層、擊殺 ${runKills} 隻怪物。`;
+    $('deathText').textContent = `你在${G.abyss ? `無盡深淵第 ${G.depth} 層` : G.trialRealm ? '試煉秘境' : G.goldRealm ? '金幣秘境' : G.realm ? '秘境' : `第 ${G.depth} 層`}倒下。背包裡的 ${lostItems} 件物品遺失，也掉了 ${lost} 金幣；身上穿的裝備、等級和經驗都保留，倉庫裡的東西也都還在。這次冒險最深到第 ${runDepth} 層、擊殺 ${runKills} 隻怪物。`;
     $('deathScreen').hidden = false;
     $('reviveBtn').focus();
   }
@@ -3104,12 +3144,18 @@
   }
   function tryStairs() {
     if (mode !== 'play' || !onStairs()) return;
-    if (NET.mode === 'client') { logMsg('組隊中由隊長帶大家下樓', '#9cc7ff'); return; }
+    if (NET.mode === 'client') {
+      if (G.temple) { logMsg('日月神殿要兩人一起站進綠色出口', '#ffc94d'); return; }
+      if (G.abyss) { netSend(null, { t: 'abyssStairs' }); logMsg('已通知隊長前往下一層（魔王還活著時不能下樓）', '#9cc7ff'); return; }
+      logMsg('組隊中由隊長帶大家下樓', '#9cc7ff'); return;
+    }
     if (G.pvp) { pvpFinish('隊長結束了對戰', true); return; }
     if (G.boss) { logMsg('魔王還活著，樓梯被封住了', '#ff6b6b'); return; }
     if (G.trialRealm) { G.trialRealm = false; enterCamp('離開了試煉秘境，回到營地'); return; }
     if (G.goldRealm) { const got = G.goldRealm.earned; G.goldRealm = null; enterCamp(`離開了金幣秘境，共獲得 ${got.toLocaleString()} 金幣`); return; }
     if (G.realm || G.challenge) { const what = G.realm ? '秘境' : '魔王挑戰'; G.realm = null; enterCamp(`離開了${what}，回到營地`); return; }
+    if (G.abyss) { abyssNext(); return; }
+    if (G.temple) { logMsg('日月神殿要兩人一起站進綠色出口', '#ffc94d'); return; }
     if (G.depth >= MAX_DEPTH) {
       P.best = Math.max(P.best, MAX_DEPTH); stat('clear100'); submitScore();
       enterCamp(`你征服了地窟的最深處——第 ${MAX_DEPTH} 層！`); levelFx(); sfx('legend');
@@ -3129,7 +3175,7 @@
     if (healTrack.prev !== null && P.hp > healTrack.prev && P.hp > 0) healTrack.acc += P.hp - healTrack.prev;
     healTrack.prev = P.hp; healTrack.t += dt;
     if (healTrack.t >= 0.6) {
-      if (healTrack.acc >= 1 && CFG.dmgNums !== false) addText(`+${Math.round(healTrack.acc)}`, P.x + 12, P.y - 30, '#6fd08c', 13);
+      if (healTrack.acc >= 1 && CFG.dmgNums !== false) addText(`+${fmtN(healTrack.acc)}`, P.x + 12, P.y - 30, '#6fd08c', 13);
       healTrack.acc = 0; healTrack.t = 0;
     }
   }
@@ -3155,6 +3201,7 @@
       moveEnt(P, m.x * S.move * slow * dt, m.y * S.move * slow * dt);
       P.walk += dt * 10;
       if (isTouch || performance.now() - mouse.last > 4000) P.facing = Math.atan2(m.y, m.x);
+      if (P.fireSteps && CFG.fireSteps !== false && (P.stepT = (P.stepT || 0) - dt) <= 0) { P.stepT = 0.09; embers(P.x + rnd(-5, 5), P.y + 12, Math.random() < 0.5 ? '#ff8a3d' : '#ffd34d', 1, 18, 25); }
     }
     if (!isTouch && performance.now() - mouse.last < 4000 && !G.swing) {
       const wx = mouse.x / view.scale + cam.x, wy = mouse.y / view.scale + cam.y;
@@ -3166,6 +3213,7 @@
     updatePShots(dt);
 
     netEnemies(dt);
+    if (NET.mode !== 'client') { awakenTick(dt); templeTick(dt); }
     separate();
     enemyShots(dt);
     updateProps(dt);
@@ -3175,6 +3223,7 @@
     if (NET.mode !== 'client') updateEvent(dt);
     updateElixirs(dt);
     updatePet(dt);
+    P.sunT = Math.max(0, (P.sunT || 0) - dt); P.sunCd = Math.max(0, (P.sunCd || 0) - dt); P.moonCd = Math.max(0, (P.moonCd || 0) - dt);
     P.windT = Math.max(0, (P.windT || 0) - dt); P.undyingCd = Math.max(0, (P.undyingCd || 0) - dt);
     P.setTornCd = Math.max(0, (P.setTornCd || 0) - dt);
     P.rageT = Math.max(0, (P.rageT || 0) - dt); if (P.rageT <= 0) P.rage = 0;
@@ -3457,6 +3506,8 @@
 
     drawDecals(c);
     drawTraps(c);
+    drawAwaken(c);
+    drawTemple(c);
     drawStairs(c);
     for (const t of G.torches) if (G.seen[t.ty * MW + t.tx]) drawSconce(c, t);
     drawDrops(c);
@@ -3642,7 +3693,25 @@
   const OUT = '#0b090e';
   function outline(c, w = 2) { c.lineWidth = w; c.strokeStyle = OUT; c.stroke(); }
 
+  function drawEgg(c, e) {
+    const r = e.r, wob = Math.sin(G.time * 6 + e.phase) * 0.08;
+    c.save(); c.translate(e.x, e.y);
+    c.fillStyle = 'rgba(0,0,0,0.45)'; c.beginPath(); c.ellipse(0, r * 0.9, r, r * 0.35, 0, 0, Math.PI * 2); c.fill();
+    c.rotate(wob);
+    const g = c.createRadialGradient(-r * 0.3, -r * 0.5, 2, 0, 0, r * 1.3);
+    g.addColorStop(0, e.flash > 0 ? '#ffffff' : '#ffe0a0'); g.addColorStop(0.6, '#e8a24a'); g.addColorStop(1, '#8a3a14');
+    c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, r * 0.8, r * 1.05, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(255,90,30,0.9)'; c.lineWidth = 1.6; c.beginPath();
+    c.moveTo(-r * 0.4, -r * 0.2); c.lineTo(-r * 0.1, r * 0.05); c.lineTo(-r * 0.25, r * 0.35); c.moveTo(r * 0.3, -r * 0.5); c.lineTo(r * 0.1, -r * 0.2); c.stroke();
+    c.rotate(-wob);
+    const k = clamp(e.hp / e.maxHp, 0, 1);
+    c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(-r, -r * 1.5, r * 2, 5);
+    c.fillStyle = '#ffb347'; c.fillRect(-r, -r * 1.5, r * 2 * k, 5);
+    c.restore();
+  }
   function drawEnemy(c, e) {
+    if (e.type === 'dragonEgg') { drawEgg(c, e); return; }
+    if (e.tc && TC[e.tc]) { c.save(); c.strokeStyle = TC[e.tc].color; c.lineWidth = 3; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(e.x, e.y + e.r * 0.8, e.r * 1.25, e.r * 0.5, 0, 0, Math.PI * 2); c.stroke(); c.restore(); }
     const d = EDEF[e.type], t = G.time, r = e.r, white = e.flash > 0;
     const look = Math.atan2(P.y - e.y, P.x - e.x), lx = Math.cos(look), ly = Math.sin(look);
     c.save(); c.translate(e.x, e.y);
@@ -4583,8 +4652,8 @@
     $('hpText').textContent = `${Math.ceil(Math.max(0, P.hp))} / ${P.hpMax}`;
     $('xpFill').style.width = `${clamp(P.xp / xpNeed(P.lvl), 0, 1) * 100}%`;
     $('lvText').textContent = P.lvl;
-    $('goldText').textContent = P.gold;
-    { const now = dpsNow(), base = dps(S); $('dpsText').textContent = Math.round(now).toLocaleString(); $('dpsText').style.color = now > base * 1.001 ? '#ff8a5a' : ''; }
+    $('goldText').textContent = fmtN(P.gold);
+    { const now = dpsNow(), base = dps(S); $('dpsText').textContent = fmtN(now); $('dpsText').style.color = now > base * 1.001 ? '#ff8a5a' : ''; }
     $('potText').textContent = `${P.potions}/${potMax()}`;
     $('elixText').textContent = `${(P.elix && P.elix.haste) || 0}／${(P.elix && P.elix.shield) || 0}／${(P.elix && P.elix.wisdom) || 0}`;
     const pts = talentPoints();
@@ -4665,12 +4734,13 @@
   function cellHtml(it, sel) {
     if (!it) return '';
     const col = RAR[it.rarity].color;
-    return `<div class="cell${sel ? ' sel' : ''}" style="border-color:${col};background:radial-gradient(circle, ${hexA(col, 0.16)}, var(--panel-2) 70%)"><img src="${itemIcon(it).url}" alt="${it.name}">${it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' ? '' : `<span class="lv">${it.ilvl}</span>`}${it.qty > 1 ? `<span class="qty">×${it.qty}</span>` : ''}</div>`;
+    return `<div class="cell${sel ? ' sel' : ''}${it.ancient ? ' ancient' : ''}" style="border-color:${col};background:radial-gradient(circle, ${hexA(col, 0.16)}, var(--panel-2) 70%)"><img src="${itemIcon(it).url}" alt="${it.name}">${it.ancient ? '<span class="anc">★</span>' : ''}${it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' ? '' : `<span class="lv">${it.ilvl}</span>`}${it.qty > 1 ? `<span class="qty">×${it.qty}</span>` : ''}</div>`;
   }
   const speedTag = (sp) => (sp < 0.31 ? '很快' : sp < 0.4 ? '快' : sp < 0.52 ? '中' : sp < 0.72 ? '慢' : '很慢');
   function itemLines(it) {
     const r = RAR[it.rarity];
     let h = `<img class="dicon" src="${itemIcon(it).url}" alt="" style="border-color:${r.color}"><div class="nm" style="color:${r.color}">${it.name}</div><div class="sub">${it.slot === 'rstone' || it.slot === 'dcrystal' ? `材料${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` : it.slot === 'gmap' ? `秘境地圖${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'scroll' ? `消耗品${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'gem' ? `寶石 · 第 ${it.tier} 級${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` :`${r.name}${SLOT_NAME[it.slot]} · ${it.base} · 物品等級 ${it.ilvl}`}</div>`;
+    if (it.ancient) h += '<div style="color:#ffb347">★ 太古：所有詞綴都是最高值，基礎數值 +30%</div>';
     if (isGear(it)) { const rq = reqLevel(it); h += `<div style="color:${levelOk(it) ? 'var(--muted)' : '#ff6b6b'}">需要等級 ${rq}${levelOk(it) ? '' : `（目前 ${P.lvl} 級）`}</div>`; }
     if (it.slot === 'weapon') { const wc = weaponClass(it); h += `<div style="color:${wc === curCls() ? CLASSES[wc].color : '#ff6b6b'}">${CLASSES[wc].name}武器${wc === curCls() ? '' : '（目前職業無法裝備）'}</div>`; }
     if (it.bq && (it.min || it.armor)) h += `<div class="rng">基礎品質 ${Math.round(it.bq * 100)}%（85–115%）</div>`;
@@ -5023,7 +5093,7 @@
     tpgate: { name: '回程傳送門', verb: '穿過回程傳送門' },
   };
   // item level of loot: the floor (or deepest floor, in camp) plus a bonus on harder difficulties
-  const lootDepth = () => (G && G.camp ? Math.max(1, P.best) : G.depth) + (((P && DIFFS[P.diff || 0]) || {}).ilvl || 0);
+  const lootDepth = () => Math.min(ILVL_MAX, (G && G.camp ? Math.max(1, P.best) : G.depth) + (((P && DIFFS[P.diff || 0]) || {}).ilvl || 0));
 
   function genCamp() {
     MW = BASE_MW; MH = BASE_MH;
@@ -5069,6 +5139,7 @@
   }
 
   function enterCamp(msg) {
+    if (G && G.abyss) abyssRecord();
     genCamp();
     mode = 'play';
     $('floorName').textContent = '營地';
@@ -5120,7 +5191,7 @@
   function useScroll() {
     if (mode !== 'play' || partyBlocked('使用傳送卷軸')) return;
     if (G.camp) { logMsg(tpFloor ? '走進營地裡的藍色回程傳送門，就能回到剛才的位置' : '傳送卷軸要在地窟裡使用', '#7fb8ff'); return; }
-    if (G.realm || G.challenge || G.goldRealm || G.trialRealm || G.pvp) { logMsg('秘境、魔王挑戰和競技場裡不能使用傳送卷軸', '#ff6b6b'); return; }
+    if (G.realm || G.challenge || G.goldRealm || G.trialRealm || G.pvp || G.abyss || G.temple) { logMsg('秘境、魔王挑戰、無盡深淵和競技場裡不能使用傳送卷軸', '#ff6b6b'); return; }
     const si = P.bag.findIndex((x) => x.slot === 'scroll');
     if (si < 0) { logMsg('背包裡沒有傳送卷軸：可以向商人購買', '#ff6b6b'); return; }
     const sc = P.bag[si]; if ((sc.qty || 1) > 1) sc.qty--; else P.bag.splice(si, 1);
@@ -5164,19 +5235,25 @@
   function cancelRecall() { if (P.recall) { P.recall = null; logMsg('返回營地被打斷了', '#ff6b6b'); } }
 
   // ---------- portal / waypoints ----------
+  const diffLockText = (i) => (i === 1 ? '普通難度到達第 10 層解鎖' : i === 2 ? '惡夢難度到達第 10 層解鎖' : i === HELL + 1 ? '地獄難度通關第 100 層解鎖'
+    : `在「${DIFFS[i - 1].name}」完成 ${(i - 1 - HELL) * 10} 級秘境鑰匙解鎖`);
   function openPortal() {
     mode = 'portal'; mouse.down = false;
     const rows = [];
     const du = P.diffUnlock || 0;
-    $('diffPick').innerHTML = DIFFS.map((d, i) => `<button type="button" class="diff${(P.diff || 0) === i ? ' on' : ''}" data-diff="${i}" style="--dc:${d.color}"${i > du ? ' disabled' : ''}><b>${d.name}</b><small>${i > du ? (i === 1 ? '普通難度到達第 10 層解鎖' : '惡夢難度到達第 10 層解鎖') : `怪物生命 ×${d.hp}・傷害 ×${d.dmg}・經驗 ×${d.xp}・金幣 ×${d.gold}${d.mf ? `・稀有度 +${d.mf}%` : ''}${d.ilvl ? `・裝備等級 +${d.ilvl}` : ''}`}</small></button>`).join('');
+    $('diffPick').innerHTML = DIFFS.map((d, i) => `<button type="button" class="diff${(P.diff || 0) === i ? ' on' : ''}" data-diff="${i}" style="--dc:${d.color}"${i > du ? ' disabled' : ''}><b>${d.name}</b><small>${i > du ? diffLockText(i) : `怪物生命 ×${fmtN(d.hp, 1)}・傷害 ×${fmtN(d.dmg, 1)}・經驗 ×${fmtN(d.xp, 1)}・金幣 ×${fmtN(d.gold, 2)}${d.mf ? `・稀有度 +${d.mf}%` : ''}${d.ilvl ? `・裝備等級 +${d.ilvl}` : ''}${d.anc ? `・太古 ${Math.round(d.anc * 100)}%` : ''}`}</small></button>`).join('');
     $('diffPick').querySelectorAll('[data-diff]').forEach((b) => b.addEventListener('click', () => { const nd = +b.dataset.diff; if (nd !== (P.diff || 0)) { P.diff = nd; P.resume = 0; logMsg(`難度切換為「${DIFFS[nd].name}」`, DIFFS[nd].color); } openPortal(); }));
     if (P.resume > 1) rows.push({ d: P.resume, label: `繼續冒險：第 ${P.resume} 層`, sub: tierOf(P.resume).name, primary: true });
     for (let d = 1; d <= P.checkpoint; d += 5) rows.push({ d, label: `第 ${d} 層`, sub: `${tierOf(d).name}・據點`, primary: !rows.length && d === P.checkpoint });
+    if (inParty() && NET.mode === 'host') rows.push({ temple: true, label: '日月神殿（雙人關卡）', sub: templeReady() ? `兩人分別是「日」與「月」，三個房間加雙生魔王${P.templeClears ? `・已通關 ${P.templeClears} 次` : ''}` : '隊伍要剛好 2 人才能進入' });
+    if (abyssOpen()) { const rec = P.abyss && P.abyss[inParty() ? 'party' : 'solo']; rows.push({ abyss: true, label: '無盡深淵', sub: `從第 ${ABYSS_START} 層開始，倒下就結束${rec ? `・紀錄：${DIFFS[rec.diff || 0].name} 第 ${rec.floor} 層` : ''}` }); }
     $('portalList').innerHTML = rows.map((r, i) => `<button class="way${r.primary ? ' primary' : ''}" type="button" data-i="${i}"><b>${r.label}</b><small>${r.sub}</small></button>`).join('');
     $('portalList').querySelectorAll('[data-i]').forEach((b) => b.addEventListener('click', () => {
       const r = rows[+b.dataset.i];
       $('portalScreen').hidden = true; mode = 'play';
       if (tpFloor) { tpFloor = null; logMsg('回程傳送門關閉了', '#9a8fa6'); }
+      if (r.abyss) { abyssGo(ABYSS_START, true); save(); return; }
+      if (r.temple) { if (templeReady()) startTemple(1); else logMsg('日月神殿需要剛好 2 人的隊伍', '#ff6b6b'); return; }
       genFloor(r.d); save();
     }));
     $('portalScreen').hidden = false;
@@ -5279,6 +5356,7 @@
     if (old.set) { it.set = old.set; it.rarity = old.rarity; it.name = old.name; rollAffixes(it, it.ilvl, 'set'); }
     stat('forges'); sfx('forge');
     if (old.special && rarity === 'legendary') { it.special = old.special; it.name = old.name; }
+    if (old.ancient) ancientize(it);
     return it;
   }
   function renderForge() {
@@ -5589,7 +5667,42 @@
 
   let rankPrev = null;
   const RANK_TOP = 10; // the board shows the top ten runs
+  let rankTab = 'main';
+  const RANK_HEAD = '<tr><th>名次</th><th>玩家</th><th>職業</th><th>最深</th><th>等級</th><th>擊殺</th><th>鑰匙</th></tr>';
+  const ABYSS_HEAD = '<tr><th>名次</th><th>玩家</th><th>職業</th><th>難度</th><th>最深</th><th>用時</th></tr>';
+  document.querySelectorAll('#rankTabs button').forEach((b) => b.addEventListener('click', () => { rankTab = b.dataset.rt; openRank(); }));
+  async function openAbyssRank(kind) {
+    $('rankHead').innerHTML = ABYSS_HEAD; $('nickRow').hidden = true;
+    let rows = [], shared = false;
+    if (LB.sb) {
+      try {
+        const r = await sbFetch(`abyss_scores?select=pid,name,cls,floor,secs,diff&mode=eq.${kind}&order=diff.desc,floor.desc,secs.asc&limit=${RANK_TOP}`);
+        if (r.ok) { const v = await r.json(); rows = Array.isArray(v) ? v : []; shared = true; }
+      } catch (e) { shared = false; }
+    }
+    if (!shared) { const me = P && P.abyss && P.abyss[kind]; rows = me ? [{ ...me, local: true }] : []; }
+    if (rankTab !== kind) return;
+    $('rankNote').textContent = (shared ? '無盡深淵排行榜：每位玩家保留最好的一輪，先比難度，再比最深樓層，最後比用時。' : '連不到線上排行榜（或資料庫還沒更新），下面只顯示這台裝置上的紀錄。')
+      + (kind === 'party' ? '組隊時每位隊員各自留下紀錄。' : '');
+    const body = $('rankBody'); body.innerHTML = '';
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="6" class="empty-row">還沒有紀錄。通關第 100 層後，從營地的傳送門進入無盡深淵。</td></tr>'; return; }
+    rows.slice(0, RANK_TOP).forEach((r, i) => {
+      const tr = document.createElement('tr');
+      if (r.local || r.pid === LB.uid) tr.className = 'me';
+      const cells = [i + 1, r.local ? '你（本機）' : (r.name || '冒險者') + (r.pid === LB.uid ? '（你）' : ''), (CLASSES[r.cls] || CLASSES.warrior).name,
+        (DIFFS[r.diff || 0] || DIFFS[0]).name, `第 ${r.floor} 層`, fmtTime(r.secs || 0)];
+      cells.forEach((v, k) => { const td = document.createElement('td'); td.textContent = v; if (k === 2) td.style.color = (CLASSES[r.cls] || CLASSES.warrior).color; tr.appendChild(td); });
+      body.appendChild(tr);
+    });
+  }
   async function openRank() {
+    document.querySelectorAll('#rankTabs button').forEach((b) => b.classList.toggle('on', b.dataset.rt === rankTab));
+    if (rankTab !== 'main') {
+      rankPrev = mode; if (mode === 'play') mode = 'rank';
+      mouse.down = false; $('rankScreen').hidden = false; $('rankNote').textContent = '讀取中……'; $('rankBody').innerHTML = '';
+      openAbyssRank(rankTab); return;
+    }
+    $('rankHead').innerHTML = RANK_HEAD;
     rankPrev = mode;
     if (mode === 'play') mode = 'rank';
     mouse.down = false;
@@ -5957,6 +6070,11 @@
     { name: '惡夢', hp: 2.5, dmg: 2, bossDmg: 1.7, xp: 2, gold: 1.6, mf: 60, ilvl: 5, color: '#b79cff' },
     { name: '地獄', hp: 5, dmg: 3, bossDmg: 1.3, xp: 4, gold: 2.5, mf: 120, ilvl: 10, color: '#ff5a4a' },
   ];
+  // torment T1-T10 sit above hell: every tier multiplies hell's health and damage; T6+ can turn legendaries and sets ancient
+  const TORMENT_COLORS = ['#ff7a3d', '#ff6a3a', '#ff5a3a', '#f24a4a', '#e83c5c', '#d8327a', '#c22f96', '#a63ab0', '#8a48d0', '#ffd34d'];
+  for (let n = 1; n <= 10; n++) DIFFS.push({ name: `折磨 T${n}`, tier: n, hp: 5 * Math.pow(2.5, n), dmg: 3 * Math.pow(1.4, n), bossDmg: 1.3, xp: 4 * (1 + 0.3 * n), gold: 2.5 * (1 + 0.25 * n), mf: 120 + 20 * n, ilvl: 10 + 4 * n, anc: n >= 6 ? (n - 5) / 100 : 0, color: TORMENT_COLORS[n - 1] });
+  const HELL = 2, TORMENT_MAX = DIFFS.length - 1;
+  const diffIdx = () => (G && G.netDiff != null ? G.netDiff : (P && P.diff)) || 0;
   const diffOf = () => DIFFS[(G && G.netDiff != null ? G.netDiff : P && P.diff) || 0];
   LEGENDS.push(
     { key: 'reaper', slot: 'weapon', diff: 1, name: '暗夜收割者', desc: '【惡夢限定】暴擊時有 30% 機率重置衝刺並回復 3% 生命' },
@@ -5966,6 +6084,10 @@
   );
   for (const l of LEGENDS.slice(-4)) LEG[l.key] = l;
   function maybeUnlockDiff() {
+    // torment T1 opens once floor 100 has been cleared and hell is unlocked
+    if ((P.diffUnlock || 0) === HELL && ((P.stats || {}).clear100 || 0) > 0) {
+      P.diffUnlock = HELL + 1; logMsg('解鎖了「折磨 T1」難度！回營地從傳送門選擇', DIFFS[HELL + 1].color); levelFx();
+    }
     if (P.runBest >= 10 && (P.diffUnlock || 0) < Math.min(2, (P.diff || 0) + 1)) {
       P.diffUnlock = Math.min(2, (P.diff || 0) + 1);
       logMsg(`解鎖了「${DIFFS[P.diffUnlock].name}」難度！回營地從傳送門選擇`, DIFFS[P.diffUnlock].color);
@@ -6519,7 +6641,10 @@
     if (diving && !W) embers(e.x, e.y - lift, '#ffb347', 2, 40, 20);
   }
   function art2(c, e, r, t, white, lx, ly) {
-    if (e.look === 'firewyrm') { drawFireDragon(c, e, r, t, white, lx, ly); return true; }
+    if (e.look === 'firewyrm') {
+      if (G.aw && G.aw.fly > 0) { c.globalAlpha = 0.5; c.translate(0, -40); }
+      drawFireDragon(c, e, r, t, white, lx, ly); c.globalAlpha = 1; return true;
+    }
     if (e.type === 'assassin') {
       c.globalAlpha = e.hidden ? 0.12 : 1;
       c.fillStyle = white ? '#fff' : '#2a1e38';
@@ -6582,6 +6707,12 @@
     const B = e.variant, enraged = e.hp < e.maxHp * 0.5;
     if (B.look === 'firewyrm') {
       if (!e.aggro) return true;
+      if (e.fly) {
+        const mx = e.home.x - e.x, my = e.home.y - e.y, md = Math.hypot(mx, my);
+        if (md > 2) moveEnt(e, mx / md * Math.min(220 * dt, md), my / md * Math.min(220 * dt, md));
+        e.dive = null; e.breathWarn = 0; e.tailT = 0; e.wind = 0;
+        return true;
+      }
       const toward = Math.atan2(uy, ux), turn = (a, b, sp) => a + clamp(Math.atan2(Math.sin(b - a), Math.cos(b - a)), -sp * dt, sp * dt);
       e.tailCd -= dt; e.ring2Cd -= dt; e.diveCd = (e.diveCd ?? 5) - dt;
       e.face = e.face ?? toward;
@@ -6819,9 +6950,12 @@
     }
   }
   function eventBarText() {
+    if (G && G.temple && G.tp) return templeBarText();
+    if (G && G.trialRealm && G.aw && G.boss) return awBarText();
     if (G && G.trialRealm) return G.boss ? '試煉秘境：打倒火龍' : '試煉完成：走樓梯回營地';
     if (G && G.goldRealm) return `金幣秘境：剩下 ${Math.floor(G.goldRealm.t / 60)}:${String(Math.floor(G.goldRealm.t % 60)).padStart(2, '0')}・已獲得 ${G.goldRealm.earned.toLocaleString()} 金幣`;
     if (G && G.pvp) return pvpHudText();
+    if (G && G.abyss) return `無盡深淵：第 ${G.depth} 層・用時 ${fmtTime(abyssSecs())}${G.boss ? '・打倒魔王才能下樓' : ''}${P.pvpDownT > 0 ? '・倒下中，等隊友下樓' : ''}`;
     if (G && G.realm) return `秘境：剩下 ${Math.floor(G.realm.t / 60)}:${String(Math.floor(G.realm.t % 60)).padStart(2, '0')}${G.realm.lv ? `・鑰匙 ${G.realm.lv} 級（${(G.realm.affs || []).map((k) => REALM_AFFS[k].name).join('、')}）` : ''}${G.realm.chest ? '・大寶箱已打開，走樓梯離開' : '・出口旁有大寶箱'}`;
     if (G && G.challenge) return G.boss ? `魔王挑戰：${bossName(G.challenge)}（強化版）` : '魔王挑戰完成：走樓梯回營地';
     const ev = G && G.event;
@@ -6859,11 +6993,21 @@
   // ================= settings =================
   const SETTINGS_KEY = 'dungeon-loot-settings-v1';
   const PICK_DEF = { common: true, magic: true, rare: true, legendary: true, set: true, gem: true, potion: true, otherCls: true };
-  const SET_DEF = { music: 0.45, sfx: 0.7, shake: true, dmgNums: true, tSize: 1, lefty: false, haptic: true, pick: PICK_DEF };
+  const SET_DEF = { music: 0.45, sfx: 0.7, shake: true, dmgNums: true, shortNum: true, tSize: 1, lefty: false, haptic: true, pick: PICK_DEF };
   let CFG = { ...SET_DEF };
   try { CFG = { ...SET_DEF, ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') }; } catch (e) { /* defaults */ }
   CFG.pick = { ...PICK_DEF, ...(CFG.pick || {}) };
   // items the player chose not to auto-collect stay on the ground until E is pressed beside them
+  // 12,345 -> 1.2萬, 350,000,000 -> 3.5億; full numbers when the setting is off
+  function fmtN(n, dec) {
+    if (dec != null && Math.abs(n) < 1e4) return String(Math.round(n * Math.pow(10, dec)) / Math.pow(10, dec));
+    n = Math.round(n);
+    const a = Math.abs(n);
+    if (CFG.shortNum === false || a < 1e4) return n.toLocaleString();
+    const [d, u] = a >= 1e12 ? [1e12, '兆'] : a >= 1e8 ? [1e8, '億'] : [1e4, '萬'];
+    const v = n / d;
+    return (Math.abs(v) >= 100 ? Math.round(v) : Math.round(v * 10) / 10) + u;
+  }
   function wantPick(d) {
     if (d.force) return true;
     if (d.kind === 'potion') return CFG.pick.potion;
@@ -6871,6 +7015,7 @@
     const it = d.item;
     if (it.slot === 'gem') return CFG.pick.gem;
     if (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal') return true;
+    if (it.ancient) return true;
     if (it.slot === 'weapon' && !CFG.pick.otherCls && weaponClass(it) !== curCls()) return false;
     return CFG.pick[it.rarity] !== false;
   }
@@ -7188,7 +7333,7 @@
   let setPrev = null;
   function openSettings() {
     setPrev = mode; if (mode === 'play') mode = 'settings';
-    $('setMusic').value = CFG.music; $('setSfx').value = CFG.sfx; $('setShake').checked = CFG.shake; $('setNums').checked = CFG.dmgNums;
+    $('setMusic').value = CFG.music; $('setSfx').value = CFG.sfx; $('setShake').checked = CFG.shake; $('setNums').checked = CFG.dmgNums; $('setShort').checked = CFG.shortNum !== false; $('setSteps').checked = CFG.fireSteps !== false; $('setSteps').disabled = !P || !P.fireSteps;
     $('setTSize').value = String(CFG.tSize || 1); $('setLefty').checked = !!CFG.lefty; $('setHaptic').checked = CFG.haptic !== false;
     renderPickGrid();
     $('settingsScreen').hidden = false; mouse.down = false;
@@ -7198,6 +7343,8 @@
   $('setSfx').addEventListener('input', (e) => { CFG.sfx = +e.target.value; applyVolumes(); saveCfg(); sfx('coin'); });
   $('setShake').addEventListener('change', (e) => { CFG.shake = e.target.checked; saveCfg(); });
   $('setNums').addEventListener('change', (e) => { CFG.dmgNums = e.target.checked; saveCfg(); });
+  $('setShort').addEventListener('change', (e) => { CFG.shortNum = e.target.checked; saveCfg(); });
+  $('setSteps').addEventListener('change', (e) => { CFG.fireSteps = e.target.checked; saveCfg(); });
   $('setTSize').addEventListener('change', (e) => { CFG.tSize = +e.target.value; saveCfg(); layoutTouch(); resize(); });
   $('setLefty').addEventListener('change', (e) => { CFG.lefty = e.target.checked; saveCfg(); layoutTouch(); });
   $('setHaptic').addEventListener('change', (e) => { CFG.haptic = e.target.checked; saveCfg(); buzz(); });
@@ -7503,13 +7650,13 @@
   }
   // ---------- paragon levels 100-150 ----------
   const PARA = [
-    { k: 'dmg', name: '傷害', max: 15, txt: (n) => `最終傷害 +${n}%` },
-    { k: 'life', name: '生命', max: 15, txt: (n) => `最終生命 +${(1.5 * n).toFixed(1)}%` },
-    { k: 'taken', name: '減傷', max: 10, txt: (n) => `受到的傷害最終 −${(0.5 * n).toFixed(1)}%` },
-    { k: 'atk', name: '攻擊速度', max: 10, txt: (n) => `最終攻擊速度 +${(0.6 * n).toFixed(1)}%` },
-    { k: 'critd', name: '暴擊傷害', max: 10, txt: (n) => `暴擊傷害 +${3 * n}%` },
-    { k: 'move', name: '移動速度', max: 10, txt: (n) => `移動速度 +${n}%` },
-    { k: 'find', name: '尋寶', max: 10, txt: (n) => `金幣與稀有度 +${4 * n}%` },
+    { k: 'dmg', name: '傷害', max: 30, txt: (n) => `最終傷害 +${n}%` },
+    { k: 'life', name: '生命', max: 30, txt: (n) => `最終生命 +${(1.5 * n).toFixed(1)}%` },
+    { k: 'taken', name: '減傷', max: 20, txt: (n) => `受到的傷害最終 −${(0.5 * n).toFixed(1)}%` },
+    { k: 'atk', name: '攻擊速度', max: 20, txt: (n) => `最終攻擊速度 +${(0.6 * n).toFixed(1)}%` },
+    { k: 'critd', name: '暴擊傷害', max: 20, txt: (n) => `暴擊傷害 +${3 * n}%` },
+    { k: 'move', name: '移動速度', max: 15, txt: (n) => `移動速度 +${n}%` },
+    { k: 'find', name: '尋寶', max: 20, txt: (n) => `金幣與稀有度 +${4 * n}%` },
   ];
   const paraSpent = () => Object.values(P.para || {}).reduce((a, v) => a + v, 0);
   const paraPoints = () => Math.max(0, Math.min(P.lvl, LVL_CAP) - 99 - paraSpent());
@@ -7553,6 +7700,10 @@
   // ---------- boss-exclusive legendaries: two per boss, both together form a pair bonus ----------
   const BOSS_LEGS = { skull: ['bSoul', 'bBone'], queen: ['bFang', 'bWeb'], golem: ['bCore', 'bRock'], eye: ['bGaze', 'bRift'] };
   LEGENDS.push(
+    { key: 'tSun', slot: 'ring', boss: 'temple', name: '日之戒', desc: '【日月神殿】暴擊時，讓組隊的同伴 3 秒內傷害 +20%（每秒最多一次）。〔日月同輝：你戴日之戒、同伴戴月之戒，且距離 300 以內時，兩人最終傷害 +15%〕' },
+    { key: 'tMoon', slot: 'ring', boss: 'temple', name: '月之戒', desc: '【日月神殿】受到傷害時，給組隊的同伴 5% 最大生命的護盾（4 秒冷卻）。〔日月同輝：你戴月之戒、同伴戴日之戒，且距離 300 以內時，兩人最終傷害 +15%〕' },
+  );
+  LEGENDS.push(
     { key: 'bSoul', slot: 'ring', boss: 'skull', name: '冥王之戒', desc: '【骷髏王專屬】擊殺時疊 1 層「亡魂」（最多 20 層，8 秒沒有擊殺就清空），每層暴擊傷害 +3%。〔冥王之契：同時穿戴白骨壁壘，每層亡魂再讓傷害 +1%〕' },
     { key: 'bBone', slot: 'armor', boss: 'skull', name: '白骨壁壘', desc: '【骷髏王專屬】生命低於 50% 時，獲得吸收 15% 最大生命的白骨護盾（5 秒，10 秒冷卻）。〔冥王之契：同時穿戴冥王之戒，每層亡魂再讓傷害 +1%〕' },
     { key: 'bFang', slot: 'gloves', boss: 'queen', name: '毒牙之握', desc: '【蜘蛛女后專屬】攻擊讓敵人中毒，3 秒共造成 30% 武器傷害（最多 3 層）。〔女后之網：同時穿戴蛛絲之靴，毒最多 5 層，且對中毒或被蛛網纏住的敵人傷害 +12%〕' },
@@ -7564,10 +7715,11 @@
   );
   for (const l of LEGENDS) LEG[l.key] = l;
   function makeBossLegend(ilvl, key) {
+    ilvl = Math.min(ilvl, ILVL_MAX);
     const L = LEG[key], it = makeItem(ilvl, 'rare', L.slot);
     it.rarity = 'legendary'; rollAffixes(it, ilvl, 'legendary');
     it.special = key; it.name = L.name; delete it.sockets; rollSockets(it);
-    return it;
+    return maybeAncient(it);
   }
   // per-target boosts from keystones and boss pieces (only on the player's own hits)
   function targetMul(e) {
@@ -7653,6 +7805,7 @@
       }
     }
     pvpTick(dt);
+    abyssTick(dt);
     if (P.riftQueued) { P.riftQueued = false; for (let i = 0; i < 3; i++) P.skillCd[i] *= 0.5; }
     if (P.bsoulT > 0) { P.bsoulT -= dt; if (P.bsoulT <= 0) P.bsoul = 0; }
     if (S.specials.has('bBone') && P.hp > 0 && P.hp < P.hpMax * 0.5 && !(P.boneCd > 0) && !G.camp) {
@@ -7672,6 +7825,7 @@
 
   // ---------- refining and salvage at the blacksmith ----------
   const SALVAGE = { magic: 1, rare: 3, legendary: 15, set: 15, lset: 30 };
+  const salvageOf = (it) => (it.ancient ? 50 : SALVAGE[it.rarity] || 0);
   const refineStones = (it) => (it.rarity === 'legendary' || it.rarity === 'set' || it.rarity === 'lset' ? 15 : 5);
   const refineGold = (it) => it.ilvl * 50 * ((it.refN || 0) + 1);
   let refineOpts = null;
@@ -7685,7 +7839,7 @@
     }
     h += '<div class="inv-actions">' + Object.entries(it.aff).filter(([k]) => AFF[k]).map(([k, v]) => `<button type="button" data-rk="${k}"${(it.refK && it.refK !== k) || !can ? ' disabled' : ''}>精煉「${AFF[k].label(v)}」</button>`).join('') + '</div>';
     h += `<div class="sub">花 ${st} 顆精煉石＋${gc} 金（每次精煉金幣會增加），重骰一條詞綴：給 2 個新結果和原本的數值三選一，新結果可能是別種詞綴。${it.refK && AFF[it.refK] ? `這件裝備只能精煉「${AFF[it.refK].label(it.aff[it.refK])}」這一條。` : '第一次精煉哪一條，之後就只能精煉那一條。'}</div>`;
-    if (!inEquip && SALVAGE[it.rarity]) h += `<div class="inv-actions"><button type="button" id="salvBtn">分解這件（得到 ${SALVAGE[it.rarity]} 顆精煉石）</button></div>`;
+    if (!inEquip && SALVAGE[it.rarity]) h += `<div class="inv-actions"><button type="button" id="salvBtn">分解這件（得到 ${salvageOf(it)} 顆精煉石）</button></div>`;
     return h;
   }
   function bindRefine(it) {
@@ -7726,7 +7880,7 @@
   function salvageItems(list) {
     const gone = new Set(list); let n = 0;
     const gems = [];
-    for (const it of list) { n += SALVAGE[it.rarity] || 0; for (const g of it.sockets || []) if (g) gems.push(g); }
+    for (const it of list) { n += salvageOf(it); for (const g of it.sockets || []) if (g) gems.push(g); }
     P.bag = P.bag.filter((x) => !gone.has(x));
     for (const g of gems) if (!stackInto(P.bag, g, BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, g, 9999); }
     if (n && !stackInto(P.bag, makeRStone(n), BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, makeRStone(n), 9999); logMsg('背包滿了，精煉石放進了倉庫', '#9cd4ff'); }
@@ -7734,12 +7888,12 @@
   }
   // batch salvage filter: item level range, colours, and which legendaries and sets are included
   const SALV_RAR = [['magic', '魔法'], ['rare', '稀有'], ['legendary', '傳說'], ['set', '套裝'], ['lset', '傳說套裝']];
-  const salvF = { lo: 1, hi: 999, rar: { magic: true, rare: true, legendary: false, set: false, lset: false }, skip: new Set(), refined: false };
+  const salvF = { lo: 1, hi: 999, rar: { magic: true, rare: true, legendary: false, set: false, lset: false }, skip: new Set(), refined: false, anc: false };
   let salvageArm = false;
   const salvKey = (it) => (it.rarity === 'set' || it.rarity === 'lset' ? 'S:' + it.set : it.rarity === 'legendary' ? 'L:' + it.special : '');
   const salvName = (k) => (k[0] === 'S' ? (SET[k.slice(2)] ? SET[k.slice(2)].name : '套裝') : LEG[k.slice(2)] ? LEG[k.slice(2)].name : '傳說');
   const salvageTargets = () => P.bag.filter((it) => isGear(it) && SALVAGE[it.rarity] && salvF.rar[it.rarity] && it.ilvl >= salvF.lo && it.ilvl <= salvF.hi
-    && (salvF.refined || !it.refN) && !(salvKey(it) && salvF.skip.has(salvKey(it))));
+    && (salvF.refined || !it.refN) && (salvF.anc || !it.ancient) && !(salvKey(it) && salvF.skip.has(salvKey(it))));
   function salvageAllHtml() {
     const gear = P.bag.filter((it) => isGear(it) && SALVAGE[it.rarity]);
     const list = salvageTargets(), n = list.reduce((a, it) => a + SALVAGE[it.rarity], 0);
@@ -7749,7 +7903,7 @@
       `<div class="sub">物品等級 <input type="number" id="salvLo" min="1" max="999" value="${salvF.lo}" inputmode="numeric" style="width:60px"> ～ <input type="number" id="salvHi" min="1" max="999" value="${salvF.hi}" inputmode="numeric" style="width:60px"></div>` +
       '<div class="sub">' + SALV_RAR.map(([r, nm]) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sr="${r}"${salvF.rar[r] ? ' checked' : ''}> <span style="color:${RAR[r].color}">${nm}</span>（${gear.filter((it) => it.rarity === r).length}）</label>`).join('') + '</div>';
     if (names.length) h += '<div class="sub">要分解的傳說與套裝（取消勾選就會保留）：<br>' + names.map((k) => `<label style="margin-right:10px;display:inline-block;white-space:nowrap"><input type="checkbox" data-sk="${k}"${salvF.skip.has(k) ? '' : ' checked'}> <span style="color:${RAR[k === 'S:dragon' ? 'lset' : k[0] === 'S' ? 'set' : 'legendary'].color}">${salvName(k)}</span>×${cnt(k)}</label>`).join('') + '</div>';
-    h += `<div class="sub"><label><input type="checkbox" id="salvRef"${salvF.refined ? ' checked' : ''}> 也分解精煉過的裝備</label></div>`;
+    h += `<div class="sub"><label><input type="checkbox" id="salvRef"${salvF.refined ? ' checked' : ''}> 也分解精煉過的裝備</label>　<label><input type="checkbox" id="salvAnc"${salvF.anc ? ' checked' : ''}> 也分解太古裝備（每件 50 顆）</label></div>`;
     h += `<div class="inv-actions"><button type="button" class="${salvageArm ? 'primary' : ''}" id="salvAll"${list.length ? '' : ' disabled'}>${salvageArm ? `再按一次確認：分解 ${list.length} 件` : `分解符合條件的 ${list.length} 件（得到 ${n} 顆精煉石）`}</button></div>`;
     h += '<div class="sub">只分解背包裡的裝備，穿在身上的不會被分解。裝備上鑲嵌的寶石會退回背包。分解得到：魔法 1 顆、稀有 3 顆、傳說與套裝各 15 顆。</div>';
     return h;
@@ -7761,6 +7915,7 @@
     det.querySelectorAll('[data-sr]').forEach((b) => b.addEventListener('change', () => { salvF.rar[b.dataset.sr] = b.checked; re(); }));
     det.querySelectorAll('[data-sk]').forEach((b) => b.addEventListener('change', () => { if (b.checked) salvF.skip.delete(b.dataset.sk); else salvF.skip.add(b.dataset.sk); re(); }));
     $('salvRef')?.addEventListener('change', (e) => { salvF.refined = e.target.checked; re(); });
+    $('salvAnc')?.addEventListener('change', (e) => { salvF.anc = e.target.checked; re(); });
     $('salvAll')?.addEventListener('click', () => {
       if (!salvageArm) { salvageArm = true; renderForge(); setTimeout(() => { if (salvageArm) { salvageArm = false; if (mode === 'forge' && !forgeSel) renderForge(); } }, 4000); return; }
       salvageArm = false;
@@ -8034,10 +8189,11 @@
     return (BASES[it.slot] || []).find((x) => x.name === it.base) || null;
   }
   function raiseIlvl(it, t) {
-    const b = baseOfItem(it);
-    if (it.min && b) { const m = Math.pow(1.1, t - 1) * (it.bq || 1); it.min = Math.round(b.min * m); it.max = Math.round(b.max * m); }
+    t = Math.min(t, ILVL_MAX);
+    const b = baseOfItem(it), ab = it.ancient ? ANC_BASE : 1;
+    if (it.min && b) { const m = Math.pow(1.1, t - 1) * (it.bq || 1) * ab; it.min = Math.round(b.min * m); it.max = Math.round(b.max * m); }
     else if (it.min) { const m = Math.pow(1.1, t - it.ilvl); it.min = Math.round(it.min * m); it.max = Math.round(it.max * m); }
-    if (it.armor) it.armor = b && b.armor ? Math.round(b.armor * (1 + 0.15 * (t - 1)) * (it.bq || 1)) : Math.round(it.armor * (1 + 0.15 * (t - 1)) / (1 + 0.15 * (it.ilvl - 1)));
+    if (it.armor) it.armor = b && b.armor ? Math.round(b.armor * (1 + 0.15 * (t - 1)) * (it.bq || 1) * ab) : Math.round(it.armor * (1 + 0.15 * (t - 1)) / (1 + 0.15 * (it.ilvl - 1)));
     it.ilvl = t;
   }
   function forgeExtraHtml(it) {
@@ -8460,6 +8616,8 @@
       dropAt(p.x, p.y, { kind: 'item', item: makeItem(il, atLeastRare(rollRarity(3))) });
       for (let i = 0; i < Math.floor(kl / 10); i++) dropAt(p.x, p.y, { kind: 'item', item: guaranteedLegendary(il) });
       for (let i = 0; i < 4; i++) dropAt(p.x, p.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), realmGemTier(kl)) });
+      { const di = diffIdx(), du = P.diffUnlock || 0, tn = di - HELL;
+        if (tn >= 1 && di === du && du < TORMENT_MAX && kl >= tn * 10) { P.diffUnlock = du + 1; logMsg(`解鎖了「${DIFFS[du + 1].name}」難度！`, DIFFS[du + 1].color); levelFx(); } }
       if (kl > 0 && kl >= (P.keyMax || 1) && (P.keyMax || 1) < KEY_MAX) { P.keyMax = kl + 1; logMsg(`秘境鑰匙等級提升！現在可以挑戰 ${P.keyMax} 級`, '#ffd34d'); levelFx(); submitScore(); }
       dropAt(p.x, p.y, { kind: 'gold', amount: Math.round(ri(40, 60) * goldDepth(G.depth)) });
       dropAt(p.x, p.y, { kind: 'coll', c: 'frag', v: ri(0, 4) });
@@ -8644,7 +8802,364 @@
   // ---------- trial realm: one fire dragon far tougher than a hell floor-100 boss; level 99 only ----------
   const TRIAL_LV = 99;
   const FIRE_DRAGON = { name: '火龍', look: 'firewyrm', quote: '「愚蠢的人類，你確定要挑戰我嗎？」', r: 44 };
-  function startTrialRealm() {
+  // awakened dragon: at most 1.5% of its life per second, mechanics hit for a share of max life, enrage at 4 minutes
+  const AW_CAP = 0.015, AW_ENRAGE = 240, AW_FLY = 20, AW_HP = 3;
+  function awTargets() {
+    const list = [];
+    if (mode === 'play' && !(P.pvpDownT > 0)) list.push({ self: true, x: P.x, y: P.y });
+    for (const rp of peersHere()) list.push({ rp, x: rp.x, y: rp.y });
+    return list;
+  }
+  // a share of max life that armour and resistances do not reduce; dodge lets a dash or i-frames avoid it
+  function pctHurt(pct, dodge) {
+    if (mode !== 'play' || P.pvpDownT > 0 || P.invuln > 1e8) return;
+    if (dodge && (P.invuln > 0 || P.dashT > 0 || P.leap)) return;
+    const a = P.hpMax * pct;
+    P.hp -= a; P.hurt = 0.25;
+    addText(`-${fmtN(a)}`, P.x, P.y - 20, '#ff6b6b', 15);
+    if (P.hp <= 0) { P.hp = 0; die(); }
+  }
+  const awHurt = (p, pct, dodge) => { if (p.self) pctHurt(pct, dodge); else netSend(p.rp.id, { t: 'pct', p: pct, d: dodge ? 1 : 0 }); };
+  // steady damage is dealt every half second so a party does not get a message every frame
+  function awTick(A, key, dt, perSec, list) {
+    A.acc[key] = (A.acc[key] || 0) + dt;
+    if (A.acc[key] < 0.5) return;
+    A.acc[key] -= 0.5;
+    for (const p of list) awHurt(p, perSec * 0.5, false);
+  }
+  function awTakeOff(b) {
+    const A = G.aw, h = b.home;
+    A.fly = AW_FLY; b.fly = true; b.dive = null; b.breathWarn = 0; b.tailT = 0;
+    A.safe = [0, 1, 2].map((i) => ({ a: i * Math.PI * 2 / 3, R: 6 * TILE, sp: 0.3, r: 80, x: h.x, y: h.y }));
+    for (let i = 0; i < 3; i++) {
+      let x = h.x, y = h.y;
+      for (let k = 0; k < 30; k++) { const a = Math.random() * Math.PI * 2, rr = (4 + Math.random() * 5) * TILE; x = h.x + Math.cos(a) * rr; y = h.y + Math.sin(a) * rr * 0.6; if (!solidAt(x, y)) break; }
+      const egg = spawnEnemy('dragonEgg', x, y, false);
+      egg.hp = egg.maxHp = Math.round(b.maxHp * 0.03); egg.aggro = true;
+    }
+    shakeIt(14); sfx('boss');
+    logMsg('火龍飛上天空，地面燃起烈焰！站進藍色安全圈，20 秒內打破 3 顆龍蛋！', '#ff4f6e');
+  }
+  function awLand(b, list) {
+    const A = G.aw;
+    A.fly = 0; A.safe = []; b.fly = false;
+    const left = G.enemies.filter((e) => e.type === 'dragonEgg' && !e.dead);
+    for (const e of left) e.dead = true;
+    G.enemies = G.enemies.filter((e) => !e.dead);
+    if (left.length) {
+      b.hp = Math.min(b.maxHp, b.hp + b.maxHp * 0.1 * left.length);
+      for (const p of list) awHurt(p, 0.5 * left.length, false);
+      shakeIt(16); sfx('boom');
+      logMsg(`還有 ${left.length} 顆龍蛋沒打破：火龍回復了生命，烈焰吞沒了所有人！`, '#ff4f6e');
+    } else logMsg('龍蛋全部打破了！火龍憤怒地落回地面', '#ffd34d');
+  }
+  function awakenTick(dt) {
+    const A = G.aw, b = G.boss;
+    if (!A || A.client || !b || b.dead || !b.awake || !b.aggro) return;
+    A.t += dt;
+    const list = awTargets(), ratio = b.hp / b.maxHp, h = b.home;
+    if (A.ph === 1 && ratio <= 0.7) { A.ph = 2; awTakeOff(b); }
+    if (A.ph === 2 && !(A.fly > 0) && ratio <= 0.4) { A.ph = 3; logMsg('火龍用火鏈把你們綁住了！和隊友保持 120～400 的距離（單人時是和中央的石柱）', '#ff4f6e'); }
+    if (A.t >= AW_ENRAGE && !A.enraged) { A.enraged = true; shakeIt(16); logMsg('覺醒火龍狂暴了！整個巢穴都在燃燒', '#ff4f6e'); }
+    if (A.enraged) awTick(A, 'rage', dt, 0.5, list);
+    // warning circles under every player: 1.5 s later they explode for 60% of max life
+    if (!(A.fly > 0)) {
+      A.cCd -= dt;
+      if (A.cCd <= 0) { A.cCd = A.ph === 3 ? 3.2 : 4; for (const p of list) A.circles.push({ x: p.x, y: p.y, r: 70, t: 1.5 }); }
+    }
+    for (const z of A.circles) {
+      z.t -= dt;
+      if (z.t <= 0) {
+        shockwave(z.x, z.y, z.r, 'rgba(255,80,40,0.9)', 0.35, 5); fireFx(z.x, z.y, 40); sfx('boom');
+        for (const p of list) if (Math.hypot(p.x - z.x, p.y - z.y) < z.r + P.r) awHurt(p, 0.6, true);
+      }
+    }
+    A.circles = A.circles.filter((z) => z.t > 0);
+    // in the air: the floor burns except inside the moving safe circles
+    if (A.fly > 0) {
+      A.fly -= dt;
+      for (const c of A.safe) { c.a += c.sp * dt; c.x = h.x + Math.cos(c.a) * c.R; c.y = h.y + Math.sin(c.a) * c.R * 0.6; }
+      awTick(A, 'fire', dt, 0.1, list.filter((p) => !A.safe.some((c) => Math.hypot(p.x - c.x, p.y - c.y) < c.r)));
+      if (A.fly <= 0) awLand(b, list);
+    }
+    // phase 3: fire chains between pairs of players (or to the pillar in the middle)
+    A.tether = [];
+    if (A.ph === 3) {
+      const bad = [];
+      for (let i = 0; i < list.length; i += 2) {
+        const a = list[i], o = list[i + 1] || { x: h.x, y: h.y, pillar: true };
+        const d = Math.hypot(a.x - o.x, a.y - o.y), hurt = d < 120 || d > 400;
+        A.tether.push([a.x, a.y, o.x, o.y, hurt ? 1 : 0]);
+        if (hurt) { bad.push(a); if (!o.pillar) bad.push(o); }
+      }
+      awTick(A, 'chain', dt, 0.06, bad);
+    }
+  }
+  function awPack() {
+    const A = G.aw, r = Math.round;
+    return [A.ph, r(A.t), +(A.fly || 0).toFixed(1), A.circles.map((z) => [r(z.x), r(z.y), z.r, +z.t.toFixed(2)]), A.safe.map((c) => [r(c.x), r(c.y), c.r]), A.tether.map((l) => l.map(r)), A.enraged ? 1 : 0];
+  }
+  function awUnpack(a) {
+    const [ph, t, fly, circles, safe, tether, enraged] = a;
+    return { client: true, ph, t, fly, enraged: !!enraged, circles: circles.map(([x, y, r, tt]) => ({ x, y, r, t: tt })), safe: safe.map(([x, y, r]) => ({ x, y, r })), tether };
+  }
+  function drawAwaken(c) {
+    const A = G.aw; if (!A) return;
+    if (A.fly > 0) { c.fillStyle = `rgba(255,90,30,${0.14 + 0.05 * Math.sin(G.time * 6)})`; c.fillRect(0, 0, MW * TILE, MH * TILE); }
+    for (const s of A.safe) {
+      c.fillStyle = 'rgba(90,200,255,0.22)'; c.beginPath(); c.ellipse(s.x, s.y, s.r, s.r * 0.6, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#7fd6ff'; c.lineWidth = 3; c.stroke();
+    }
+    for (const z of A.circles) {
+      const k = clamp(1 - z.t / 1.5, 0, 1);
+      c.fillStyle = `rgba(255,40,40,${0.12 + k * 0.3})`; c.beginPath(); c.ellipse(z.x, z.y, z.r, z.r * 0.6, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#ff4a3a'; c.lineWidth = 2; c.stroke();
+      c.fillStyle = 'rgba(255,120,60,0.35)'; c.beginPath(); c.ellipse(z.x, z.y, z.r * k, z.r * k * 0.6, 0, 0, Math.PI * 2); c.fill();
+    }
+    c.save(); c.setLineDash([10, 6]); c.lineWidth = 3;
+    for (const l of A.tether || []) { c.strokeStyle = l[4] ? '#ff3b3b' : '#ffb347'; c.beginPath(); c.moveTo(l[0], l[1] - 10); c.lineTo(l[2], l[3] - 10); c.stroke(); }
+    c.restore();
+  }
+  function awBarText() {
+    const A = G.aw, eggs = G.enemies.filter((e) => e.type === 'dragonEgg' && !e.dead).length;
+    return `覺醒火龍・第 ${A.ph} 階段・${fmtTime(A.t)} / ${fmtTime(AW_ENRAGE)}`
+      + (A.fly > 0 ? `・飛行中 ${Math.ceil(A.fly)} 秒：站進安全圈、打破龍蛋（剩 ${eggs} 顆）` : '')
+      + (A.ph === 3 ? '・火鏈：保持 120～400 距離' : '') + (A.enraged ? '・狂暴！' : '');
+  }
+  // ================= 日月神殿: a stage for exactly two players =================
+  // the leader is 日 (sun) and the teammate 月 (moon); in the first hall the colours swap every 30 s
+  const TEMPLE_DEPTH = 99, TEMPLE_SWAP = 30, TEMPLE_CAP = 0.02;
+  const SUN_B = { name: '日蝕', look: 'golem', quote: '「光明終將吞沒一切。」', r: 30, hp: 1, speed: 0.7 };
+  const MOON_B = { name: '月蝕', look: 'eye', quote: '「黑夜會記住你的名字。」', r: 26, hp: 1 };
+  const TC = { sun: { name: '日', color: '#ffc94d' }, moon: { name: '月', color: '#7fb8ff' } };
+  const templeReady = () => NET.mode === 'host' && NET.players.size === 1;
+  const tpColorOf = (who) => { const base = who === 'host' ? 'sun' : 'moon'; return G.tp && G.tp.swap ? (base === 'sun' ? 'moon' : 'sun') : base; };
+  const myTpColor = () => tpColorOf(NET.mode === 'client' ? 'peer' : 'host');
+  function startTemple(st) {
+    if (NET.mode === 'client') return;
+    closeOverlay(); tpFloor = null;
+    NET.floorKind = 'temple'; NET.floorTemple = { st }; genFloor(36); NET.floorKind = null;
+    buildArena();
+    $('log').innerHTML = '';
+    templeSetup(st);
+    save();
+  }
+  function templeSetup(st) {
+    const cx = MW >> 1, cy = MH >> 1, ry = MH * 0.41, T = TILE, host = NET.mode !== 'client';
+    G.depth = TEMPLE_DEPTH; G.temple = true; G.boss = null; G.doorT = null; $('bossBox').hidden = true;
+    const top = { x: (cx + 0.5) * T, y: (Math.round(cy - ry) + 3.5) * T };
+    G.tp = { st, client: !host, swap: false, swapT: TEMPLE_SWAP, exit: { x: top.x, y: top.y, r: 56, open: false }, exitT: 0, cd: {}, acc: {}, won: false };
+    const tp = G.tp;
+    $('floorName').textContent = `日月神殿・第 ${st} 關`;
+    if (st === 1) {
+      if (host) for (let i = 0; i < 22; i++) templeMob(i % 2 ? 'sun' : 'moon');
+      logMsg('第一關「雙色封印」：金色護盾的怪物只怕「日」，藍色只怕「月」，另一色只有 10% 傷害。每 30 秒兩人的顏色互換！', '#ffc94d');
+    } else if (st === 2) {
+      // a wall down the middle with a door; plates A and B hold it open, plate C stops the blades
+      for (let y = 0; y < MH; y++) for (const x of [cx, cx + 1]) if (G.map[y * MW + x] === 0 && Math.abs(y - cy) > 1) G.map[y * MW + x] = 1;
+      tp.gap = new Set(); for (let y = cy - 1; y <= cy + 1; y++) for (const x of [cx, cx + 1]) tp.gap.add(y * MW + x);
+      G.doorT = tp.gap;
+      tp.plates = [[cx - 8, cy - 6], [cx + 8, cy + 6], [cx + 5, cy - 7]].map(([x, y], i) => ({ x: (x + 0.5) * T, y: (y + 0.5) * T, r: 26, on: false, k: 'ABC'[i] }));
+      tp.blades = [0, 1, 2].map((i) => ({ x: (cx + 13.5) * T, y: cy * T, ph: i * 2.09 })); tp.bt = 0; tp.ry = ry * T * 0.85; tp.cy = (cy + 0.5) * T;
+      tp.exit = { x: (cx + Math.round(MW * 0.43) - 4 + 0.5) * T, y: (cy + 0.5) * T, r: 56, open: true };
+      P.x = (cx - 12 + 0.5) * T; P.y = (cy + 0.5) * T;
+      if (host) for (let i = 0; i < 6; i++) { const e = spawnEnemy(pick(['skeleton', 'archer', 'assassin']), (cx + ri(4, 10) + 0.5) * T, (cy + ri(-8, 8) + 0.5) * T, false); e.aggro = false; }
+      logMsg('第二關「壓力板迴廊」：站在 A 板上門才會打開，過門後站上 B 板讓同伴通過；站在 C 板上刀刃會停下。兩人都走到右邊的出口才能前進', '#ffc94d');
+    } else if (st === 3) {
+      if (host) for (let i = 0; i < 18; i++) templeMob(null);
+      tp.orb = { holder: null, x: (cx + 0.5) * T, y: (cy + 3.5) * T, dropT: 8, passCd: 0, armed: true };
+      logMsg('第三關「靈魂之球」：拿著球的人傷害 +100%、每秒失去 3% 生命，走到同伴身邊就會傳球。球掉在地上 5 秒沒人撿，怪物全部回滿血！', '#ffc94d');
+    } else {
+      tp.conv = null; tp.convDone = {}; tp.down = {}; tp.revT = 0;
+      if (host) { templeBoss('sun', (cx - 7 + 0.5) * T, (cy + 0.5) * T); templeBoss('moon', (cx + 7 + 0.5) * T, (cy + 0.5) * T); }
+      logMsg('最終關「日蝕與月蝕」：日蝕只怕「日」，月蝕只怕「月」。一隻倒下後 10 秒內要打倒另一隻，不然它會復活！', '#ffc94d');
+    }
+  }
+  function templeMob(tc) {
+    const cx = MW >> 1, cy = MH >> 1;
+    let x = 0, y = 0;
+    for (let k = 0; k < 40; k++) { x = (cx + ri(-20, 20) + 0.5) * TILE; y = (cy + ri(-14, 8) + 0.5) * TILE; if (!solidAt(x, y)) break; }
+    const e = spawnEnemy(pick(['skeleton', 'archer', 'spider', 'necro', 'assassin', 'priest', 'bomber']), x, y, Math.random() < 0.2);
+    if (tc) e.tc = tc;
+    return e;
+  }
+  function templeBoss(tc, x, y, hpPct = 1) {
+    const B = tc === 'sun' ? SUN_B : MOON_B;
+    const b = spawnEnemy('boss', x, y, false);
+    b.variant = B; b.look = B.look; b.r = B.r; b.tc = tc; b.capPct = TEMPLE_CAP; b.aggro = true;
+    b.hp = b.maxHp = Math.round(EDEF.boss.hp * monsterHpMul(TEMPLE_DEPTH) * diffOf().hp * 6); b.hp *= hpPct;
+    b.dmg *= bossLateMul(TEMPLE_DEPTH); b.speed *= B.speed || 1;
+    b.ringCd = 3; b.specCd = 5; b.summoned = true;
+    if (!G.boss || G.boss.dead) { G.boss = b; $('bossName').textContent = '日蝕與月蝕'; }
+    return b;
+  }
+  // hits in the temple: wrong colour does 10% (nothing on the bosses), the soul orb's holder doubles
+  function templeDmg(e, dmg) {
+    const tp = G.tp, hitter = NET.remoteHit ? 'peer' : 'host';
+    if (e.tc && tpColorOf(hitter) !== e.tc) dmg *= e.type === 'boss' ? 0 : 0.1;
+    if (tp.orb && tp.orb.holder && (tp.orb.holder === 'host') === (hitter === 'host')) dmg *= 2;
+    return Math.round(dmg);
+  }
+  function templeBossDown(e) {
+    const tp = G.tp;
+    if (G.boss === e) G.boss = G.enemies.find((x) => x.type === 'boss' && !x.dead && x !== e) || null;
+    if (G.tp.client) return;
+    tp.down[e.tc] = true;
+    const other = G.enemies.find((x) => x.type === 'boss' && !x.dead && x !== e);
+    if (other) { tp.revT = 10; tp.revTc = e.tc; logMsg(`${e.variant.name}倒下了！10 秒內打倒${other.variant.name}，不然它會復活`, '#ffc94d'); }
+    else templeWin();
+  }
+  function templeWin() {
+    const tp = G.tp;
+    if (tp.won) return;
+    tp.won = true; tp.revT = 0; tp.conv = null; tp.exit.open = true; G.boss = null;
+    netSend(null, { t: 'tpWin' });
+    templeReward();
+  }
+  function templeReward() {
+    logMsg('日月神殿通關！走到出口一起離開', '#ffd34d'); sfx('legend'); levelFx();
+    const il = lootDepth() + 1, x = P.x, y = P.y - 30;
+    for (let k = 0; k < 2; k++) dropAt(x, y, { kind: 'item', item: Math.random() < 0.5 ? guaranteedLegendary(il) : makeItem(il, 'set') });
+    for (let k = 0; k < 3; k++) dropAt(x, y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), Math.random() < 0.3 ? 5 : 4) });
+    dropAt(x, y, { kind: 'item', item: makeRStone(10) });
+    for (let k = 0; k < 4; k++) dropAt(x, y, { kind: 'gold', amount: Math.round(ri(20, 35) * goldDepth(TEMPLE_DEPTH) * diffOf().gold) });
+    if (Math.random() < 0.2) { const it = makeBossLegend(il, pick(['tSun', 'tMoon'])); dropAt(x, y, { kind: 'item', item: it }); logMsg(`掉落了雙生戒指：${it.name}！`, RAR.legendary.color); }
+    P.templeClears = (P.templeClears || 0) + 1;
+    const c = coll();
+    if (!c.titles.includes('同心協力')) { c.titles.push('同心協力'); logMsg('獲得稱號「同心協力」（按 H 設定）', '#ffd34d'); }
+    save();
+  }
+  const tpTargets = () => awTargets().map((p) => ({ ...p, id: p.self ? 'host' : p.rp.id }));
+  function templeTick(dt) {
+    const tp = G.tp;
+    if (!tp || tp.client || !G.temple) return;
+    const list = tpTargets(), near = (p, o, r) => Math.hypot(p.x - o.x, p.y - o.y) < r;
+    if (tp.st === 1) {
+      if ((tp.swapT -= dt) <= 0) { tp.swap = !tp.swap; tp.swapT = TEMPLE_SWAP; logMsg('日月輪轉：兩人的顏色互換了！', '#ffc94d'); sfx('magic'); }
+      if (!tp.exit.open && !G.enemies.some((e) => !e.dead)) { tp.exit.open = true; logMsg('封印解除了！兩人一起走到上方的出口', '#4fd18b'); }
+    } else if (tp.st === 2) {
+      for (const pl of tp.plates) pl.on = list.some((p) => near(p, pl, pl.r + 6));
+      const open = tp.plates[0].on || tp.plates[1].on;
+      G.doorT = open ? null : tp.gap;
+      if (!tp.plates[2].on) tp.bt += dt;
+      for (const b of tp.blades) {
+        b.y = tp.cy + Math.sin(tp.bt * 1.3 + b.ph) * tp.ry;
+        for (const p of list) if (near(p, b, 26) && !(tp.cd[p.id] > G.time)) { tp.cd[p.id] = G.time + 1; awHurt(p, 0.25, true); }
+      }
+    } else if (tp.st === 3) {
+      const o = tp.orb, h = o.holder && list.find((p) => p.id === o.holder);
+      if (o.holder && !h) { o.holder = null; o.dropT = 5; logMsg('靈魂之球掉在地上了！5 秒內撿起來', '#c78bff'); }
+      if (o.holder) {
+        o.x = h.x; o.y = h.y; o.passCd -= dt;
+        awTick(tp, 'orb', dt, 0.03, [h]);
+        // the orb passes when the partner walks up; they have to step apart before it can pass back
+        const other = list.find((p) => p.id !== o.holder);
+        if (other && !near(other, h, 90)) o.armed = true;
+        if (other && o.armed && o.passCd <= 0 && near(other, h, 60)) { o.holder = other.id; o.passCd = 1; o.armed = false; sfx('pickup'); }
+      } else {
+        const pick1 = list.find((p) => near(p, o, 30));
+        if (pick1) { o.holder = pick1.id; o.passCd = 1; o.armed = false; }
+        else if ((o.dropT -= dt) <= 0) { o.dropT = 5; for (const e of G.enemies) if (!e.dead) e.hp = e.maxHp; logMsg('靈魂之球沒人撿：怪物全部回滿了生命！', '#ff6b6b'); }
+      }
+      if (!tp.exit.open && !G.enemies.some((e) => !e.dead)) { tp.exit.open = true; o.holder = null; o.dropT = Infinity; logMsg('怪物清空了！兩人一起走到上方的出口', '#4fd18b'); }
+    } else if (tp.st === 4 && !tp.won) {
+      // revive the fallen twin when the other is still standing after 10 s
+      if (tp.revT > 0 && (tp.revT -= dt) <= 0) {
+        const B = tp.revTc === 'sun' ? SUN_B : MOON_B, cx = MW >> 1, cy = MH >> 1;
+        templeBoss(tp.revTc, (cx + 0.5) * TILE, (cy + 0.5) * TILE, 0.5); tp.down[tp.revTc] = false;
+        logMsg(`${B.name}用 50% 生命復活了！`, '#ff6b6b'); shakeIt(10);
+      }
+      const bosses = G.enemies.filter((e) => e.type === 'boss' && !e.dead), maxSum = Math.round(EDEF.boss.hp * monsterHpMul(TEMPLE_DEPTH) * diffOf().hp * 6) * 2;
+      const ratio = bosses.reduce((a, e) => a + e.hp, 0) / maxSum;
+      for (const th of [0.5, 0.2]) if (ratio <= th && !tp.convDone[th] && !tp.conv) {
+        tp.convDone[th] = true;
+        const cx = MW >> 1, cy = MH >> 1, dx = Math.round(MW * 0.43) - 3;
+        tp.conv = { t: 5, c: [{ x: (cx - dx + 0.5) * TILE, y: (cy + 0.5) * TILE, r: 50 }, { x: (cx + dx + 0.5) * TILE, y: (cy + 0.5) * TILE, r: 50 }] };
+        logMsg('日月交匯！5 秒內兩人分別站進地圖兩端的光圈！', '#ffd34d'); sfx('boss');
+      }
+      if (tp.conv) {
+        const c = tp.conv, a = list.find((p) => near(p, c.c[0], c.c[0].r)), b = a && list.find((p) => p !== a && near(p, c.c[1], c.c[1].r));
+        const b2 = list.find((p) => near(p, c.c[1], c.c[1].r)), a2 = b2 && list.find((p) => p !== b2 && near(p, c.c[0], c.c[0].r));
+        if ((a && b) || (a2 && b2)) { tp.conv = null; logMsg('日月交匯成功！', '#4fd18b'); sfx('level'); }
+        else if ((c.t -= dt) <= 0) { tp.conv = null; for (const p of list) awHurt(p, 0.8, false); shakeIt(16); sfx('boom'); logMsg('日月交匯失敗：兩人都受到重創！', '#ff6b6b'); }
+      }
+    }
+    // the way on: both players standing in the open exit for a second
+    const ex = tp.exit;
+    if (ex.open && list.length === partySize() && list.length && list.every((p) => near(p, ex, ex.r))) {
+      if ((tp.exitT += dt) >= 1) { tp.exitT = 0; if (tp.st < 4) startTemple(tp.st + 1); else enterCamp('離開了日月神殿'); }
+    } else tp.exitT = 0;
+  }
+  function tpPack() {
+    const tp = G.tp, r = Math.round, o = tp.orb;
+    return [tp.st, tp.swap ? 1 : 0, G.doorT ? 0 : 1, (tp.plates || []).map((pl) => (pl.on ? 1 : 0)), (tp.blades || []).map((b) => r(b.y)),
+      o ? [o.holder === 'host' ? 1 : o.holder ? 2 : 0, r(o.x), r(o.y), +Math.min(99, o.dropT).toFixed(1)] : 0,
+      [r(tp.exit.x), r(tp.exit.y), tp.exit.open ? 1 : 0], tp.conv ? [+tp.conv.t.toFixed(1), tp.conv.c.map((c) => [r(c.x), r(c.y), c.r])] : 0, tp.won ? 1 : 0, r(tp.swapT || 0), r(tp.revT || 0)];
+  }
+  function tpApply(a) {
+    const tp = G.tp; if (!tp || !tp.client) return;
+    const [st, swap, door, plates, blades, orb, exit, conv, won, swapT, revT] = a;
+    if (st !== tp.st) return;
+    if (swap !== (tp.swap ? 1 : 0)) logMsg('日月輪轉：兩人的顏色互換了！', '#ffc94d');
+    tp.swap = !!swap; tp.swapT = swapT; tp.won = !!won; tp.revT = revT;
+    if (tp.gap) G.doorT = door ? null : tp.gap;
+    (tp.plates || []).forEach((pl, i) => { pl.on = !!plates[i]; });
+    (tp.blades || []).forEach((b, i) => { if (blades[i] != null) b.y = blades[i]; });
+    if (orb && tp.orb) { const host = [...NET.players.values()].find((rp) => rp.id === 'host'); Object.assign(tp.orb, { holder: orb[0] === 1 ? 'host' : orb[0] === 2 ? 'me' : null, x: orb[1], y: orb[2], dropT: orb[3] }); if (orb[0] === 2) { tp.orb.x = P.x; tp.orb.y = P.y; } else if (orb[0] === 1 && host) { tp.orb.x = host.x; tp.orb.y = host.y; } }
+    tp.exit = { x: exit[0], y: exit[1], r: 56, open: !!exit[2] };
+    tp.conv = conv ? { t: conv[0], c: conv[1].map(([x, y, r]) => ({ x, y, r })) } : null;
+  }
+  function drawTemple(c) {
+    const tp = G.tp; if (!tp || !G.temple) return;
+    const ring = (x, y, r, col, w = 3, fill) => { c.beginPath(); c.ellipse(x, y, r, r * 0.6, 0, 0, Math.PI * 2); if (fill) { c.fillStyle = fill; c.fill(); } c.strokeStyle = col; c.lineWidth = w; c.stroke(); };
+    // each player's colour under their feet
+    ring(P.x, P.y + 12, 20, TC[myTpColor()].color, 3, hexA(TC[myTpColor()].color, 0.18));
+    for (const rp of visibleMates()) { const col = TC[tpColorOf(NET.mode === 'client' ? 'host' : 'peer')].color; ring(rp.x, rp.y + 12, 20, col, 3, hexA(col, 0.18)); }
+    if (tp.exit.open) { const k = 0.6 + 0.4 * Math.sin(G.time * 4); ring(tp.exit.x, tp.exit.y, tp.exit.r, `rgba(79,209,139,${k})`, 4, 'rgba(79,209,139,0.15)'); }
+    for (const pl of tp.plates || []) {
+      ring(pl.x, pl.y, pl.r, pl.on ? '#ffd34d' : '#9a8fa6', 3, pl.on ? 'rgba(255,211,77,0.35)' : 'rgba(80,70,90,0.45)');
+      c.fillStyle = pl.on ? '#ffd34d' : '#cfc6b8'; c.font = 'bold 14px sans-serif'; c.textAlign = 'center'; c.fillText(pl.k, pl.x, pl.y + 5);
+    }
+    if (G.doorT && tp.gap) {
+      c.fillStyle = 'rgba(160,130,90,0.95)';
+      for (const i of tp.gap) { const x = (i % MW) * TILE, y = Math.floor(i / MW) * TILE; for (let k = 0; k < 4; k++) c.fillRect(x + 4 + k * 7, y, 3, TILE); }
+    }
+    for (const b of tp.blades || []) {
+      c.save(); c.translate(b.x, b.y); c.rotate(G.time * (tp.plates && tp.plates[2].on ? 0 : 9));
+      c.fillStyle = '#d8dde6'; for (let k = 0; k < 4; k++) { c.rotate(Math.PI / 2); c.beginPath(); c.moveTo(0, -4); c.lineTo(24, 0); c.lineTo(0, 4); c.fill(); }
+      c.fillStyle = '#5a5f6a'; c.beginPath(); c.arc(0, 0, 6, 0, Math.PI * 2); c.fill(); c.restore();
+    }
+    if (tp.orb && tp.orb.dropT !== Infinity && !(tp.exit.open && tp.st === 3)) {
+      const o = tp.orb, oy = o.holder ? o.y - 46 : o.y, g = c.createRadialGradient(o.x, oy, 2, o.x, oy, 22);
+      g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, '#c78bff'); g.addColorStop(1, 'rgba(120,60,200,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(o.x, oy, 22, 0, Math.PI * 2); c.fill();
+    }
+    if (tp.conv) for (const cc of tp.conv.c) { ring(cc.x, cc.y, cc.r, '#ffd34d', 4, `rgba(255,211,77,${0.15 + 0.1 * Math.sin(G.time * 8)})`); }
+  }
+  function templeBarText() {
+    const tp = G.tp, me = TC[myTpColor()];
+    let h = `日月神殿・第 ${tp.st} 關・你是「${me.name}」`;
+    if (tp.won) return h + '・通關！一起走到出口';
+    if (tp.st === 1) h += `・${tp.swapT}秒後換色・剩 ${G.enemies.filter((e) => !e.dead).length} 隻`;
+    if (tp.st === 2) h += '・A／B 板開門，C 板停刀刃，兩人走到右邊出口';
+    if (tp.st === 3) h += tp.orb && tp.orb.holder ? `・靈魂之球在${tp.orb.holder === 'me' || (tp.orb.holder === 'host' && NET.mode !== 'client') ? '你' : '同伴'}手上` : '・快撿起靈魂之球！';
+    if (tp.st === 4) h += tp.conv ? `・日月交匯！${Math.ceil(tp.conv.t)} 秒內分別站進光圈` : tp.revT > 0 ? `・${tp.revT} 秒內打倒另一隻！` : '・日蝕只怕「日」，月蝕只怕「月」';
+    if (tp.exit.open && tp.st < 4) h += '・出口開了';
+    return h;
+  }
+  // 日之戒 / 月之戒: the twin rings help the partner
+  const twinMine = () => (S.specials.has('tSun') ? 1 : S.specials.has('tMoon') ? 2 : 0);
+  function twinSend(k) { if (inParty()) netSend(null, { t: 'tbuff', k }); }
+  function twinGot(k) {
+    if (k === 'sun') { P.sunT = 3; }
+    else if (k === 'moon') { P.shield = Math.min(P.hpMax * 0.3, (P.shield || 0) + P.hpMax * 0.05); P.shieldT = Math.max(P.shieldT || 0, 4); }
+  }
+  function twinPairMul() {
+    const mine = twinMine(); if (!mine || !inParty()) return 1;
+    for (const rp of visibleMates()) if (rp.tr && rp.tr !== mine && Math.hypot(rp.x - P.x, rp.y - P.y) <= 300) return 1.15;
+    return 1;
+  }
+  function startTrialRealm(awake) {
     if (NET.mode === 'client') { logMsg('組隊中由隊長開啟試煉秘境，全隊一起進入', '#9cc7ff'); return; }
     if (P.lvl < TRIAL_LV) { logMsg(`試煉秘境需要 ${TRIAL_LV} 級才能進入（目前 ${P.lvl} 級）`, '#ff6b4d'); return; }
     if (NET.mode === 'host') {
@@ -8667,6 +9182,12 @@
     b.ringCd = 2.5; b.specCd = 5; b.tailCd = 2; b.ring2Cd = 6; b.diveCd = 6; b.summoned = true; b.home = { x: b.x, y: b.y };
     $('bossName').textContent = FIRE_DRAGON.name;
     $('floorName').textContent = '試煉秘境・火龍巢穴';
+    G.aw = null;
+    if (awake === true) {
+      b.awake = true; b.hp = b.maxHp = b.maxHp * AW_HP;
+      G.aw = { ph: 1, t: 0, fly: 0, circles: [], safe: [], tether: [], cCd: 3, acc: {}, enraged: false };
+      $('bossName').textContent = '覺醒火龍'; $('floorName').textContent = '試煉秘境・覺醒火龍';
+    }
     save();
     // the dragon speaks first; the fight starts only when the player accepts
     mode = 'talk'; mouse.down = false; keys.clear();
@@ -8698,29 +9219,40 @@
     if (G.boss) { G.boss.aggro = true; G.boss.ringCd = 2; }
     shakeIt(10); sfx('boss');
     logMsg('火龍：「那就在烈焰中化為灰燼吧！」', '#ff6b4d');
+    if (G.aw) logMsg('覺醒火龍：每秒最多只能打掉 1.5% 生命，躲開紅圈、處理機制，4 分鐘後牠會狂暴', '#ff4f6e');
   }
   $('dragonYes').addEventListener('click', () => dragonFight(true));
   $('dragonNo').addEventListener('click', () => dragonFight(false));
   // the fire dragon's loot: every party member rolls their own
   function makeDragonPiece(ilvl, slot) {
+    ilvl = Math.min(ilvl, ILVL_MAX);
     const it = makeItem(ilvl, 'rare', slot);
     it.rarity = 'lset'; it.set = 'dragon'; it.name = SET.dragon.pieceNames[slot];
     rollAffixes(it, ilvl, 'set'); it.sockets = [null, null, null];
-    return it;
+    return maybeAncient(it);
   }
+  // dragon loot is item level 105, raised by the torment tier's item level bonus
+  const dragonIlvl = () => Math.min(ILVL_MAX, 105 + Math.max(0, (diffOf().ilvl || 0) - 10));
   function trialReward(e) {
     const first = !(P.dragonKills > 0);
     P.dragonKills = (P.dragonKills || 0) + 1;
     for (let k = 0; k < 6; k++) dropAt(e.x, e.y, { kind: 'gold', amount: ri(166000, 333000) });
-    for (let k = 0; k < 2; k++) dropAt(e.x, e.y, { kind: 'item', item: Math.random() < 0.5 ? guaranteedLegendary(105) : makeItem(105, 'set') });
+    for (let k = 0; k < 2; k++) dropAt(e.x, e.y, { kind: 'item', item: Math.random() < 0.5 ? guaranteedLegendary(dragonIlvl()) : makeItem(dragonIlvl(), 'set') });
     for (let k = 0; k < 3; k++) dropAt(e.x, e.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), Math.random() < 0.2 ? 5 : 4) });
     dropAt(e.x, e.y, { kind: 'item', item: makeDCrystal(ri(3, 5)) });
     dropAt(e.x, e.y, { kind: 'item', item: makeRStone(ri(5, 10)) });
-    if (first || Math.random() < 0.25) { dropAt(e.x, e.y, { kind: 'item', item: makeDragonPiece(105, pick(SET.dragon.slots)) }); logMsg('火龍掉落了炎龍之魂（傳說套裝）！', RAR.lset.color); }
+    if (first || Math.random() < 0.25) { dropAt(e.x, e.y, { kind: 'item', item: makeDragonPiece(dragonIlvl(), pick(SET.dragon.slots)) }); logMsg('火龍掉落了炎龍之魂（傳說套裝）！', RAR.lset.color); }
     const c = coll();
     const award = (t, cape) => { if (c.titles.includes(t)) return; c.titles.push(t); if (cape) c.capes.push(cape); logMsg(`獲得稱號「${t}」${cape ? '和新的披風顏色' : ''}（按 H 設定）`, '#ffd34d'); };
     award('屠龍者');
     if (P.dragonKills >= 50) award('龍之剋星', '#5a1a14');
+    if (G.aw) {
+      P.awakeKills = (P.awakeKills || 0) + 1;
+      dropAt(e.x, e.y, { kind: 'item', item: makeDCrystal(10) });
+      if (P.awakeKills === 1 || Math.random() < 0.25) { const it = ancientize(makeDragonPiece(dragonIlvl(), pick(SET.dragon.slots))); dropAt(e.x, e.y, { kind: 'item', item: it }); logMsg(`覺醒火龍掉落了${it.name}！`, '#ffb347'); }
+      award('覺醒屠龍者');
+      if (!P.fireSteps) { P.fireSteps = true; logMsg('解鎖外觀「火焰足跡」：走路會留下火焰腳印（可在設定裡關閉）', '#ffb347'); }
+    } else if (diffIdx() >= HELL + 6 && !P.awakeOpen) { P.awakeOpen = true; logMsg('你在折磨 T6 以上打倒了火龍：龍魂祭壇開放「覺醒火龍」挑戰！', '#ff4f6e'); }
     save();
   }
 
@@ -8741,7 +9273,7 @@
     const k = clamp(Math.pow(my / their, 0.3), 0.6, 1.6);
     const d = r.dmg / my * (rp.hpMax || 100) * PVP_RATE * k;
     pvpSend(rp, d, cc);
-    addText(String(Math.max(1, Math.round(d))), rp.x + rnd(-6, 6), rp.y - 34, r.crit ? '#ffd34d' : '#ffb0b0', r.crit ? 16 : 13);
+    addText(fmtN(Math.max(1, d)), rp.x + rnd(-6, 6), rp.y - 34, r.crit ? '#ffd34d' : '#ffb0b0', r.crit ? 16 : 13);
     sparks(rp.x, rp.y - 6, '#ffb0b0', 4, 160);
   }
   // the target reports the life it actually lost, so lifesteal ignores damage that reduction or shields stopped
@@ -8768,7 +9300,7 @@
     arcaneShieldOnHurt();
     if (P.shield > 0) { const ab = Math.min(P.shield * 0.5, amt); P.shield -= ab * 2; amt -= ab; }
     P.hp -= amt; P.hurt = 0.25; pvpLeechBack(from, Math.min(amt, amt + P.hp));
-    addText(`-${Math.round(amt)}`, P.x, P.y - 20, '#ff6b6b', 15); sfx('hurt');
+    addText(`-${fmtN(amt)}`, P.x, P.y - 20, '#ff6b6b', 15); sfx('hurt');
     if (P.hp <= 0 && S.specials.has('setUndying') && !(P.undyingCd > 0)) { P.hp = Math.round(P.hpMax * 0.5); P.invuln = 3; P.undyingCd = 60; logMsg('不朽守衛：你撐住了！', '#4fd18b'); }
     if (P.hp <= 0) pvpDown(from);
   }
@@ -8785,9 +9317,70 @@
     logMsg(`你被${by ? pvpName(by) : ''}擊倒了，3 秒後復活`, '#ff6b6b');
     if (NET.mode === 'host') pvpScored(by, 'host'); else netSend(null, { t: 'pvpKO', by });
   }
+  // ================= endless abyss: floor 101 and deeper, one life per run =================
+  const ABYSS_START = 101;
+  const ABY = { on: false, start: 0, deep: 0, party: false, diff: 0, wipeT: 0 };
+  const abyssSecs = () => Math.max(0, Math.round((Date.now() - ABY.start) / 1000));
+  const abyssOpen = () => ((P.stats || {}).clear100 || 0) > 0;
+  const fmtTime = (t) => { t = Math.max(0, Math.round(t)); const h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, sec = String(t % 60).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${sec}` : `${m}:${sec}`; };
+  // a better record: harder difficulty first, then deeper, then faster
+  const abyssBetter = (a, b) => !b || (a.diff || 0) > (b.diff || 0) || ((a.diff || 0) === (b.diff || 0) && (a.floor > b.floor || (a.floor === b.floor && a.secs < b.secs)));
+  function abyssGo(depth, fresh) {
+    if (fresh) Object.assign(ABY, { on: true, start: Date.now(), deep: 0, party: inParty(), diff: P.diff || 0 });
+    const keepRun = P.runBest;
+    NET.floorKind = 'abyss'; NET.floorAby = { el: abyssSecs() }; genFloor(depth); NET.floorKind = null;
+    P.runBest = keepRun;
+    abyssSetup();
+  }
+  function abyssSetup() {
+    G.abyss = true; ABY.deep = Math.max(ABY.deep, G.depth); ABY.wipeT = 0;
+    if (P.pvpDownT > 0) { P.pvpDownT = 0; P.hp = P.hpMax; P.invuln = 2; logMsg('你在新的一層醒了過來', '#4fd18b'); }
+    $('floorName').textContent = `無盡深淵・第 ${G.depth} 層`;
+    if (G.depth === ABYSS_START) logMsg('進入無盡深淵：每一層都更強，倒下這一輪就結束', '#c22f96');
+    else if (G.depth % 10 === 0) logMsg(`無盡深淵第 ${G.depth} 層：這一層的魔王守著深淵寶箱`, '#c22f96');
+  }
+  function abyssNext() { abyssGo(G.depth + 1); save(); }
+  // in a party a fallen player waits on the floor and wakes up when the others go down the stairs
+  function abyssDown() {
+    P.pvpDownT = 1e9; P.hp = 0; P.shield = 0; P.poisonT = 0; P.slowT = 0; P.invuln = 1e9; ABY.wipeT = 0;
+    flash(P.x, P.y, 90, 'rgba(194,47,150,0.8)', 0.3);
+    logMsg(G.temple ? '你倒下了！同伴站在你身邊 3 秒就能把你救起來；兩人都倒下就挑戰失敗' : '你倒下了！隊友走下樓梯後，你會在下一層復活；全隊倒下這一輪就結束', '#ff6b6b');
+  }
+  function abyssTick(dt) {
+    if (!(G.abyss || G.temple) || !(P.pvpDownT > 0) || !inParty()) return;
+    if (G.temple) {
+      if (visibleMates().some((rp) => Math.hypot(rp.x - P.x, rp.y - P.y) < 60)) {
+        if ((P.revT = (P.revT || 0) + dt) >= 3) { P.revT = 0; P.pvpDownT = 0; P.hp = P.hpMax * 0.3; P.invuln = 2; logMsg('同伴把你救起來了！', '#4fd18b'); sfx('level'); return; }
+      } else P.revT = 0;
+    }
+    if (visibleMates().length) { ABY.wipeT = 0; return; }
+    if ((ABY.wipeT += dt) > 2) { ABY.wipeT = 0; P.pvpDownT = 0; P.invuln = 0; logMsg('全隊都倒下了', '#ff6b6b'); die(true); }
+  }
+  function abyssChest(e) {
+    logMsg('打開了深淵寶箱！', '#c22f96'); sfx('legend');
+    for (let k = 0; k < 2; k++) dropAt(e.x, e.y, { kind: 'item', item: Math.random() < 0.5 ? guaranteedLegendary(lootDepth() + 1) : makeItem(lootDepth() + 1, 'set') });
+    for (let k = 0; k < 3; k++) dropAt(e.x, e.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), Math.random() < 0.3 ? 5 : 4) });
+    dropAt(e.x, e.y, { kind: 'item', item: makeRStone(ri(5, 10)) });
+    for (let k = 0; k < 4; k++) dropAt(e.x, e.y, { kind: 'gold', amount: Math.round(ri(20, 35) * goldDepth(G.depth) * diffOf().gold) });
+  }
+  // the run is over (back to camp, or fallen): keep the best record and upload it
+  function abyssRecord() {
+    if (!ABY.on) return;
+    ABY.on = false;
+    const kind = ABY.party ? 'party' : 'solo', rec = { floor: ABY.deep, secs: abyssSecs(), diff: ABY.diff, cls: P.cls, at: Date.now() };
+    if (!rec.floor) return;
+    P.abyss = P.abyss || {};
+    const better = abyssBetter(rec, P.abyss[kind]);
+    logMsg(`無盡深淵結束：最深第 ${rec.floor} 層，用時 ${fmtTime(rec.secs)}${better ? '（新紀錄！）' : ''}`, '#c22f96');
+    if (better) { P.abyss[kind] = rec; submitAbyss(kind, rec); }
+  }
+  function submitAbyss(kind, rec) {
+    if (!LB.sb || !LB.uid || !LB.canWrite) return;
+    sbFetch('rpc/submit_abyss', { method: 'POST', body: JSON.stringify({ p_pid: LB.uid, p_secret: LB.secret, p_name: (P.nick || '').slice(0, 12), p_cls: P.cls, p_mode: kind, p_floor: rec.floor, p_secs: rec.secs, p_diff: rec.diff || 0 }) }).catch(() => {});
+  }
   function pvpTick(dt) {
     // leaving the arena (or a new match) never keeps a player knocked down
-    if (P.pvpDownT > 0 && (!G.pvp || G.pvp.over)) { P.pvpDownT = 0; P.hp = P.hpMax; }
+    if (P.pvpDownT > 0 && !G.abyss && !G.temple && (!G.pvp || G.pvp.over)) { P.pvpDownT = 0; P.hp = P.hpMax; P.invuln = Math.min(P.invuln, 2); }
     if (P.pvpDownT > 0) { P.pvpDownT -= dt; if (P.pvpDownT <= 0) { P.hp = P.hpMax; P.invuln = 2; logMsg('復活了！2 秒內無敵', '#4fd18b'); } }
     if (!G.pvp || G.pvp.over) return;
     G.pvp.t -= dt;
@@ -8874,7 +9467,9 @@
     const have = dcCount(), D = SET.dragon;
     const pieces = [...SLOTS.filter((k) => P.equip[k] && P.equip[k].set === 'dragon').map((k) => P.equip[k]), ...P.bag.filter((x) => x.set === 'dragon')];
     if (altarSel && !pieces.includes(altarSel)) altarSel = null;
-    let h = `<div class="inv-actions"><button class="primary" type="button" id="altarEnter">進入試煉秘境（${TRIAL_LV} 級）</button><span class="sub">已擊殺火龍 ${P.dragonKills || 0} 次</span></div>`;
+    let h = `<div class="inv-actions"><button class="primary" type="button" id="altarEnter">進入試煉秘境（${TRIAL_LV} 級）</button><span class="sub">已擊殺火龍 ${P.dragonKills || 0} 次</span></div>`
+      + `<div class="inv-actions"><button type="button" id="altarAwake"${P.awakeOpen ? '' : ' disabled'}>${P.awakeOpen ? '挑戰覺醒火龍' : '覺醒火龍（在折磨 T6 以上打倒火龍後解鎖）'}</button><span class="sub">已擊殺覺醒火龍 ${P.awakeKills || 0} 次</span></div>`
+      + '<div class="sub">覺醒火龍：每秒最多只能打掉牠 1.5% 生命，機制傷害按最大生命計算。70% 時飛上天（站進安全圈、20 秒內打破 3 顆龍蛋），40% 時用火鏈綁住隊友（保持 120～400 距離），4 分鐘後狂暴。首殺必掉太古炎龍之魂，之後 25%。</div>';
     h += `<div class="sub-h">龍魂結晶：背包裡有 ${have} 顆</div>`;
     h += `<div class="sub">兌換指定部位（每件 ${DC_SWAP} 顆，物品等級 105）：</div><div class="inv-actions">` +
       D.slots.map((sl) => `<button type="button" data-swap="${sl}"${have < DC_SWAP ? ' disabled' : ''}>${D.pieceNames[sl]}</button>`).join('') + '</div>';
@@ -8885,15 +9480,16 @@
       const t = altarSel.dTemper || 0;
       h += itemLines(altarSel);
       h += `<div class="inv-actions"><button type="button" id="altarReforge"${have < DC_REFORGE ? ' disabled' : ''}>龍魂重鑄（${DC_REFORGE} 顆）</button>` +
-        `<button type="button" id="altarTemper"${have < DC_TEMPER || t >= TEMPER_MAX ? ' disabled' : ''}>${t >= TEMPER_MAX ? '淬煉已滿' : `龍魂淬煉：物品等級 ${altarSel.ilvl} → ${altarSel.ilvl + 2}（${DC_TEMPER} 顆）`}</button></div>`;
+        `<button type="button" id="altarTemper"${have < DC_TEMPER || t >= TEMPER_MAX || altarSel.ilvl >= ILVL_MAX ? ' disabled' : ''}>${t >= TEMPER_MAX ? '淬煉已滿' : altarSel.ilvl >= ILVL_MAX ? `已達物品等級上限 ${ILVL_MAX}` : `龍魂淬煉：物品等級 ${altarSel.ilvl} → ${altarSel.ilvl + 2}（${DC_TEMPER} 顆）`}</button></div>`;
       h += `<div class="sub">重鑄：重骰全部詞綴，保底 60%，保留套裝與鑲孔（精煉的限制會一起清除）。淬煉：物品等級 +2，最多 ${TEMPER_MAX} 次（已淬煉 ${t} 次），之後重鑄或精煉的詞綴範圍會更高。</div>`;
     }
     h += '<div class="sub">火龍每次必掉 3–5 顆龍魂結晶，25% 掉一件炎龍之魂套裝（第一次擊殺保證掉一件）。結晶要放在背包裡才能使用。</div>';
     $('altarBody').innerHTML = h;
     $('altarEnter').addEventListener('click', () => startTrialRealm());
+    $('altarAwake')?.addEventListener('click', () => { if (P.awakeOpen) startTrialRealm(true); });
     $('altarBody').querySelectorAll('[data-swap]').forEach((b) => b.addEventListener('click', () => {
       if (dcCount() < DC_SWAP) return;
-      const it = makeDragonPiece(105, b.dataset.swap);
+      const it = makeDragonPiece(dragonIlvl(), b.dataset.swap);
       takeDC(DC_SWAP);
       if (!stackInto(P.bag, it, BAG_MAX)) { P.stash = P.stash || []; stackInto(P.stash, it, 9999); logMsg('背包滿了，兌換的裝備放進了倉庫', '#ff8a5a'); }
       sfx('legend'); logMsg(`用龍魂結晶兌換了${it.name}`, RAR.lset.color); save(); renderAltar();
@@ -8905,7 +9501,7 @@
       refreshStats(); sfx('forge'); logMsg(`龍魂重鑄了${altarSel.name}`, RAR.lset.color); save(); renderAltar();
     });
     $('altarTemper')?.addEventListener('click', () => {
-      if (!altarSel || dcCount() < DC_TEMPER || (altarSel.dTemper || 0) >= TEMPER_MAX) return;
+      if (!altarSel || dcCount() < DC_TEMPER || (altarSel.dTemper || 0) >= TEMPER_MAX || altarSel.ilvl >= ILVL_MAX) return;
       takeDC(DC_TEMPER); raiseIlvl(altarSel, altarSel.ilvl + 2); altarSel.dTemper = (altarSel.dTemper || 0) + 1;
       refreshStats(); sfx('forge'); logMsg(`龍魂淬煉：${altarSel.name} 物品等級提升到 ${altarSel.ilvl}`, RAR.lset.color); save(); renderAltar();
     });
@@ -8947,7 +9543,7 @@
       LETTERS.map((L, i) => (c.letters[i] ? `<button type="button" class="letter got" data-letter="${i}"><b>${L.t}</b><small>${TIERS[L.s].name}</small></button>` : `<div class="letter"><b>？？？</b><small>${TIERS[L.s].name}</small></div>`)).join('') + '</div>';
     h += `<div class="ach-count">古代硬幣 ${coinN} / 100・收藏加成：金幣掉落與稀有度各 +${bonus}%（每 10 枚 +1%）</div><div class="coin-grid">` +
       Array.from({ length: 100 }, (_, i) => `<span class="coin${c.coins[i] ? ' got' : ''}" title="${c.coins[i] ? coinName(i) : `？？？（${TIERS[Math.floor(i / 5)].name}）`}"></span>`).join('') + '</div>';
-    const mobs = Object.keys(EDEF).filter((k) => k !== 'goblin' && k !== 'boss');
+    const mobs = Object.keys(EDEF).filter((k) => k !== 'goblin' && k !== 'boss' && k !== 'dragonEgg');
     h += `<div class="ach-count">怪物標本 ${mobs.filter((k) => c.spec[k]).length} / ${mobs.length}・每種擊殺 100 隻得到標本，之後對牠的傷害 +5%</div><div class="spec-list">` +
       mobs.map((k) => `<div class="spec${c.spec[k] ? ' got' : ''}"><b>${EDEF[k].name}</b><small>${c.spec[k] ? '已收藏・傷害 +5%' : `擊殺 ${Math.min(100, c.kills[k] || 0)} / 100`}</small></div>`).join('') + '</div>';
     return h;
@@ -9005,7 +9601,7 @@
     G.netSeed = seed;
     if (NET.mode === 'host') {
       G.netDiff = P.diff || 0;
-      NET.partyFloor = { depth, seed, diff: G.netDiff, kind: NET.floorKind || 'floor', look: NET.floorKind === 'challenge' ? NET.floorLook : null, rk: NET.floorKind === 'realm' ? NET.floorRealm || null : null, pv: NET.floorKind === 'pvp' ? NET.floorPvp || null : null };
+      NET.partyFloor = { depth, seed, diff: G.netDiff, kind: NET.floorKind || 'floor', look: NET.floorKind === 'challenge' ? NET.floorLook : null, rk: NET.floorKind === 'realm' ? NET.floorRealm || null : null, pv: NET.floorKind === 'pvp' ? NET.floorPvp || null : null, ab: NET.floorKind === 'abyss' ? NET.floorAby || null : null, tm: NET.floorKind === 'temple' ? NET.floorTemple || null : null };
       netSend(null, { t: 'floor', ...NET.partyFloor });
     } else {
       // teammates take every monster from the host's snapshots
@@ -9028,8 +9624,16 @@
   function followFloor(f, msg) {
     for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'deathScreen' && o.id !== 'titleScreen') o.hidden = true;
     if (mode !== 'dead') mode = 'play';
+    const keepRun = P.runBest;
     NET.nextSeed = f.seed; genFloor(f.depth); G.netDiff = f.diff;
-    if (f.kind === 'gold' || f.kind === 'trial' || f.kind === 'pvp') { buildArena(); $('log').innerHTML = ''; G.boss = null; $('bossBox').hidden = true; }
+    if (f.kind === 'temple') { P.runBest = keepRun; templeSetup((f.tm && f.tm.st) || 1); save(); return; }
+    if (f.kind === 'abyss') {
+      P.runBest = keepRun;
+      if (!ABY.on) Object.assign(ABY, { on: true, deep: 0, party: true, diff: f.diff || 0 });
+      ABY.start = Date.now() - ((f.ab && f.ab.el) || 0) * 1000;
+      abyssSetup(); save(); return;
+    }
+    if (f.kind === 'gold' || f.kind === 'trial' || f.kind === 'pvp' || f.kind === 'temple') { buildArena(); $('log').innerHTML = ''; G.boss = null; $('bossBox').hidden = true; }
     if (f.kind === 'gold') {
       // teammates mirror the realm; the leader spawns the crowd, each player collects their own gold
       G.goldRealm = { t: f.t || GOLD_REALM_T, depth: Math.max(1, P.best), earned: 0, spawnT: Infinity, types: [] };
@@ -9119,22 +9723,24 @@
     if (NET.dotT <= 0) { NET.dotT = 0.3; for (const [id, a] of NET.dotAcc) if (a.amt > 0) netSend(id, { t: 'dot', a: a.amt, c: a.c }); NET.dotAcc.clear(); }
   }
   // the host keeps the world moving while its own menus are open
-  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); enemyShots(dt); updateHazards(dt); }
+  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); awakenTick(dt); templeTick(dt); enemyShots(dt); updateHazards(dt); }
 
   // ---------- snapshots ----------
   function buildSnap() {
     const r = (v) => Math.round(v);
     return {
       t: 's', seed: G.netSeed,
-      e: G.enemies.filter((e) => !e.dead).map((e) => [e.nid, e.type, r(e.x), r(e.y), r(e.hp), r(e.maxHp), e.elite ? 1 : 0, +Math.max(0, e.frozen || 0).toFixed(1), +Math.max(0, e.wind || 0).toFixed(2), e.aggro ? 1 : 0, e.type === 'boss' ? e.look || 0 : 0, e.look === 'firewyrm' ? [+(e.face || 0).toFixed(2), +(e.breathWarn || 0).toFixed(2), +(e.breathAng || 0).toFixed(2), e.dive ? [e.dive.phase, Math.round(e.dive.tx), Math.round(e.dive.ty), +e.dive.t.toFixed(2)] : 0, +(e.tailT || 0).toFixed(2), +(e.breathT || 0).toFixed(2)] : 0]),
+      e: G.enemies.filter((e) => !e.dead).map((e) => [e.nid, e.type, r(e.x), r(e.y), r(e.hp), r(e.maxHp), e.elite ? 1 : 0, +Math.max(0, e.frozen || 0).toFixed(1), +Math.max(0, e.wind || 0).toFixed(2), e.aggro ? 1 : 0, e.type === 'boss' ? e.look || 0 : 0, e.look === 'firewyrm' ? [+(e.face || 0).toFixed(2), +(e.breathWarn || 0).toFixed(2), +(e.breathAng || 0).toFixed(2), e.dive ? [e.dive.phase, Math.round(e.dive.tx), Math.round(e.dive.ty), +e.dive.t.toFixed(2)] : 0, +(e.tailT || 0).toFixed(2), +(e.breathT || 0).toFixed(2)] : 0, e.tc === 'sun' ? 1 : e.tc === 'moon' ? 2 : 0]),
       sh: G.shots.map((s) => [r(s.x), r(s.y), r(s.vx), r(s.vy), s.r, s.color]),
       z: G.zones.filter((z) => z.hostile).map((z) => [r(z.x), r(z.y), z.r, +z.t.toFixed(2), z.fire ? 1 : 0]),
       hz: G.hazards.map((h) => [r(h.x), r(h.y), h.r, h.type, +h.life.toFixed(1), h.max]),
-      p: [selfRow(), ...[...NET.players.values()].map((rp) => [rp.id, rp.name, rp.cls, r(rp.x), r(rp.y), r(rp.hp), rp.hpMax, rp.f, rp.m, rp.dead ? 1 : 0, rp.lvl, rp.seed, rp.look, rp.dps || 0])],
+      aw: G.aw && !G.aw.client ? awPack() : null,
+      tp: G.tp && !G.tp.client ? tpPack() : null,
+      p: [selfRow(), ...[...NET.players.values()].map((rp) => [rp.id, rp.name, rp.cls, r(rp.x), r(rp.y), r(rp.hp), rp.hpMax, rp.f, rp.m, rp.dead ? 1 : 0, rp.lvl, rp.seed, rp.look, rp.dps || 0, rp.tr || 0])],
     };
   }
   function selfRow() {
-    return [NET.id, NET.name, P.cls, Math.round(P.x), Math.round(P.y), Math.round(P.hp), P.hpMax, +(P.facing || 0).toFixed(2), P.moving ? 1 : 0, mode === 'dead' || P.pvpDownT > 0 ? 1 : 0, P.lvl, G.netSeed, NET.mode === 'host' ? lookOf() : null, Math.round(dps(S))];
+    return [NET.id, NET.name, P.cls, Math.round(P.x), Math.round(P.y), Math.round(P.hp), P.hpMax, +(P.facing || 0).toFixed(2), P.moving ? 1 : 0, mode === 'dead' || P.pvpDownT > 0 ? 1 : 0, P.lvl, G.netSeed, NET.mode === 'host' ? lookOf() : null, Math.round(dps(S)), twinMine()];
   }
   function lookOf() {
     const eq = {};
@@ -9142,11 +9748,11 @@
     return { eq, cape: P.cape || null };
   }
   function upsertPlayer(row) {
-    const [id, name, cls, x, y, hp, hpMax, f, m, dead, lvl, seed, look, dv] = row;
+    const [id, name, cls, x, y, hp, hpMax, f, m, dead, lvl, seed, look, dv, tr] = row;
     let rp = NET.players.get(id);
     if (!rp) { rp = { id, x, y, remote: true }; NET.players.set(id, rp); }
     const jump = Math.hypot((rp.x || 0) - x, (rp.y || 0) - y) > 300 || rp.seed !== seed;
-    Object.assign(rp, { name, cls, tx: x, ty: y, hp, hpMax, f, m, dead: !!dead, lvl, seed, dps: dv || rp.dps });
+    Object.assign(rp, { name, cls, tx: x, ty: y, hp, hpMax, f, m, dead: !!dead, lvl, seed, dps: dv || rp.dps, tr: tr || 0 });
     if (jump) { rp.x = x; rp.y = y; }
     if (look) rp.look = look;
   }
@@ -9155,7 +9761,7 @@
     if (G.netSeed !== s.seed) return;
     const byId = new Map(G.enemies.map((e) => [e.nid, e]));
     const alive = new Set();
-    for (const [nid, type, x, y, hp, mhp, el, fr, wd, ag, look, fx] of s.e) {
+    for (const [nid, type, x, y, hp, mhp, el, fr, wd, ag, look, fx, tcc] of s.e) {
       alive.add(nid);
       let e = byId.get(nid);
       if (!e) {
@@ -9167,6 +9773,8 @@
         }
       }
       e.nx = x; e.ny = y; e.hp = hp; e.maxHp = mhp; e.wind = wd; e.aggro = !!ag; e.netGone = 0;
+      e.tc = tcc === 1 ? 'sun' : tcc === 2 ? 'moon' : null;
+      if (e.tc && type === 'boss' && G.tp) { e.variant = e.tc === 'sun' ? SUN_B : MOON_B; e.look = e.variant.look; e.r = e.variant.r; $('bossName').textContent = '日蝕與月蝕'; }
       e._sf = fr; if (!(e.frozen > fr)) e.frozen = fr;
       if (fx) { const [f, bw, ba, dv, tt, bt] = fx; Object.assign(e, { face: f, breathWarn: bw, breathAng: ba, tailT: tt, breathT: bt, dive: dv ? { phase: dv[0], tx: dv[1], ty: dv[2], t: dv[3] } : null }); if (tt > 0) e.wind = tt; }
       if (Math.hypot(e.x - x, e.y - y) > 240) { e.x = x; e.y = y; }
@@ -9177,6 +9785,9 @@
     G.shots = s.sh.map(([x, y, vx, vy, r, color]) => ({ x, y, vx, vy, r, color, life: 1, dmg: 0 }));
     G.zones = G.zones.filter((z) => !z.hostile).concat(s.z.map(([x, y, r, t, f]) => ({ x, y, r, t, tick: 1, n: 0, mult: 0, hostile: 1, fire: !!f })));
     G.hazards = s.hz.map(([x, y, r, type, life, max]) => ({ x, y, r, life, max: max || 3, dps: 0, type, ph: 0 }));
+    G.aw = s.aw ? awUnpack(s.aw) : (G.aw && G.aw.client && !G.boss ? G.aw : null);
+    if (G.aw && G.boss) $('bossName').textContent = '覺醒火龍';
+    if (s.tp) tpApply(s.tp);
   }
 
   // ---------- messages ----------
@@ -9191,7 +9802,7 @@
   function onHostMsg(id, m) {
     const rp = NET.players.get(id);
     if (m.t === 'p' && rp) {
-      Object.assign(rp, { tx: m.x, ty: m.y, hp: m.hp, hpMax: m.hpMax, f: m.f, m: m.m, w: m.w, dead: !!m.dead, lvl: m.lvl, dps: m.d || rp.dps });
+      Object.assign(rp, { tx: m.x, ty: m.y, hp: m.hp, hpMax: m.hpMax, f: m.f, m: m.m, w: m.w, dead: !!m.dead, lvl: m.lvl, dps: m.d || rp.dps, tr: m.tr || 0 });
       if (rp.seed !== m.seed || Math.hypot(rp.x - m.x, rp.y - m.y) > 300) { rp.x = m.x; rp.y = m.y; }
       rp.seed = m.seed;
     } else if (m.t === 'look' && rp) { rp.look = m.look; rp.name = m.name || rp.name; rp.cls = m.cls || rp.cls; }
@@ -9199,6 +9810,9 @@
       const e = G.enemies.find((x) => x.nid === m.i); if (!e || e.dead) return;
       NET.remoteHit = true;
       try { hitEnemy(e, m.d, !!m.c, m.x, m.y, m.kb || 0, false); } finally { NET.remoteHit = false; }
+    } else if (m.t === 'tbuff') twinGot(m.k);
+    else if (m.t === 'abyssStairs') {
+      if (G.abyss && mode === 'play' && !G.boss) abyssNext();
     } else if (m.t === 'pvp') {
       if (m.to === 'host') pvpTake(m.d, id, m.cc); else netSend(m.to, { t: 'pvp', d: m.d, cc: m.cc, from: id });
     } else if (m.t === 'pvpLs') {
@@ -9218,7 +9832,7 @@
       if (m.floor) followFloor(m.floor, `隊伍在第 ${m.floor.depth} 層，前往會合`);
       renderParty();
     } else if (m.t === 'deny') { leaveParty(m.why || '無法加入這個房間'); }
-    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff, kind: m.kind || 'floor', look: m.look || null, t: m.t2 || 0, rk: m.rk || null, pv: m.pv || null }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
+    else if (m.t === 'floor') { NET.partyFloor = { depth: m.depth, seed: m.seed, diff: m.diff, kind: m.kind || 'floor', look: m.look || null, t: m.t2 || 0, rk: m.rk || null, pv: m.pv || null, ab: m.ab || null, tm: m.tm || null }; if (mode !== 'dead') followFloor(NET.partyFloor, m.quiet ? '回到隊伍所在的樓層' : null); }
     else if (m.t === 'camp') { NET.partyFloor = null; if (mode !== 'dead' && !G.camp) { for (const o of document.querySelectorAll('.overlay')) if (o.id !== 'titleScreen') o.hidden = true; mode = 'play'; enterCamp('隊長帶大家回到了營地'); } }
     else if (m.t === 's') applySnap(m);
     else if (m.t === 'k') { const e = G.enemies.find((x) => x.nid === m.i); if (e && !e.dead) killEnemy(e); }
@@ -9227,7 +9841,10 @@
       fireHit = m.fx === 'fire'; damagePlayer(m.raw, null); fireHit = false;
       if (hit && m.fx === 'poison') poisonPlayer(3, m.raw * 0.35);
       if (hit && m.fx === 'frost') { P.slowT = 1.6; frostPuff(P.x, P.y); }
-    } else if (m.t === 'poison') poisonPlayer(m.s, m.dps);
+    } else if (m.t === 'pct') pctHurt(m.p, !!m.d);
+    else if (m.t === 'tbuff') twinGot(m.k);
+    else if (m.t === 'tpWin') { if (G.tp && !G.tp.won) { G.tp.won = true; templeReward(); } }
+    else if (m.t === 'poison') poisonPlayer(m.s, m.dps);
     else if (m.t === 'slow') P.slowT = Math.max(P.slowT || 0, m.s);
     else if (m.t === 'dot') dot(m.a, m.c);
     else if (m.t === 'pvp') pvpTake(m.d, m.from, m.cc);
@@ -9337,7 +9954,7 @@
     if ((NET.sendT -= dt) > 0) return;
     if (NET.mode === 'host') { NET.sendT = 1 / 12; if (NET.conns.size) netSend(null, buildSnap()); return; }
     NET.sendT = 1 / 15;
-    netSend(null, { t: 'p', x: Math.round(P.x), y: Math.round(P.y), hp: Math.round(P.hp), hpMax: P.hpMax, f: +(P.facing || 0).toFixed(2), m: P.moving ? 1 : 0, dead: mode === 'dead' || P.pvpDownT > 0 ? 1 : 0, lvl: P.lvl, seed: G.netSeed, d: Math.round(dps(S)) });
+    netSend(null, { t: 'p', x: Math.round(P.x), y: Math.round(P.y), hp: Math.round(P.hp), hpMax: P.hpMax, f: +(P.facing || 0).toFixed(2), m: P.moving ? 1 : 0, dead: mode === 'dead' || P.pvpDownT > 0 ? 1 : 0, lvl: P.lvl, seed: G.netSeed, d: Math.round(dps(S)), tr: twinMine() });
     // crowd control a teammate put on monsters (freezes, slows) is passed to the host
     const cc = [];
     for (const e of G.enemies) if ((e.frozen || 0) > (e._sf || 0) + 0.1 || (e.slowT || 0) > 0.2) { cc.push([e.nid, +(e.frozen || 0).toFixed(1), +(e.slowT || 0).toFixed(1)]); e._sf = e.frozen; e.slowT = 0; }
