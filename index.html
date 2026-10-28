@@ -539,7 +539,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v102</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v103</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -799,7 +799,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v102</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v103</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -3084,9 +3084,9 @@
     if (P.potions <= 0) { logMsg('沒有藥水了', '#ff6b6b'); return; }
     if (P.hp >= P.hpMax) return;
     if (P.pvpDownT > 0) return;
-    P.potions--; P.potCd = G.pvp ? 5 : 0.8; G.potUsed = true; sfx('potion');
+    P.potions--; P.potCd = P.potCdMax = G.pvp ? 10 : 0.8; G.potUsed = true; sfx('potion');
     // in the arena a potion is weaker and slower so fights are not decided by drinking
-    const heal = Math.round(G.pvp ? P.hpMax * 0.25 : P.hpMax * 0.45 * (1 + S.potion / 100));
+    const heal = Math.round(G.pvp ? P.hpMax * 0.15 : P.hpMax * 0.45 * (1 + S.potion / 100));
     if (S.specials.has('flask')) {
       shockwave(P.x, P.y, 120, 'rgba(111,208,140,0.9)', 0.4, 8, 0.3); shakeIt(5);
       for (const e of G.enemies) {
@@ -3137,7 +3137,7 @@
     G.time += dt;
     P.atkCd -= dt; P.dashCd -= dt; P.invuln -= dt; P.potCd -= dt; P.hurt -= dt;
     trackHealing(dt);
-    if (!(P.pvpDownT > 0)) P.hp = Math.min(P.hpMax, P.hp + S.regen * dt * (G.pvp ? 0.5 : 1));
+    if (!(P.pvpDownT > 0)) P.hp = Math.min(P.hpMax, P.hp + S.regen * dt * (G.pvp ? 0.25 : 1));
 
     const m = P.pvpDownT > 0 ? { x: 0, y: 0 } : moveInput();
     P.moving = !!(m.x || m.y) || P.dashT > 0; P.mvx = m.x; P.mvy = m.y;
@@ -4606,7 +4606,7 @@
     $('tStair').hidden = !(nm || st || fd);
     $('tStair').textContent = nm ? NPC_INFO[npc.kind || 'merchant'].verb : fd ? `撿起 ${fdName}` : G.boss ? '魔王還活著' : '走下樓梯';
     if (isTouch) {
-      $('tPotN').textContent = P.potions; $('tPotCd').style.setProperty('--p', P.potCd > 0 ? P.potCd / 0.8 : 0);
+      $('tPotN').textContent = P.potions; $('tPotCd').style.setProperty('--p', P.potCd > 0 ? P.potCd / (P.potCdMax || 0.8) : 0);
       const ex = P.elix || {}; $('tElixN').textContent = (ex.haste || 0) + (ex.shield || 0) + (ex.wisdom || 0);
       $('tBagN').textContent = P.bag.length >= BAG_MAX ? '滿' : P.bag.length || '';
       $('tMenu').classList.toggle('glow', pts > 0);
@@ -4633,7 +4633,7 @@
       const k = el.dataset.use, n = k === 'potion' ? P.potions : (P.elix && P.elix[k]) || 0;
       el.querySelector('.cnt').textContent = k === 'potion' ? `${n}/${potMax()}` : `${n}/${ELIX_MAX}`;
       el.classList.toggle('empty-slot', n <= 0);
-      el.querySelector('.cdfill').style.height = k === 'potion' && P.potCd > 0 ? `${(P.potCd / 0.8) * 100}%` : '0%';
+      el.querySelector('.cdfill').style.height = k === 'potion' && P.potCd > 0 ? `${(P.potCd / (P.potCdMax || 0.8)) * 100}%` : '0%';
       const act = k !== 'potion' && elixOn(k) ? P.elixT[k] / ELIX_DUR[k] : 0;
       el.querySelector('.actfill').style.height = `${act * 100}%`;
       el.classList.toggle('active', act > 0);
@@ -8728,7 +8728,7 @@
   // ================= arena PvP =================
   // a hit is first turned into "how many seconds of the attacker's damage" and then into a share of the
   // target's life: with equal gear 20 seconds of steady attacks bring a player down
-  const PVP_RATE = 0.05, PVP_T = 180, PVP_WIN = 3;
+  const PVP_RATE = 0.08, PVP_T = 180, PVP_WIN = 3;
   const isFoe = (rp) => !!(G.pvp && !G.pvp.over && (G.pvp.mode === 'ffa' || G.pvp.teams[rp.id] !== G.pvp.teams[NET.id]));
   const pvpFoes = () => (G.pvp && !G.pvp.over && !(P.pvpDownT > 0) ? visibleMates().filter(isFoe) : []);
   const pvpName = (id) => (id === NET.id ? '你' : (G.pvp && G.pvp.names[id]) || '玩家');
@@ -8743,7 +8743,13 @@
     pvpSend(rp, d, cc);
     addText(String(Math.max(1, Math.round(d))), rp.x + rnd(-6, 6), rp.y - 34, r.crit ? '#ffd34d' : '#ffb0b0', r.crit ? 16 : 13);
     sparks(rp.x, rp.y - 6, '#ffb0b0', 4, 160);
-    if (S.lifesteal > 0) P.hp = Math.min(P.hpMax, P.hp + d * S.lifesteal / 100 * 0.5);
+  }
+  // the target reports the life it actually lost, so lifesteal ignores damage that reduction or shields stopped
+  function pvpLeech(a) { if (G.pvp && !(P.pvpDownT > 0) && S.lifesteal > 0 && a > 0) P.hp = Math.min(P.hpMax, P.hp + a * S.lifesteal / 100 * 0.25); }
+  function pvpLeechBack(from, a) {
+    if (!(a > 0) || !from) return;
+    const msg = { t: 'pvpLs', a: Math.round(a * 10) / 10 };
+    if (NET.mode === 'host') netSend(from, msg); else netSend(null, { ...msg, to: from });
   }
   function pvpArea(x, y, R, mult, cc) {
     if (!G.pvp) return;
@@ -8757,11 +8763,11 @@
     // freezes and stuns become a short slow, then 3 seconds of immunity
     if (cc && !(P.pvpImm > G.time)) { P.slowT = Math.max(P.slowT || 0, 1); P.pvpImm = G.time + 3; frostPuff(P.x, P.y); }
     if (!(d > 0)) return;
-    const red = Math.min(0.4, (1 - hurtMul()) * 0.5);
+    const red = Math.min(0.3, (1 - hurtMul()) * 0.5);
     let amt = Math.min(d * (1 - red), P.hpMax * 0.25);
     arcaneShieldOnHurt();
     if (P.shield > 0) { const ab = Math.min(P.shield * 0.5, amt); P.shield -= ab * 2; amt -= ab; }
-    P.hp -= amt; P.hurt = 0.25;
+    P.hp -= amt; P.hurt = 0.25; pvpLeechBack(from, Math.min(amt, amt + P.hp));
     addText(`-${Math.round(amt)}`, P.x, P.y - 20, '#ff6b6b', 15); sfx('hurt');
     if (P.hp <= 0 && S.specials.has('setUndying') && !(P.undyingCd > 0)) { P.hp = Math.round(P.hpMax * 0.5); P.invuln = 3; P.undyingCd = 60; logMsg('不朽守衛：你撐住了！', '#4fd18b'); }
     if (P.hp <= 0) pvpDown(from);
@@ -8832,8 +8838,8 @@
     else h = '<div class="inv-actions"><button class="primary" type="button" data-pvp="ffa">自由混戰</button>' +
       `<button type="button" data-pvp="team"${NET.players.size < 1 ? ' disabled' : ''}>分隊對戰</button></div>`;
     h += `<div class="sub">規則：限時 3 分鐘，先擊倒對手 ${PVP_WIN} 次的人（或隊伍）獲勝；時間到比擊倒數。倒下 3 秒後在場邊復活，有 2 秒無敵；不掉裝備、金幣和經驗，也沒有獎勵。` +
-      '<br>傷害：雙方裝備差不多時，持續攻擊約 20 秒可以擊倒對手；裝備較強的一方傷害最多 1.6 倍、較弱的一方最少 0.6 倍。減傷在競技場打五折（最多 40%），一擊最多打掉 25% 生命。' +
-      '<br>冰凍與暈眩改成緩速 1 秒（之後 3 秒免疫）；吸血、生命回復與護盾效果減半；藥水回復 25%、冷卻 5 秒；不能使用無敵藥劑。隊長走樓梯可以提前結束。</div>';
+      '<br>傷害：雙方裝備差不多時，持續攻擊約 20～25 秒可以擊倒對手；裝備較強的一方傷害最多 1.6 倍、較弱的一方最少 0.6 倍。減傷在競技場打五折（最多 30%），一擊最多打掉 25% 生命。' +
+      '<br>冰凍與暈眩改成緩速 1 秒（之後 3 秒免疫）；吸血與生命回復只剩 1/4（吸血按對手實際失去的生命計算），護盾效果減半；藥水回復 15%、冷卻 10 秒；不能使用無敵藥劑。隊長走樓梯可以提前結束。</div>';
     $('pvpBody').innerHTML = h;
     $('pvpBody').querySelectorAll('[data-pvp]').forEach((b) => b.addEventListener('click', () => startPvp(b.dataset.pvp)));
     $('pvpScreen').hidden = false;
@@ -9195,6 +9201,8 @@
       try { hitEnemy(e, m.d, !!m.c, m.x, m.y, m.kb || 0, false); } finally { NET.remoteHit = false; }
     } else if (m.t === 'pvp') {
       if (m.to === 'host') pvpTake(m.d, id, m.cc); else netSend(m.to, { t: 'pvp', d: m.d, cc: m.cc, from: id });
+    } else if (m.t === 'pvpLs') {
+      if (m.to === 'host') pvpLeech(m.a); else netSend(m.to, { t: 'pvpLs', a: m.a });
     } else if (m.t === 'pvpKO') pvpScored(m.by, id);
     else if (m.t === 'cc') {
       for (const [i, fr, sl] of m.l) { const e = G.enemies.find((x) => x.nid === i); if (!e) continue; e.frozen = Math.max(e.frozen || 0, fr); e.slowT = Math.max(e.slowT || 0, sl); }
@@ -9223,6 +9231,7 @@
     else if (m.t === 'slow') P.slowT = Math.max(P.slowT || 0, m.s);
     else if (m.t === 'dot') dot(m.a, m.c);
     else if (m.t === 'pvp') pvpTake(m.d, m.from, m.cc);
+    else if (m.t === 'pvpLs') pvpLeech(m.a);
     else if (m.t === 'pvpScore') { if (G.pvp) { G.pvp.kills = m.kills; logMsg(m.msg, '#ff8a5a'); } }
     else if (m.t === 'pvpEnd') { if (G.pvp) { G.pvp.over = true; pvpBanner(m.text); } }
     else if (m.t === 'roster') { for (const id of [...NET.players.keys()]) if (!m.ids.includes(id)) NET.players.delete(id); renderParty(); }
