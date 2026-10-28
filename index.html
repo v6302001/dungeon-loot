@@ -440,6 +440,15 @@
   .achp { max-width: 860px; padding: 20px; }
   .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
   .tabs button.on { border-color: var(--gold); color: var(--gold); }
+  .story-box { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(760px, calc(100% - 32px)); z-index: 95; display: flex; gap: 14px; background: rgba(20,16,26,0.97); border: 1px solid #6a5a44; border-radius: 12px; padding: 14px 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.6); cursor: pointer; }
+  .story-box[hidden] { display: none; }
+  .st-face { flex: 0 0 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 700; color: #1b1720; }
+  .st-main { flex: 1; min-width: 0; }
+  .st-name { font-weight: 700; margin-bottom: 4px; }
+  .st-text { min-height: 46px; line-height: 1.65; color: var(--text); }
+  .st-ctl { display: flex; align-items: center; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .st-ctl #stChoices { margin: 0; }
+  .st-next { margin-left: auto; color: var(--muted); font-size: 12px; }
   .ach-pick { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 13px; }
   .ach-pick select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 4px; padding: 4px; font-family: var(--font-body); }
   .capes { display: flex; gap: 6px; align-items: center; }
@@ -541,7 +550,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v107</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v108</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -783,9 +792,10 @@
   </div>
 </div>
 
+<div class="story-box" id="storyBox" hidden><div class="st-face" id="stFace"></div><div class="st-main"><div class="st-name" id="stName"></div><div class="st-text" id="stText"></div><div class="st-ctl"><div id="stChoices" class="inv-actions"></div><span class="st-next" id="stNext"></span><button type="button" id="stSkip">略過</button></div></div></div>
 <div class="overlay" id="achScreen" hidden>
   <div class="panel achp">
-    <div class="tabs" id="achTabs"><button type="button" data-tab="ach">成就</button><button type="button" data-tab="codex">傳說圖鑑</button><button type="button" data-tab="coll">收集</button></div>
+    <div class="tabs" id="achTabs"><button type="button" data-tab="ach">成就</button><button type="button" data-tab="codex">傳說圖鑑</button><button type="button" data-tab="coll">收集</button><button type="button" data-tab="story">故事</button></div>
     <div id="achBody"></div>
     <div class="row"><button class="primary" id="achClose" type="button">關閉（H）</button></div>
   </div>
@@ -802,7 +812,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v107</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v108</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -810,6 +820,7 @@
       <label for="setNums">顯示傷害數字</label><input type="checkbox" id="setNums">
       <label for="setShort">大數字簡寫（萬／億／兆）</label><input type="checkbox" id="setShort">
       <label for="setSteps">火焰足跡（覺醒屠龍者外觀）</label><input type="checkbox" id="setSteps">
+      <label for="setSoul">靈魂光點（故事結局外觀）</label><input type="checkbox" id="setSoul">
       <label for="setTSize" class="touch-only">觸控按鈕大小</label><select id="setTSize" class="touch-only"><option value="0.85">小</option><option value="1">中</option><option value="1.15">大</option></select>
       <label for="setLefty" class="touch-only">按鈕放左邊（左撇子）</label><input type="checkbox" id="setLefty" class="touch-only">
       <label for="setHaptic" class="touch-only">按鈕震動</label><input type="checkbox" id="setHaptic" class="touch-only">
@@ -1022,6 +1033,7 @@
   Object.assign(EDEF, {
     spider: { name: '毒蜘蛛', hp: 18, dmg: 5, speed: 125, r: 10, xp: 7, reach: 6, windup: 0.22, cd: 0.8, color: '#4a3048' },
     shroom: { name: '爆裂菇', hp: 24, dmg: 12, speed: 48, r: 12, xp: 8, reach: 0, windup: 0.9, cd: 1, color: '#c8503c' },
+    mirror: { name: '倒影', hp: 1, dmg: 1, speed: 150, r: 13, xp: 0, reach: 0, windup: 1, cd: 99, color: '#a8a8b8' },
     dragonEgg: { name: '龍蛋', hp: 1, dmg: 0, speed: 0, r: 18, xp: 0, reach: 0, windup: 1, cd: 99, color: '#e8c27a' },
     necro: { name: '死靈法師', hp: 34, dmg: 9, speed: 60, r: 12, xp: 14, reach: 0, windup: 0.55, cd: 2.2, color: '#8a5ac8' },
   });
@@ -1835,7 +1847,7 @@
         runBest: P.runBest || 0, runKills: P.runKills || 0, runId: P.runId,
         talents: P.talents || {}, runes: P.runes || {}, diff: P.diff || 0, diffUnlock: P.diffUnlock || 0, stats: P.stats || {}, ach: P.ach || {},
         title: P.title || '', cape: P.cape || null, nick: P.nick || '', coll: P.coll || {}, codex: P.codex || {}, elix: P.elix || {}, campLv: P.campLv || {}, pet: P.pet || null,
-        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0, abyss: P.abyss || {}, templeClears: P.templeClears || 0, awakeOpen: !!P.awakeOpen, awakeKills: P.awakeKills || 0, fireSteps: !!P.fireSteps,
+        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0, abyss: P.abyss || {}, templeClears: P.templeClears || 0, story: P.story || null, soulLights: !!P.soulLights, awakeOpen: !!P.awakeOpen, awakeKills: P.awakeKills || 0, fireSteps: !!P.fireSteps,
       }));
     } catch (e) { /* storage unavailable: play continues without saving */ }
     try { cloudTouch(); } catch (e) { /* cloud sync not ready yet */ }
@@ -1938,6 +1950,7 @@
     $('floorName').textContent = `第 ${depth} 層 · ${tier.name}`;
     logMsg(bossFloor ? `第 ${depth} 層：魔王守著樓梯` : `第 ${depth} 層 · ${tier.name}`, bossFloor ? '#ff8a3d' : '#ece4d4');
     sizeMinimap();
+    storySetup();
   }
 
   const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 1 : (G.doorT && G.doorT.has(ty * MW + tx)) ? 1 : G.map[ty * MW + tx];
@@ -1992,6 +2005,7 @@
 
   function updateEnemy(e, dt) {
     if (e.type === 'dragonEgg') { e.flash = Math.max(0, e.flash - dt); e.kx = 0; e.ky = 0; return; }
+    if (e.type === 'mirror' || e.calm) { e.flash = Math.max(0, e.flash - dt); e.kx = 0; e.ky = 0; return; }
     const d = EDEF[e.type];
     const dx = P.x - e.x, dy = P.y - e.y, dist = Math.hypot(dx, dy) || 1;
     e.flash = Math.max(0, e.flash - dt);
@@ -2086,6 +2100,7 @@
     if (P.bsoul > 0 && S.specials.has('bSoul') && S.specials.has('bBone')) dmg *= 1 + 0.01 * P.bsoul;
     if (P.phaseT > 0) dmg *= 1.25;
     if (P.sunT > 0) dmg *= 1.2;
+    if (S.specials.has('crownHunger')) dmg *= 1.4;
     dmg *= twinPairMul();
     if (P.moving && ks('ksGuerrilla')) dmg *= 1.2;
     if (skillCtx) dmg *= S.fSkill || 1;
@@ -2114,6 +2129,7 @@
       }
       e.hp -= dmg;
     }
+    if (e.calm && G.st && !G.st.client) stWake();
     e.flash = 0.12; e.aggro = true;
     const a = Math.atan2(e.y - fromY, e.x - fromX);
     const kbm = e.type === 'boss' ? 0.15 : 1;
@@ -2161,9 +2177,11 @@
     // in a party every kill is announced, so all teammates get the experience and roll their own loot
     if (NET.mode === 'host' && e.nid) netSend(null, { t: 'k', i: e.nid });
     deathFx(e);
-    if (e.type === 'dragonEgg') { sfx('kill'); logMsg('打破了一顆龍蛋！', '#ffb347'); return; }
+    if (e.type === 'dragonEgg') { sfx('kill'); logMsg(e.cocoon ? '打破了一個蛛繭！' : '打破了一顆龍蛋！', '#ffb347'); return; }
+    if (e.type === 'mirror') { sfx('kill'); logMsg('倒影碎了！', '#a8a8b8'); return; }
     if (G.tp && e.type === 'boss') { gainXp(e.xp); templeBossDown(e); return; }
     gainXp(e.xp);
+    if (S.specials.has('crownHunger')) P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.03);
     P.kills = (P.kills || 0) + 1; P.runKills = (P.runKills || 0) + 1;
     stat('kills'); sfx(e.type === 'boss' ? 'boom' : 'kill');
     G.souls = (G.souls || 0) + 1;
@@ -2192,6 +2210,7 @@
     if (Math.random() < (e.type === 'boss' ? 1 : e.elite ? 0.15 : 0.01)) dropAt(e.x, e.y, { kind: 'item', item: randomGem() });
     if (Math.random() < (e.elite ? 0.1 : 0.02)) dropAt(e.x, e.y, { kind: 'elixir', elixir: pick(Object.keys(ELIXIRS)) });
     // items
+    if (e.type === 'boss' && G.st && !G.st.client && !G.st.done && G.st.ev.t === 'boss') stDone();
     if (e.type === 'boss') {
       // the boss's signature drop: a chance at legendary or set, otherwise a rare
       { const q = Math.random(); dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth() + 1, q < 0.2 ? 'legendary' : q < 0.45 ? 'set' : 'rare') }); }
@@ -2222,6 +2241,7 @@
   }
 
   function damagePlayer(raw, src) {
+    if (G.st && G.st.greed && !G.st.done) raw *= 1 + 0.05 * G.st.greed;
     if (src && !src.dead && src.maxHp && realmAff('vamp') && NET.mode !== 'client') src.hp = Math.min(src.maxHp, src.hp + src.maxHp * 0.1);
     if (NET.tgt) { netSend(NET.tgt.id, { t: 'hurt', raw }); return; }
     if (P.invuln > 0 || P.dashT > 0 || P.leap || mode !== 'play') return;
@@ -2292,6 +2312,7 @@
 
   function die(force) {
     if (G && G.pvp) { if (!(P.pvpDownT > 0)) pvpDown(null); return; }
+    if (!force && S.specials.has('hunterPromise') && !(P.promiseCd > 0) && !(P.pvpDownT > 0) && mode === 'play') { P.promiseCd = 300; P.hp = Math.round(P.hpMax * 0.3); P.invuln = 2; logMsg('獵人的承諾：你撐住了！', '#9cd4ff'); sfx('level'); return; }
     if (G && (G.abyss || G.temple) && !force) { if (P.pvpDownT > 0) return; if (inParty() && visibleMates().length) { abyssDown(); return; } }
     if (mode === 'dead') return;
     mode = 'dead';
@@ -2485,6 +2506,7 @@
     if (!$('confirmScreen').hidden) { if (e.code === 'Escape') closeConfirm(); else if (e.code === 'Enter') $('confirmYes').click(); return; }
     if (mode === 'letter') { if (e.code === 'Escape' || e.code === 'Enter' || e.code === 'KeyE') closeLetter(); return; }
     if (mode === 'party') { if (e.code === 'Escape') closeParty(); return; }
+    if (mode === 'story') { if (e.code === 'Space' || e.code === 'Enter' || e.code === 'KeyE') storyAdvance(); else if (e.code === 'Escape') storySkip(); return; }
     if (mode === 'talk') { if (e.code === 'Enter' || e.code === 'KeyE') dragonFight(true); else if (e.code === 'Escape') dragonFight(false); return; }
     if (mode === 'classpick') { if (e.code === 'Escape') { if (!$('classScreen').hidden) closeClassPick(); else closeSlotMenu(); } return; }
     if (mode === 'play') {
@@ -3156,6 +3178,7 @@
     if (G.realm || G.challenge) { const what = G.realm ? '秘境' : '魔王挑戰'; G.realm = null; enterCamp(`離開了${what}，回到營地`); return; }
     if (G.abyss) { abyssNext(); return; }
     if (G.temple) { logMsg('日月神殿要兩人一起站進綠色出口', '#ffc94d'); return; }
+    if (G.st && !G.st.done && !G.st.client) { logMsg(`劇情還沒完成：${G.st.ev.hint}`, '#c8b88a'); return; }
     if (G.depth >= MAX_DEPTH) {
       P.best = Math.max(P.best, MAX_DEPTH); stat('clear100'); submitScore();
       enterCamp(`你征服了地窟的最深處——第 ${MAX_DEPTH} 層！`); levelFx(); sfx('legend');
@@ -3213,7 +3236,7 @@
     updatePShots(dt);
 
     netEnemies(dt);
-    if (NET.mode !== 'client') { awakenTick(dt); templeTick(dt); }
+    if (NET.mode !== 'client') { awakenTick(dt); templeTick(dt); storyTick(dt); }
     separate();
     enemyShots(dt);
     updateProps(dt);
@@ -3223,6 +3246,10 @@
     if (NET.mode !== 'client') updateEvent(dt);
     updateElixirs(dt);
     updatePet(dt);
+    P.promiseCd = Math.max(0, (P.promiseCd || 0) - dt);
+    if (S.specials.has('crownHunger') && !G.camp && !(P.pvpDownT > 0)) P.hp = Math.max(1, P.hp - P.hpMax * 0.01 * dt);
+    if (P.pullT > 0) { P.pullT -= dt; const dx = P.pullX - P.x, dy = P.pullY - P.y, dd = Math.hypot(dx, dy); if (dd > 30) moveEnt(P, dx / dd * 110 * dt, dy / dd * 110 * dt); }
+    if (P.soulLights && CFG.soulLights !== false && (P.soulT = (P.soulT || 0) - dt) <= 0) { P.soulT = 0.2; embers(P.x + rnd(-22, 22), P.y - rnd(5, 40), Math.random() < 0.5 ? '#9cd4ff' : '#e8f4ff', 1, 10, 25); }
     P.sunT = Math.max(0, (P.sunT || 0) - dt); P.sunCd = Math.max(0, (P.sunCd || 0) - dt); P.moonCd = Math.max(0, (P.moonCd || 0) - dt);
     P.windT = Math.max(0, (P.windT || 0) - dt); P.undyingCd = Math.max(0, (P.undyingCd || 0) - dt);
     P.setTornCd = Math.max(0, (P.setTornCd || 0) - dt);
@@ -3241,7 +3268,7 @@
         if (!d.hinted) { d.hinted = true; addText(isTouch ? '點「撿起」' : '按 E 撿起', d.x, d.y - 16, '#cfc6b8', 12); }
       } else if (dist < 20 && d.t > 0.3) {
         if (d.kind === 'gold') {
-          P.gold += d.amount; d.taken = true; if (G.goldRealm) G.goldRealm.earned += d.amount; addText(`+${d.amount} 金`, P.x, P.y - 22, '#e9b949', 13); stat('goldEarned', d.amount); sfx('coin');
+          P.gold += d.amount; d.taken = true; if (G.goldRealm) G.goldRealm.earned += d.amount; if (G.st && G.st.ev && G.st.ev.mod === 'greed' && !G.st.done) G.st.greed = Math.min(20, (G.st.greed || 0) + 1); addText(`+${d.amount} 金`, P.x, P.y - 22, '#e9b949', 13); stat('goldEarned', d.amount); sfx('coin');
           if (S.specials.has('greed')) P.hp = Math.min(P.hpMax, P.hp + 3);
         } else if (d.kind === 'potion') {
           if (P.potions < potMax()) { P.potions++; d.taken = true; addText('+1 藥水', P.x, P.y - 22, '#6fd08c', 13); sfx('pickup'); }
@@ -3508,6 +3535,7 @@
     drawTraps(c);
     drawAwaken(c);
     drawTemple(c);
+    drawStory(c);
     drawStairs(c);
     for (const t of G.torches) if (G.seen[t.ty * MW + t.tx]) drawSconce(c, t);
     drawDrops(c);
@@ -3549,7 +3577,9 @@
 
     // readable overlays above the darkness
     drawLabels(c);
+    drawStoryTop(c);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawStoryScreen(c);
     if (P.hurt > 0) {
       const g = c.createRadialGradient(view.w / 2, view.h / 2, Math.min(view.w, view.h) * 0.3, view.w / 2, view.h / 2, Math.max(view.w, view.h) * 0.7);
       g.addColorStop(0, 'rgba(200,30,40,0)'); g.addColorStop(1, `rgba(200,30,40,${Math.min(0.55, P.hurt * 1.6)})`);
@@ -3699,7 +3729,7 @@
     c.fillStyle = 'rgba(0,0,0,0.45)'; c.beginPath(); c.ellipse(0, r * 0.9, r, r * 0.35, 0, 0, Math.PI * 2); c.fill();
     c.rotate(wob);
     const g = c.createRadialGradient(-r * 0.3, -r * 0.5, 2, 0, 0, r * 1.3);
-    g.addColorStop(0, e.flash > 0 ? '#ffffff' : '#ffe0a0'); g.addColorStop(0.6, '#e8a24a'); g.addColorStop(1, '#8a3a14');
+    const cc = e.cocoon ? ['#ffffff', '#d8d0e8', '#6a5a7a'] : ['#ffe0a0', '#e8a24a', '#8a3a14']; g.addColorStop(0, e.flash > 0 ? '#ffffff' : cc[0]); g.addColorStop(0.6, cc[1]); g.addColorStop(1, cc[2]);
     c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, r * 0.8, r * 1.05, 0, 0, Math.PI * 2); c.fill();
     c.strokeStyle = 'rgba(255,90,30,0.9)'; c.lineWidth = 1.6; c.beginPath();
     c.moveTo(-r * 0.4, -r * 0.2); c.lineTo(-r * 0.1, r * 0.05); c.lineTo(-r * 0.25, r * 0.35); c.moveTo(r * 0.3, -r * 0.5); c.lineTo(r * 0.1, -r * 0.2); c.stroke();
@@ -3711,6 +3741,7 @@
   }
   function drawEnemy(c, e) {
     if (e.type === 'dragonEgg') { drawEgg(c, e); return; }
+    if (e.type === 'mirror') { c.save(); c.globalAlpha = 0.62; drawMate(c, { x: e.x, y: e.y, cls: e.cls || 'warrior', look: e.look2 || {}, f: e.face || 0, m: 1, w: G.time * 8, hp: e.hp, hpMax: e.maxHp, name: '你的倒影' }); c.restore(); return; }
     if (e.tc && TC[e.tc]) { c.save(); c.strokeStyle = TC[e.tc].color; c.lineWidth = 3; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(e.x, e.y + e.r * 0.8, e.r * 1.25, e.r * 0.5, 0, 0, Math.PI * 2); c.stroke(); c.restore(); }
     const d = EDEF[e.type], t = G.time, r = e.r, white = e.flash > 0;
     const look = Math.atan2(P.y - e.y, P.x - e.x), lx = Math.cos(look), ly = Math.sin(look);
@@ -4624,6 +4655,7 @@
       mctx.fillStyle = '#6d6278'; mctx.fillRect(x * px, y * px, px, px);
     }
     if (G.seen[G.stairs.y * MW + G.stairs.x]) { mctx.fillStyle = G.boss ? '#c8323c' : '#e9b949'; mctx.fillRect(G.stairs.x * px - px, G.stairs.y * px - px, px * 3, px * 3); }
+    if (G.st && G.st.vis) for (const a of G.st.vis) if (a[0] === 'n' || a[0] === 'i' || (a[0] === 'o' && !a[3])) { mctx.fillStyle = a[0] === 'n' ? '#c8b88a' : a[0] === 'i' ? '#ffd34d' : '#c22f96'; mctx.fillRect(a[1] / TILE * px - px, a[2] / TILE * px - px, px * 3, px * 3); }
     for (const d of G.drops) if (d.kind === 'item' && d.item.rarity !== 'common' && G.seen[Math.floor(d.y / TILE) * MW + Math.floor(d.x / TILE)]) { mctx.fillStyle = RAR[d.item.rarity].color; mctx.fillRect(d.x / TILE * px - 1, d.y / TILE * px - 1, 2, 2); }
     for (const p of G.props) {
       if (!G.seen[p.ty * MW + p.tx]) continue;
@@ -5090,6 +5122,7 @@
     tamer: { name: '馴獸師', verb: '找馴獸師挑寵物' },
     jeweler: { name: '寶石商人', verb: '找寶石商人合成寶石' },
     scholar: { name: '古文學者', verb: '找古文學者' },
+    keeper: { name: '守墓人', verb: '和守墓人說話（故事模式）' },
     tpgate: { name: '回程傳送門', verb: '穿過回程傳送門' },
   };
   // item level of loot: the floor (or deepest floor, in camp) plus a bonus on harder difficulties
@@ -5122,6 +5155,7 @@
       at(room.x + 4, cy + 4, { npc: true, kind: 'tamer' }),
       at(cx - 4, room.y + 2, { npc: true, kind: 'jeweler' }),
       at(cx + 5, cy + 5, { npc: true, kind: 'scholar' }),
+      at(room.x + 4, cy - 4, { npc: true, kind: 'keeper' }),
       at(cx, cy + 6, { npc: true, kind: 'goldgate', r: 18 }),
       at(cx - 5, cy + 6, { npc: true, kind: 'trialgate', r: 18 }),
       at(cx + 5, cy + 8, { npc: true, kind: 'pvpgate', r: 18 }),
@@ -5140,6 +5174,7 @@
 
   function enterCamp(msg) {
     if (G && G.abyss) abyssRecord();
+    if (P.stTrade) { P.stTrade = false; refreshStats(); }
     genCamp();
     mode = 'play';
     $('floorName').textContent = '營地';
@@ -5166,6 +5201,7 @@
     else if (k === 'tamer') openPets();
     else if (k === 'jeweler') openJeweler();
     else if (k === 'scholar') openScholar();
+    else if (k === 'keeper') openKeeper();
     else if (k === 'tpgate') returnThroughGate();
     else if (k === 'goldgate') startGoldRealm();
     else if (k === 'trialgate') openAltar();
@@ -5409,6 +5445,7 @@
 
   // ---------- art ----------
   function drawNpc(c, n) {
+    if (n.kind === 'keeper') { stDrawKeeper(c, n); return; }
     const t = G.time;
     c.save(); c.translate(n.x, n.y);
     if (n.kind === 'fire') {
@@ -6515,7 +6552,7 @@
         e.healCd = 4;
         let healed = 0;
         for (const o of G.enemies) {
-          if (o.dead || o === e || o.hp >= o.maxHp || Math.hypot(o.x - e.x, o.y - e.y) > 160) continue;
+          if (o.dead || o === e || o.hp >= o.maxHp || o.capPct || o.awake || Math.hypot(o.x - e.x, o.y - e.y) > 160) continue; // bosses with a damage cap cannot be out-healed
           o.hp = Math.min(o.maxHp, o.hp + o.maxHp * 0.25); healed++;
           embers(o.x, o.y, '#9be07a', 8, 30, 60);
         }
@@ -6951,6 +6988,7 @@
   }
   function eventBarText() {
     if (G && G.temple && G.tp) return templeBarText();
+    if (G && G.st && G.st.hintText && !G.camp) return G.st.hintText;
     if (G && G.trialRealm && G.aw && G.boss) return awBarText();
     if (G && G.trialRealm) return G.boss ? '試煉秘境：打倒火龍' : '試煉完成：走樓梯回營地';
     if (G && G.goldRealm) return `金幣秘境：剩下 ${Math.floor(G.goldRealm.t / 60)}:${String(Math.floor(G.goldRealm.t % 60)).padStart(2, '0')}・已獲得 ${G.goldRealm.earned.toLocaleString()} 金幣`;
@@ -7333,7 +7371,7 @@
   let setPrev = null;
   function openSettings() {
     setPrev = mode; if (mode === 'play') mode = 'settings';
-    $('setMusic').value = CFG.music; $('setSfx').value = CFG.sfx; $('setShake').checked = CFG.shake; $('setNums').checked = CFG.dmgNums; $('setShort').checked = CFG.shortNum !== false; $('setSteps').checked = CFG.fireSteps !== false; $('setSteps').disabled = !P || !P.fireSteps;
+    $('setMusic').value = CFG.music; $('setSfx').value = CFG.sfx; $('setShake').checked = CFG.shake; $('setNums').checked = CFG.dmgNums; $('setShort').checked = CFG.shortNum !== false; $('setSteps').checked = CFG.fireSteps !== false; $('setSteps').disabled = !P || !P.fireSteps; $('setSoul').checked = CFG.soulLights !== false; $('setSoul').disabled = !P || !P.soulLights;
     $('setTSize').value = String(CFG.tSize || 1); $('setLefty').checked = !!CFG.lefty; $('setHaptic').checked = CFG.haptic !== false;
     renderPickGrid();
     $('settingsScreen').hidden = false; mouse.down = false;
@@ -7345,6 +7383,7 @@
   $('setNums').addEventListener('change', (e) => { CFG.dmgNums = e.target.checked; saveCfg(); });
   $('setShort').addEventListener('change', (e) => { CFG.shortNum = e.target.checked; saveCfg(); });
   $('setSteps').addEventListener('change', (e) => { CFG.fireSteps = e.target.checked; saveCfg(); });
+  $('setSoul').addEventListener('change', (e) => { CFG.soulLights = e.target.checked; saveCfg(); });
   $('setTSize').addEventListener('change', (e) => { CFG.tSize = +e.target.value; saveCfg(); layoutTouch(); resize(); });
   $('setLefty').addEventListener('change', (e) => { CFG.lefty = e.target.checked; saveCfg(); layoutTouch(); });
   $('setHaptic').addEventListener('change', (e) => { CFG.haptic = e.target.checked; saveCfg(); buzz(); });
@@ -7692,6 +7731,7 @@
     if (ks('ksBlood')) { s.lifesteal *= 2; s.potion -= 50; }
     if (ks('ksFort')) { s.fTaken *= 0.8; s.fMove = (s.fMove || 1) * 0.85; }
     if (ks('ksGlass')) { s.fDmg *= 1.3; s.fLife *= 0.8; }
+    if (P && P.stTrade) s.fLife *= 0.8;
     if (ks('ksSniper')) { s.fAtk *= 0.7; s.fDmg *= 1.6; s.rangePct += 20; }
   }
   const liveTakenMul = () => (ks('ksGlacier') && P.shield > 0 ? 0.85 : 1) * (P.dodgeT > 0 ? 0.6 : 1) * (P.coreT > 0 ? 0.8 : 1) * (P.dformT > 0 ? 0.6 : 1);
@@ -7700,6 +7740,8 @@
   // ---------- boss-exclusive legendaries: two per boss, both together form a pair bonus ----------
   const BOSS_LEGS = { skull: ['bSoul', 'bBone'], queen: ['bFang', 'bWeb'], golem: ['bCore', 'bRock'], eye: ['bGaze', 'bRift'] };
   LEGENDS.push(
+    { key: 'crownHunger', slot: 'helm', boss: 'story', name: '飢餓冠冕', desc: '【故事結局】最終傷害 +40%，但每秒失去 1% 生命（不會低於 1）；擊殺怪物回復 3% 生命。' },
+    { key: 'hunterPromise', slot: 'ring', boss: 'story', name: '獵人的承諾', desc: '【故事結局】倒下時改成回到 30% 生命並無敵 2 秒（5 分鐘一次）。' },
     { key: 'tSun', slot: 'ring', boss: 'temple', name: '日之戒', desc: '【日月神殿】暴擊時，讓組隊的同伴 3 秒內傷害 +20%（每秒最多一次）。〔日月同輝：你戴日之戒、同伴戴月之戒，且距離 300 以內時，兩人最終傷害 +15%〕' },
     { key: 'tMoon', slot: 'ring', boss: 'temple', name: '月之戒', desc: '【日月神殿】受到傷害時，給組隊的同伴 5% 最大生命的護盾（4 秒冷卻）。〔日月同輝：你戴月之戒、同伴戴日之戒，且距離 300 以內時，兩人最終傷害 +15%〕' },
   );
@@ -8050,6 +8092,7 @@
     P.ach = P.ach || {};
     document.querySelectorAll('#achTabs button').forEach((b) => b.classList.toggle('on', b.dataset.tab === tab));
     const body = $('achBody');
+    if (tab === 'story') { body.innerHTML = storyTabHtml(); bindStoryTab(); return; }
     if (tab === 'ach') {
       const titles = ['', ...ACH.filter((a) => a.title && P.ach[a.id]).map((a) => a.title), ...coll().titles];
       const capes = [null, ...ACH.filter((a) => a.cape && P.ach[a.id]).map((a) => a.cape), ...coll().capes];
@@ -8926,6 +8969,770 @@
       + (A.fly > 0 ? `・飛行中 ${Math.ceil(A.fly)} 秒：站進安全圈、打破龍蛋（剩 ${eggs} 顆）` : '')
       + (A.ph === 3 ? '・火鏈：保持 120～400 距離' : '') + (A.enraged ? '・狂暴！' : '');
   }
+  // ================= 故事模式「冠冕之謎」: T1 and harder, floors 1-50, one chapter per scene =================
+  const ST_LAST = 50;
+  const SPK = {
+    keeper: ['守墓人', '#c8b88a'], glen: ['葛倫的幽魂', '#9cd4ff'], you: ['你', '#ffd34d'], general: ['王國將軍', '#b0b8c8'],
+    smith: ['王國鍛造師', '#ff8a3d'], astro: ['宮廷星象師', '#b79cff'], voice: ['腳下的聲音', '#c22f96'], knight: ['凍結的騎士', '#9cd4ff'],
+    dragon: ['冰霜巨龍', '#7fd6ff'], scholar: ['遺跡學者', '#e8dcc0'], sentinel: ['天空哨兵', '#ffd34d'], apoth: ['流浪藥師', '#6fd08c'],
+    priest: ['神殿祭司', '#4fb8c8'], mirror: ['你的倒影', '#a8a8b8'], robber: ['盜墓者', '#d8b070'], king: ['第一位國王', '#e9b949'],
+    crown: ['冠冕', '#ff4f6e'], skull: ['骷髏王', '#f0e6c8'], queen: ['蜘蛛女后', '#b06ad0'], golem: ['熔岩巨像', '#ff8a3d'], eye: ['虛空之眼', '#c22f96'],
+  };
+  const CHAPTERS = [
+    { name: '第一天', scene: '腐朽地窖', title: '初入地窟' }, { name: '沒有下達的命令', scene: '骸骨墓穴', title: '解散令' },
+    { name: '九道熔岩門', scene: '熔岩深坑', title: '破門者' }, { name: '聲音', scene: '虛空深淵', title: '凝視者' },
+    { name: '冰封的記憶', scene: '冰封洞窟', title: '記憶守護者' }, { name: '入侵者第 4,812 號', scene: '天空遺跡', title: '例外' },
+    { name: '孢子', scene: '菌菇沼窟', title: '不被慾望吞噬' }, { name: '倒影', scene: '沉沒神殿', title: '直視倒影' },
+    { name: '我把它傳下去了', scene: '黃沙古墓', title: '傳承的終點' }, { name: '會呼吸的牆', scene: '血肉迷宮', title: '心臟的見證者' },
+  ];
+  const L = (k, ...t) => t.map((x) => [k, x]);
+  const SFL = {
+    // ---- 第一章 第一天
+    1: { t: 'find', n: 1, item: ['守墓人的提燈', '#ffd34d'], hint: '找到守墓人掉下的提燈',
+      intro: L('keeper', '「第一層有我掉下的提燈。沒有光，越往下越容易迷失。」'), end: L('you', '提燈的玻璃上刻著一行小字：「給下一個人」。') },
+    2: { t: 'find', n: 3, item: ['葛倫的日記頁', '#e8dcc0'], hint: '找回葛倫的日記頁',
+      intro: L('keeper', '「葛倫是我見過最固執的獵人。他的日記散在這一層，替我找回來。」'),
+      each: [L('glen', '（日記）「第一天。鎮上的人說這裡有用不完的金幣。我答應她，三天後回家。」'), L('glen', '（日記）「發光的寶箱不是寶箱。我的同伴伸手去摸……別碰它們。」'), L('glen', '（日記）「我聽見腳下有東西在呼吸。地窟不是洞穴，它是活的。」')],
+      end: L('you', '日記的最後一頁被撕掉了，只剩下「答應她」三個字。') },
+    3: { t: 'kill', foe: ['bigslime', '偽裝成寶箱的史萊姆王', 8], hint: '打倒偽裝成寶箱的怪物',
+      intro: L('keeper', '「這一層有個發光的東西，冒險者都以為是寶箱。別像葛倫的同伴一樣伸手去摸。」'), end: L('you', '它的肚子裡吐出一把生鏽的鑰匙，和一隻戴著戒指的手骨。') },
+    4: { t: 'talk', npc: ['冒險者的遺骸', '#bfb8a8'], hint: '找到冒險者的遺骸',
+      lines: [...L('you', '遺骸手裡握著一封信：「鎮上的人說地窟裡有用不完的金幣。我帶了三天的乾糧，應該夠了吧。」', '他的劍還插在身旁，劍柄上刻著一個你不認識的名字。')],
+      flag: 'remains', choices: [{ label: '帶走他的劍', v: 'sword', fx: 'sword', lines: L('you', '你拔出了劍。它比看起來輕，好像一直在等人把它帶走。') },
+        { label: '讓他安息', v: 'rest', fx: 'rest', lines: L('you', '你把劍插回原處，替他闔上了雙眼。一股暖意流過全身。') }] },
+    5: { t: 'boss', mech: 'rows', name: '骷髏王・第一位看守', hint: '打倒骷髏王',
+      intro: L('skull', '「誰敢打擾我的長眠！」', '「我守的不是墓，是門。門後面的東西，比我更想要你。」'),
+      end: L('keeper', '「你打倒了第一位看守。從這裡開始，地窟會記住你的名字。」') },
+    // ---- 第二章 沒有下達的命令
+    6: { t: 'reach', mod: 'calm', hint: '別驚動骷髏，走到樓梯（打了任何一隻，全部都會甦醒）',
+      intro: [...L('you', '骷髏們排成整齊的隊伍，一動也不動。'), ...L('keeper', '「別驚動牠們。牠們在等一道命令。」')], end: [] },
+    7: { t: 'kill', foe: ['skeleton', '骸骨旗手', 10], hint: '打倒骸骨旗手', intro: L('you', '遠處有一具骷髏扛著殘破的軍旗，指揮著其他骷髏。'),
+      end: L('you', '旗手倒下，留下一枚刻著王國紋章的令牌。') },
+    8: { t: 'escort', npc: ['王國將軍的幽魂', '#b0b8c8'], hint: '護送將軍的幽魂走到樓梯（他被打倒就要重來）',
+      intro: L('general', '「那枚令牌……你是傳令官嗎？帶我到大軍面前。」'), end: L('general', '「我看見他們了。六百年，他們還站在原地。」') },
+    9: { t: 'talk', clear: true, npc: ['王國將軍的幽魂', '#b0b8c8'], hint: '找到將軍，讓他對大軍下令',
+      lines: [...L('general', '「全軍聽令！」', '「國王已經不在了。冠冕不值得你們再守下去——解散！」'), ...L('you', '整層的骷髏同時放下武器，化成了灰。')] },
+    10: { t: 'boss', mech: 'cocoons', name: '蜘蛛女后・食屍者', hint: '打倒蜘蛛女后，打破蛛繭（8 秒後會孵出小蜘蛛）',
+      intro: L('queen', '「解散？我的孩子們還沒吃飽呢。」'), end: L('general', '「謝謝你，傳令官。告訴守墓人……我們終於可以休息了。」') },
+    // ---- 第三章 九道熔岩門
+    11: { t: 'talk', npc: ['王國鍛造師', '#ff8a3d'], hint: '找到鍛造師的鬼魂',
+      lines: L('smith', '「又一個往下走的人。你知道這些門是誰鑄的嗎？是我。」', '「國王命令我們鑄九道熔岩門鎖住冠冕。完工那天，他把我們也封了進去。」', '「我想知道——我鑄的門，到底鎖住了什麼？」') },
+    12: { t: 'find', n: 5, item: ['熔岩門鑰', '#ff8a3d'], hint: '收集熔岩門鑰', intro: L('smith', '「門鑰散落在熔岩裡，先找回五把。」'), end: L('smith', '「還差四把，在更下面一層。」') },
+    13: { t: 'find', n: 4, item: ['熔岩門鑰', '#ff8a3d'], hint: '收集剩下的熔岩門鑰', end: L('smith', '「九把都齊了。帶我去熔爐，我要把門重新打開。」') },
+    14: { t: 'defend', time: 90, pools: true, npc: ['王國鍛造師', '#ff8a3d'], hint: '守住鍛造師，躲進冷卻池（在池外會累積高溫）',
+      intro: L('smith', '「修門需要九十秒，熔爐會越來越燙——躲進冷卻池裡！」'), end: L('smith', '「門開了……門後面什麼都沒有，只有一條往下的路。原來我們鎖住的，是自己。」') },
+    15: { t: 'boss', mech: 'pools', name: '熔岩巨像・失控的門衛', hint: '打倒門衛，待在冷卻池裡（牠會踩碎冷卻池）',
+      intro: L('golem', '（熔岩巨像踏碎了地面，冷卻池開始沸騰）'), end: L('smith', '「去吧。如果你見到冠冕，替我告訴它：鍛造師不再為它工作了。」') },
+    // ---- 第四章 聲音
+    16: { t: 'find', n: 1, item: ['宮廷星象師的羅盤', '#b79cff'], hint: '找到星象師的羅盤',
+      end: [...L('astro', '（筆記）「虛空裡沒有方向，我的羅盤一直指著腳下。這座地窟本身就是一根針，指向深淵。」'), ...L('you', '羅盤的指針還在顫抖，指向更深的地方。')] },
+    17: { t: 'talk', npc: ['腳下的聲音', '#c22f96'], hint: '尋找聲音的來源', lines: L('voice', '「……你終於來了。」', '「我認得你的腳步聲。告訴我你的名字。」'),
+      flag: 'voice', choices: [{ label: '回答', v: 'answer', lines: [...L('voice', '「很好。我會記住的。」'), ...L('you', '你突然覺得背包重了一點。')] },
+        { label: '不回答', v: 'silent', lines: L('voice', '「……沒關係。你遲早會說的。」') }] },
+    18: { t: 'activate', n: 3, chan: 3, wave: 4, obj: ['虛空裂縫', '#c22f96'], hint: '站在裂縫旁邊 3 秒，封住 3 道虛空裂縫',
+      intro: L('astro', '（筆記）「裂縫會吐出不屬於這裡的東西。站在裂縫旁邊，把它封上。」'), end: L('you', '最後一道裂縫闔上時，你看見裂縫的另一邊也有一個你。') },
+    19: { t: 'talk', npc: ['葛倫的幽魂', '#9cd4ff'], hint: '找到那個半透明的身影', lines: 'glen19' },
+    20: { t: 'boss', mech: 'dark', name: '虛空之眼・冠冕之瞳', hint: '打倒虛空之眼（黑暗中只看得見身邊）',
+      intro: L('eye', '「我一直在看著你。從你踏進第一層開始。」'), end: L('glen', '「那隻眼睛是冠冕的眼睛。它看見的，冠冕都知道。」') },
+    // ---- 第五章 冰封的記憶
+    21: { t: 'talk', npc: ['凍結的騎士', '#9cd4ff'], hint: '找到冰裡的騎士',
+      lines: [...L('knight', '「站住！報上名來……今年是王國曆三百年，國王陛下還在等我回報。」'), ...L('you', '你告訴他，那已經是六百年前的事了。'), ...L('knight', '「……六百年。那麼陛下的冠冕，是不是已經換了主人？」')] },
+    22: { t: 'find', n: 3, item: ['記憶碎片', '#9cd4ff'], hint: '收集葛倫的記憶碎片',
+      each: [L('glen', '（回憶）「等我三天。我會帶著金幣回來，把屋頂修好。」'), L('glen', '（回憶）「第三天了，我還在往下走。金幣明明就在下一層。」'), L('glen', '（回憶）「我已經想不起回家的路，只記得她站在門口的樣子。」')] },
+    23: { t: 'find', n: 2, item: ['記憶碎片', '#9cd4ff'], hint: '收集剩下的記憶碎片',
+      each: [L('glen', '（回憶）「巨龍說：一半的記憶換一條路。我答應了。」'), L('glen', '（回憶）「我忘了她的名字。這是我這輩子最後悔的交易。」')],
+      end: L('glen', '「艾琳……她叫艾琳。謝謝你，我想起來了。」') },
+    24: { t: 'survive', time: 60, haz: 'blizzard', hint: '待在火盆旁邊撐過暴風雪',
+      intro: L('you', '暴風雪捲過洞窟，只有火盆旁邊還有一點溫度。'), end: L('you', '風雪停了。冰牆後面傳來巨龍的呼吸聲。') },
+    25: { t: 'boss', mech: 'frost', name: '冰霜巨龍・記憶的債主', hint: '打倒冰霜巨龍（冰面會讓你變慢）',
+      intro: L('dragon', '「又一個想往下走的人。」', '「葛倫用一半的記憶換了路。你呢？用血，還是用東西來換？」'),
+      flag: 'dragon', choices: [{ label: '戰鬥', v: 'fight', lines: L('dragon', '「那就用血吧。」') },
+        { label: '交易', v: 'trade', fx: 'trade', lines: L('dragon', '「交易成立。我收下你一部分的生命——撐過我的暴風雪，路就是你的。」') }],
+      end: L('dragon', '「把記憶還給那個獵人吧。他等太久了。」') },
+    // ---- 第六章 入侵者第 4,812 號
+    26: { t: 'talk', npc: ['遺跡學者', '#e8dcc0'], hint: '找到遺跡學者',
+      lines: L('scholar', '「抬頭！明明在地底，卻看得見天空。古人把天上的神殿拖進了地底。」', '「我想知道他們為什麼要這麼做。幫我把燈塔點亮，我才能讀牆上的字。」') },
+    27: { t: 'activate', n: 3, chan: 3, wave: 4, obj: ['天空燈塔', '#ffd34d'], hint: '站在燈塔旁 3 秒，點亮 3 座天空燈塔',
+      end: L('scholar', '「燈亮了！牆上寫著：『以神殿為蓋，封住飢餓。』」') },
+    28: { t: 'reach', mod: 'stealth', hint: '避開哨兵的巡邏光圈，走到樓梯', intro: L('scholar', '「小心哨兵的巡邏光圈，被照到就會引來援軍。」'), end: [] },
+    29: { t: 'talk', npc: ['遺跡學者', '#e8dcc0'], hint: '回到學者身邊',
+      lines: L('scholar', '「我讀完了。神殿不是被拖下來的——是被『吃』下來的。」', '「地窟在吞東西：神殿、軍隊、冒險者。它越吃越深，冠冕就在它的胃裡。」') },
+    30: { t: 'boss', mech: 'drones', name: '天空哨兵・最後的紀錄', hint: '打倒天空哨兵（會呼叫無人機）',
+      intro: L('sentinel', '「入侵者第 4,812 號。陳述你的目的。」'),
+      flag: 'purpose', choices: [{ label: '尋找財寶', v: 'treasure', lines: L('sentinel', '「目的與前 4,811 號相同。處置：清除。」') },
+        { label: '尋找真相', v: 'truth', lines: L('sentinel', '「……紀錄中沒有這個答案。處置：仍然清除。」') },
+        { label: '帶葛倫回家', v: 'glen', lines: L('sentinel', '「目的無法分類。處置：清除……但會留下紀錄。」') }],
+      end: L('scholar', '「哨兵倒下了。它最後一句紀錄是：『第 4,812 號，目的不同。』」') },
+    // ---- 第七章 孢子
+    31: { t: 'talk', npc: ['流浪藥師', '#6fd08c'], hint: '找到流浪藥師',
+      lines: L('apoth', '「別吸太多孢子。這些菌類吃的是『慾望』，越貪心的人倒下，長出來的蘑菇就越大。」', '「我在找解藥，你也需要它。」') },
+    32: { t: 'talk', npc: ['長著人臉的蘑菇', '#c8503c'], hint: '找到那朵特別大的蘑菇',
+      lines: [...L('you', '一朵巨大的蘑菇上長著一張熟悉的臉。'), ...L('glen', '「別看……那是我留在這裡的身體。」', '「我倒下的時候，口袋裡還裝滿金幣。所以它長得特別大。」')] },
+    33: { t: 'find', n: 4, item: ['解毒菇', '#6fd08c'], hint: '採集解毒菇', end: L('apoth', '「夠了！喝下這個，孢子就不會在你身上生根。」') },
+    34: { t: 'reach', mod: 'greed', hint: '走到樓梯（每撿一次金幣，怪物傷害 +5%）', intro: L('apoth', '「這一層的孢子聞得到金幣。你撿越多，牠們就越兇。」'), end: 'greed34' },
+    35: { t: 'boss', mech: 'spores', name: '骷髏王・被寄生的看守', hint: '打倒被寄生的骷髏王（避開孢子雲）',
+      intro: L('you', '骷髏王的骨頭上長滿了蘑菇，牠還記得自己是看守。'), end: L('apoth', '「孢子散了。往下走吧，下面是水。」') },
+    // ---- 第八章 倒影
+    36: { t: 'talk', npc: ['神殿祭司', '#4fb8c8'], hint: '找到還在祈禱的祭司',
+      lines: L('priest', '「海水淹沒神殿的那天，我們仍在祈禱。我們祈求的不是得救，而是讓冠冕永遠不要醒來。」', '「但它醒了。它從你走進地窟的那天就醒了。」') },
+    37: { t: 'reach', mod: 'follow', hint: '走到樓梯（別管那個倒影）', intro: L('you', '水裡的倒影總比你晚一步動作。它在笑，而你沒有。'), end: L('you', '倒影停下腳步，沉進了水裡。') },
+    38: { t: 'activate', n: 3, chan: 2, wave: 3, mod: 'order', obj: ['退潮機關', '#4fb8c8'], hint: '照祈禱的順序啟動退潮機關',
+      intro: L('priest', '「照祈禱的順序轉動機關，錯了潮水會帶來不速之客。」'), end: L('priest', '「潮水退了。神殿的最深處，有東西在等你。」') },
+    39: { t: 'mirror', hint: '打倒你的倒影', intro: L('mirror', '「你一直在往下走。為了什麼？」', '「你要的東西，我也想要。讓我們看看誰比較想要。」'),
+      end: L('priest', '「倒影碎了。冠冕最喜歡的，就是讓人和自己的慾望打架。」') },
+    40: { t: 'boss', mech: 'tide', name: '蜘蛛女后・深海女王', hint: '打倒深海女王（漲潮的一側會變慢）',
+      intro: L('queen', '「我的孩子們在水裡等很久了。」'), end: L('priest', '「去吧。願你走到最後，還記得自己為什麼出發。」') },
+    // ---- 第九章 我把它傳下去了
+    41: { t: 'talk', npc: ['盜墓者', '#d8b070'], hint: '找到盜墓者',
+      lines: L('robber', '「別擋路！這裡的墓我挖了二十年，第七座墓裡一定有冠冕。」', '「要不要合作？你打怪，我開墓，寶物對半分。」') },
+    42: { t: 'activate', n: 7, chan: 2, wave: 0, mod: 'tombs', obj: ['古墓', '#d8b070'], hint: '打開七座古墓（有寶藏，也有陷阱）',
+      intro: L('robber', '「七座墓，有的是寶藏，有的是陷阱。開吧！」'), end: L('robber', '「第七座……是空的。只有一枚金幣不見了。」') },
+    43: { t: 'find', n: 1, item: ['刻著你的臉的金幣', '#e9b949'], hint: '找到那枚金幣',
+      end: [...L('you', '金幣上刻著一張臉——是你的臉。'), ...L('robber', '「我挖過的每座墓都有這種金幣，上面的臉都不一樣……都是當時往下走的人。」')] },
+    44: { t: 'talk', npc: ['第一位國王的棺木', '#e9b949'], hint: '找到第一位國王的棺木',
+      lines: [...L('king', '（紙條）「我沒有被冠冕吞掉，我把它傳下去了。」', '（紙條）「每一個戴上它的人，都會成為下一座墓。每一個往下走的人，都會成為下一個國王。」'), ...L('you', '紙條的最後一行寫著：「它在心臟裡，不在王座上。」')] },
+    45: { t: 'boss', mech: 'sand', name: '熔岩巨像・沙之守門者', hint: '打倒沙之守門者（流沙會把你往中間拉）',
+      intro: L('robber', '「快跑！整座古墓在往下沉！」'), end: L('robber', '「我不挖了。你也……別戴上那東西。」') },
+    // ---- 第十章 會呼吸的牆
+    46: { t: 'reach', mod: 'heart', hint: '走到樓梯（心跳每 2 秒震一次）', intro: L('you', '牆壁在呼吸。你把耳朵貼上去，聽見了心跳——跟你的心跳一模一樣。'),
+      end: L('glen', '「心臟就在下面。冠冕從來不在王座上，王座只是誘餌。」') },
+    47: { t: 'find', n: 1, item: ['葛倫的最後一封信', '#9cd4ff'], hint: '找到葛倫的最後一封信',
+      end: L('glen', '（信）「如果你讀到這封信，代表你比我走得更遠。替我告訴艾琳，我沒有忘記她。」') },
+    48: { t: 'talk', npc: ['守墓人', '#c8b88a'], hint: '守墓人在這一層等你', lines: 'keeper48' },
+    49: { t: 'gauntlet', hint: '撐過心臟的試煉', intro: L('glen', '「心臟前面有兩道試煉：烈焰，和你自己。」'), end: L('glen', '「門開了。冠冕在等你。」') },
+    50: { t: 'boss', mech: 'crown', name: '冠冕之主', hint: '打倒冠冕之主', intro: 'crown50', end: 'ending' },
+  };
+  // lines that depend on earlier choices
+  function stLinesOf(v) {
+    if (Array.isArray(v)) return v;
+    const f = stState().flags, letters = Object.keys(coll().letters || {}).length;
+    if (v === 'glen19') return [...L('glen', f.voice === 'answer' ? '「你回答它了，對吧？它已經聞到你了。」' : '「你沒有回答那個聲音。很好，比我聰明。」'),
+      ...L('glen', '「我叫葛倫。我在這裡走了很久……久到忘了上面的天空是什麼顏色。」', '「我把一半的記憶交給了冰下的巨龍，才換到往下的路。如果你要繼續走，替我把它拿回來。」')];
+    if (v === 'greed34') return (G.st && G.st.greed) ? L('apoth', '「看來你還是忍不住。沒關係，至少你還站著。」') : L('apoth', '「你一枚金幣都沒撿？……我開始相信你了。」');
+    if (v === 'keeper48') return [...L('keeper', '「你走到這裡了。我該告訴你實話了。」', '「我是第一個往下走的冒險者，也是第一個從冠冕面前逃走的人。我沒有戴上它，也沒有毀掉它——我只是逃了。」'),
+      ...(letters >= 10 ? L('keeper', '「那些遺書……都是我一封一封撿回來、放回原處的。總要有人記得他們。」') : []),
+      ...L('keeper', '「所以我守在入口，替每一個往下走的人提燈。這一次，換你做決定。」')];
+    if (v === 'crown50') return [...L('crown', '「歡迎回家。我等你很久了。」'), ...(f.voice === 'answer' ? L('crown', '「你在虛空裡回答過我。我記得你的名字。」') : []),
+      ...L('crown', '「每一個往下走的人，都是為了我。你也一樣。」')];
+    return [];
+  }
+  const stState = () => {
+    P.story = P.story || { started: false, next: 1 };
+    const s = P.story; s.flags = s.flags || {}; s.ch = s.ch || {}; s.endings = s.endings || {}; s.next = s.next || 1;
+    return s;
+  };
+  const stDiffOk = () => diffIdx() >= HELL + 1;
+  const stChOf = (d) => Math.ceil(d / 5);
+  const stairPt = () => ({ x: (G.stairs.x + 0.5) * TILE, y: (G.stairs.y + 0.5) * TILE });
+
+  // ---- dialog box: one line at a time, choices on the last line; the leader's dialogs reach the whole party
+  let stDlg = null, stTyper = null;
+  const stQueue = [];
+  function storySay(lines, opt = {}) {
+    lines = stLinesOf(lines);
+    if (!lines.length) { if (opt.onDone) opt.onDone(-1); return; }
+    if (stDlg) { stQueue.push([lines, opt]); return; }
+    stDlg = { lines, i: 0, opt, prev: mode === 'story' ? 'play' : mode };
+    if (NET.mode === 'host' && !opt.remote && !opt.local) netSend(null, { t: 'stSay', l: lines, c: opt.choices ? opt.choices.map((c) => c.label) : null });
+    mode = 'story'; mouse.down = false; keys.clear();
+    $('storyBox').hidden = false; stShow();
+  }
+  function stShow() {
+    const d = stDlg, [k, txt] = d.lines[d.i], sp = SPK[k] || ['', '#cfc6b8'];
+    $('stFace').textContent = sp[0][0] || '？'; $('stFace').style.background = sp[1];
+    $('stName').textContent = sp[0]; $('stName').style.color = sp[1];
+    d.full = txt; d.n = 0; $('stText').textContent = ''; $('stChoices').innerHTML = '';
+    $('stNext').textContent = d.i < d.lines.length - 1 ? '點一下繼續 ▸' : d.opt.choices ? '' : '點一下結束';
+    clearInterval(stTyper);
+    stTyper = setInterval(() => {
+      if (!stDlg) { clearInterval(stTyper); stTyper = null; return; }
+      stDlg.n += 2; $('stText').textContent = stDlg.full.slice(0, stDlg.n);
+      if (stDlg.n >= stDlg.full.length) { clearInterval(stTyper); stTyper = null; stChoices(); }
+    }, 28);
+  }
+  function stChoices() {
+    const d = stDlg; if (!d || d.i < d.lines.length - 1 || !d.opt.choices) return;
+    if (d.opt.remote) { $('stChoices').innerHTML = '<span class="sub">隊長正在選擇……</span>'; return; }
+    $('stChoices').innerHTML = d.opt.choices.map((c, i) => `<button type="button" class="${i ? '' : 'primary'}" data-sc="${i}">${c.label}</button>`).join('');
+    $('stChoices').querySelectorAll('[data-sc]').forEach((b) => b.addEventListener('click', (ev) => { ev.stopPropagation(); storyClose(+b.dataset.sc); }));
+  }
+  function storyAdvance() {
+    const d = stDlg; if (!d) return;
+    if (stTyper) { clearInterval(stTyper); stTyper = null; $('stText').textContent = d.full; stChoices(); return; }
+    if (d.i < d.lines.length - 1) { d.i++; stShow(); return; }
+    if (!d.opt.choices) storyClose(-1);
+  }
+  function storySkip() {
+    const d = stDlg; if (!d) return;
+    if (!d.opt.choices) { storyClose(-1); return; }
+    d.i = d.lines.length - 1; stShow(); clearInterval(stTyper); stTyper = null; $('stText').textContent = d.full; stChoices();
+  }
+  function storyClose(pick) {
+    const d = stDlg; if (!d) return;
+    clearInterval(stTyper); stTyper = null; stDlg = null;
+    $('storyBox').hidden = true;
+    if (mode === 'story') mode = d.prev || 'play';
+    if (NET.mode === 'host' && d.opt.choices && !d.opt.remote && !d.opt.local) netSend(null, { t: 'stPick', i: pick });
+    if (d.opt.onDone) d.opt.onDone(pick);
+    if (!stDlg && stQueue.length) { const [l, o] = stQueue.shift(); storySay(l, o); }
+  }
+  $('storyBox').addEventListener('click', () => storyAdvance());
+  $('stSkip').addEventListener('click', (ev) => { ev.stopPropagation(); storySkip(); });
+
+  // ---- the keeper in camp starts and tracks the story
+  function openKeeper() {
+    const s = stState();
+    if (!((P.diffUnlock || 0) >= HELL + 1)) { storySay(L('keeper', '「年輕人，地窟裡真正的故事，要等你能承受折磨才聽得見。」', '「等你解鎖了折磨 T1 再來找我。」'), { local: true }); return; }
+    if (!s.started) {
+      storySay(L('keeper', '「我在這座地窟的入口守了很久，看著一個又一個冒險者往下走。」', '「他們都在找同一樣東西——一頂冠冕。沒有人回來過。」',
+        '「如果你願意，替我走一趟：把難度調到折磨 T1 以上，從第 1 層出發。我會在路上告訴你他們的故事。」'),
+      { local: true, onDone: () => { s.started = true; save(); logMsg('故事模式開始了！用折磨 T1 以上的難度從第 1 層出發', '#c8b88a'); } });
+      return;
+    }
+    if (s.next > ST_LAST) {
+      storySay(L('keeper', s.ending === 'wear' ? '「新的王……你還記得上面的天空嗎？」' : '「燈已經不需要我提了。謝謝你。」', '「如果想再面對冠冕一次，我可以帶你回到心臟。」'),
+        { local: true, choices: [{ label: '重新挑戰終章（第 50 層）' }, { label: '不用了' }], onDone: (i) => { if (i === 0) { s.next = ST_LAST; save(); logMsg('前往第 50 層，再一次面對冠冕之主', '#c8b88a'); } } });
+      return;
+    }
+    const ch = stChOf(s.next);
+    storySay(L('keeper', `「下一段故事在第 ${s.next} 層：第 ${ch} 章「${CHAPTERS[ch - 1].name}」。」`, stDiffOk() ? '「去吧，我替你提著燈。」' : '「記得把難度調到折磨 T1 以上，故事才會繼續。」'), { local: true });
+  }
+
+  // ---- building a story floor (leader or solo only)
+  const stPt = (r) => ({ x: (r.cx + 0.5) * TILE, y: (r.cy + 0.5) * TILE });
+  function stSpots(n) {
+    const rs = G.rooms.filter((r) => r !== G.start && r !== G.stairRoom).sort(() => Math.random() - 0.5);
+    if (!rs.length) rs.push(G.stairRoom);
+    const out = [];
+    for (let i = 0; i < n; i++) { const p = stPt(rs[i % rs.length]), k = Math.floor(i / rs.length); out.push({ x: p.x + k * TILE * 1.5, y: p.y }); }
+    return out;
+  }
+  function stPath(a, b) {
+    const sx = Math.floor(a.x / TILE), sy = Math.floor(a.y / TILE), tx = Math.floor(b.x / TILE), ty = Math.floor(b.y / TILE), goal = ty * MW + tx;
+    const prev = new Int32Array(MW * MH).fill(-1), q = [sy * MW + sx]; prev[q[0]] = q[0];
+    for (let h = 0; h < q.length; h++) {
+      const i = q[h]; if (i === goal) break;
+      const x = i % MW, y = (i / MW) | 0;
+      for (const [ddx, ddy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = x + ddx, ny = y + ddy, j = ny * MW + nx;
+        if (nx < 0 || ny < 0 || nx >= MW || ny >= MH || prev[j] !== -1 || G.map[j] === 1) continue;
+        prev[j] = i; q.push(j);
+      }
+    }
+    if (prev[goal] === -1) return [b];
+    const out = []; let i = goal;
+    while (i !== prev[i]) { out.push({ x: (i % MW + 0.5) * TILE, y: (((i / MW) | 0) + 0.5) * TILE }); i = prev[i]; }
+    return out.reverse();
+  }
+  const stMakePools = (c) => [0, 1, 2].map((i) => ({ a: i * 2.09, R: 3 * TILE, cx: c.x, cy: c.y, r: 62, x: c.x, y: c.y, off: 0 }));
+  function stBraziers() { const p = stPt(G.start); return [{ x: p.x + TILE * 2, y: p.y }, ...stSpots(2)]; }
+  function storySetup() {
+    if (mode === 'title') return;
+    if (NET.mode === 'client' || NET.floorKind || !G || G.camp) return;
+    const s = stState(), d = G.depth, ev = SFL[d];
+    if (!s.started || !stDiffOk() || d !== s.next || !ev) return;
+    const st = G.st = { d, ev, done: false, t: 0, introT: 0.6, vis: [], heat: {}, acc: {}, cd: {}, wave: 0 };
+    const ch = stChOf(d);
+    logMsg(`故事・第 ${ch} 章「${CHAPTERS[ch - 1].name}」・第 ${d} 層`, '#c8b88a');
+    if (ev.npc) { const p = ev.t === 'escort' ? stPt(G.start) : stSpots(1)[0]; st.npc = { x: p.x + (ev.t === 'escort' ? TILE * 2 : 0), y: p.y, name: ev.npc[0], color: ev.npc[1], hp: 100 }; }
+    if (ev.t === 'find') st.items = stSpots(ev.n).map((p) => ({ ...p, got: false }));
+    if (ev.t === 'kill') { const p = stSpots(1)[0], e = spawnEnemy(ev.foe[0], p.x, p.y, true); e.hp = e.maxHp = e.maxHp * ev.foe[2]; e.stName = ev.foe[1]; st.target = e; }
+    if (ev.t === 'activate') {
+      st.objs = stSpots(ev.n).map((p, i) => ({ ...p, prog: 0, on: false, sym: ev.mod === 'order' ? '日月星'[i] : '' }));
+      if (ev.mod === 'order') { st.seq = [0, 1, 2].sort(() => Math.random() - 0.5).map((i) => st.objs[i].sym); st.seqI = 0; }
+    }
+    if (ev.t === 'escort') { st.path = stPath(st.npc, stairPt()); st.pi = 0; }
+    if (ev.t === 'defend' || ev.t === 'survive') st.left = ev.time;
+    if (ev.t === 'gauntlet') { st.left = 30; st.pools = stMakePools(stPt(G.start)); }
+    if (ev.pools) st.pools = stMakePools(st.npc);
+    if (ev.haz === 'blizzard') st.braziers = stBraziers();
+    if (ev.mod === 'calm') for (const e of G.enemies) { e.calm = true; e.aggro = false; }
+    if (ev.mod === 'stealth') { const p = stSpots(4); st.drones = [{ a: p[0], b: p[1], x: p[0].x, y: p[0].y, k: 1 }, { a: p[2], b: p[3], x: p[2].x, y: p[2].y, k: 1 }]; }
+    if (ev.mod === 'follow') st.ghost = { x: P.x, y: P.y, trail: [] };
+    if (ev.mod === 'greed') st.greed = 0;
+    if (ev.t === 'boss' && G.boss) stBossify(G.boss, ev);
+    stVis();
+  }
+  function stBossify(b, ev) {
+    const T1 = DIFFS[HELL + 1];
+    b.story = ev.mech; b.capPct = 0.015; b.aggro = false;
+    b.hp = b.maxHp = Math.round(EDEF.boss.hp * monsterHpMul(MAX_DEPTH) * T1.hp * 2.5 * partySize());
+    b.dmg = EDEF.boss.dmg * monsterDmgMul(MAX_DEPTH) * T1.dmg * T1.bossDmg;
+    b.home = { x: b.x, y: b.y }; b.variant = { ...b.variant, name: ev.name };
+    $('bossName').textContent = ev.name;
+  }
+  function stSpawnAround(c, k, elite) {
+    const types = G.depth < 10 ? ['skeleton', 'bat', 'archer'] : ['skeleton', 'archer', 'spider', 'necro', 'assassin'];
+    for (let i = 0; i < k; i++) {
+      for (let t = 0; t < 8; t++) {
+        const a = Math.random() * Math.PI * 2, r = (3 + Math.random() * 2) * TILE, x = c.x + Math.cos(a) * r, y = c.y + Math.sin(a) * r;
+        if (solidAt(x, y)) continue;
+        const e = spawnEnemy(pick(types), x, y, !!elite); e.aggro = true; break;
+      }
+    }
+  }
+  function stSpawnMirrors(list) {
+    for (const p of list) {
+      const dv = p.self ? dps(S) : (p.rp.dps || dps(S));
+      let x = p.x + rnd(-100, 100), y = p.y - 150; if (solidAt(x, y)) { x = p.x; y = p.y; }
+      const e = spawnEnemy('mirror', x, y, false);
+      Object.assign(e, { hp: Math.max(1000, dv * 35), tid: p.id, cls: p.self ? P.cls : p.rp.cls, look2: p.self ? lookOf() : (p.rp.look || {}), aggro: true, atk: 1.5, dashCd: 3, face: 0 });
+      e.maxHp = e.hp;
+    }
+    logMsg('倒影從水裡走了出來！', '#a8a8b8');
+  }
+
+  // ---- after the floor's opening lines
+  function stAfterIntro(i) {
+    const st = G.st; if (!st) return;
+    const ev = st.ev;
+    if (ev.t === 'boss') {
+      if (ev.choices) stPick(ev, i);
+      if (G.boss) G.boss.aggro = true;
+      if (ev.flag === 'dragon' && stState().flags.dragon === 'trade') stTrade();
+    }
+    if (ev.t === 'mirror') stSpawnMirrors(tpTargets());
+  }
+  function stPick(ev, i) {
+    const c = ev.choices[i >= 0 ? i : 0], s = stState();
+    s.flags[ev.flag] = c.v;
+    if (NET.mode === 'host') netSend(null, { t: 'stFlag', k: ev.flag, v: c.v });
+    if (c.fx === 'sword') dropAt(P.x, P.y, { kind: 'item', item: makeItem(lootDepth() + 1, 'legendary', 'weapon', undefined, curCls()) });
+    if (c.fx === 'rest') { P.hp = P.hpMax; P.gold += 500000; logMsg('冒險者的祝福：生命回滿，獲得 50 萬金幣', '#ffd34d'); }
+    if (c.fx === 'trade') { P.stTrade = true; refreshStats(); }
+    if (c.lines) storySay(c.lines);
+  }
+  // the ice dragon's deal: it leaves, and the floor becomes a blizzard to survive
+  function stTrade() {
+    const st = G.st, b = G.boss;
+    if (b) { b.dead = true; G.enemies = G.enemies.filter((e) => e !== b); }
+    G.boss = null; $('bossBox').hidden = true;
+    st.ev = { ...st.ev, t: 'survive', haz: 'blizzard', time: 60, hint: '交易：撐過巨龍的暴風雪（生命上限 −20%）', end: L('dragon', '「交易成立。你在暴風雪裡撐下來了，路是你的。」') };
+    st.left = 60; st.braziers = stBraziers(); st.wave = 4;
+  }
+  function stWake() {
+    const st = G.st; if (!st) return;
+    for (const e of G.enemies) if (e.calm) { e.calm = false; e.aggro = true; }
+    if (!st.alarm) { st.alarm = true; logMsg('骷髏們全部甦醒了！', '#ff6b6b'); sfx('boss'); }
+  }
+  function stClear() {
+    for (const e of [...G.enemies]) if (!e.dead && e.type !== 'boss') killEnemy(e);
+    shakeIt(10);
+  }
+
+  // ---- the floor's task, run by the leader (or a solo player)
+  function storyTick(dt) {
+    const st = G.st; if (!st || st.client) return;
+    const ev = st.ev, list = tpTargets(), near = (a, b, r) => Math.hypot(a.x - b.x, a.y - b.y) < r;
+    st.t += dt;
+    if (st.introT != null) {
+      if ((st.introT -= dt) <= 0) {
+        st.introT = null; st.introOpen = true;
+        storySay(ev.intro || [], { choices: ev.t === 'boss' ? ev.choices : null, onDone: (i) => { st.introOpen = false; stAfterIntro(i); } });
+      }
+      stVis(); return;
+    }
+    if (st.introOpen || stDlg) { stVis(); return; }
+    if (!st.done) switch (ev.t) {
+      case 'talk':
+        if (!st.talking && list.some((p) => near(p, st.npc, 70))) {
+          st.talking = true;
+          storySay(ev.lines, { choices: ev.choices, onDone: (i) => { if (ev.choices) stPick(ev, i); if (ev.clear) stClear(); stDone(); } });
+        }
+        break;
+      case 'find':
+        for (const it of st.items) if (!it.got && list.some((p) => near(p, it, 34))) {
+          it.got = true; const k = st.items.filter((x) => x.got).length;
+          logMsg(`撿到${ev.item[0]}（${k}/${ev.n}）`, ev.item[1]); sfx('pickup');
+          if (ev.each && ev.each[k - 1]) storySay(ev.each[k - 1]);
+        }
+        if (st.items.every((x) => x.got)) stDone();
+        break;
+      case 'kill': if (!st.target || st.target.dead || !G.enemies.includes(st.target)) stDone(); break;
+      case 'reach':
+        stReachTick(st, ev, dt, list);
+        if (list.some((p) => near(p, stairPt(), 3.5 * TILE))) stDone();
+        break;
+      case 'escort': stEscortTick(st, dt, list); break;
+      case 'defend': {
+        const n = st.npc;
+        if (st.pools) stPoolTick(st, dt, list);
+        stNpcHurt(st, dt);
+        if ((st.wave -= dt) <= 0) { st.wave = 10; stSpawnAround(n, 5); }
+        if (n.hp <= 0) { n.hp = 100; st.left = ev.time; logMsg(`${n.name}被打斷了，要重新開始！`, '#ff6b6b'); }
+        if ((st.left -= dt) <= 0) stDone();
+        break;
+      }
+      case 'survive':
+        st.acc.bz = (st.acc.bz || 0) + dt;
+        if (st.acc.bz >= 0.5) { st.acc.bz -= 0.5; for (const p of list) if (!st.braziers.some((b) => near(p, b, 80))) awHurt(p, 0.02, false); }
+        if ((st.wave -= dt) <= 0) { st.wave = 12; for (const p of list) stSpawnAround(p, 3); }
+        if ((st.left -= dt) <= 0) stDone();
+        break;
+      case 'activate':
+        for (const o of st.objs) {
+          if (o.on) continue;
+          if (list.some((p) => near(p, o, 46))) o.prog += dt; else o.prog = Math.max(0, o.prog - dt * 0.5);
+          if (o.prog >= ev.chan) { o.on = true; stActivated(st, ev, o); }
+        }
+        if (st.objs.every((o) => o.on)) stDone();
+        break;
+      case 'mirror':
+        stMirrorTick(dt, list);
+        if (!G.enemies.some((e) => e.type === 'mirror' && !e.dead)) stDone();
+        break;
+      case 'gauntlet':
+        if (!st.ph2) {
+          stPoolTick(st, dt, list);
+          if ((st.left -= dt) <= 0) { st.ph2 = true; st.pools = null; st.left = null; logMsg('烈焰退去了——你的倒影從牆裡走了出來！', '#a8a8b8'); stSpawnMirrors(list); }
+        } else { stMirrorTick(dt, list); if (!G.enemies.some((e) => e.type === 'mirror' && !e.dead)) stDone(); }
+        break;
+      case 'boss':
+        if (G.boss && !G.boss.dead && G.boss.story && G.boss.aggro) stBossTick(G.boss, st, dt, list);
+        stMirrorTick(dt, list);
+        break;
+    }
+    stVis();
+  }
+  function stNpcHurt(st, dt) {
+    const n = st.npc; let k = 0;
+    for (const e of G.enemies) if (!e.dead && !e.calm && e.type !== 'mirror' && Math.hypot(e.x - n.x, e.y - n.y) < 46) k++;
+    n.hp -= k * 5 * dt;
+  }
+  function stEscortTick(st, dt, list) {
+    const n = st.npc;
+    if (list.some((p) => Math.hypot(p.x - n.x, p.y - n.y) < 220) && st.pi < st.path.length) {
+      const w = st.path[st.pi], dx = w.x - n.x, dy = w.y - n.y, d = Math.hypot(dx, dy);
+      if (d < 4) st.pi++; else { const sp = Math.min(d, 60 * dt); n.x += dx / d * sp; n.y += dy / d * sp; }
+    }
+    stNpcHurt(st, dt);
+    if ((st.wave -= dt) <= 0) { st.wave = 12; stSpawnAround(n, 4); }
+    if (n.hp <= 0) {
+      logMsg(`${n.name}被打散了……回到了起點`, '#ff6b6b');
+      const p = stPt(G.start); n.x = p.x + TILE * 2; n.y = p.y; n.hp = 100; st.path = stPath(n, stairPt()); st.pi = 0;
+    }
+    if (st.pi >= st.path.length) stDone();
+  }
+  function stReachTick(st, ev, dt, list) {
+    if (st.ghost) { const g = st.ghost; g.trail.push([P.x, P.y]); if (g.trail.length > 50) { const [x, y] = g.trail.shift(); g.x = x; g.y = y; } }
+    if (ev.mod === 'heart' && (st.cd.beat = (st.cd.beat ?? 2.2) - dt) <= 0) { st.cd.beat = 2.2; shakeIt(5); sfx('boom'); for (const p of list) awHurt(p, 0.03, false); }
+    for (const dr of st.drones || []) {
+      const to = dr.k ? dr.b : dr.a, dx = to.x - dr.x, dy = to.y - dr.y, d = Math.hypot(dx, dy);
+      if (d < 6) dr.k = 1 - dr.k; else { dr.x += dx / d * Math.min(d, 70 * dt); dr.y += dy / d * Math.min(d, 70 * dt); }
+      if (!st.alarm && list.some((p) => Math.hypot(p.x - dr.x, p.y - dr.y) < 110)) {
+        st.alarm = true; logMsg('被哨兵發現了！援軍來了', '#ff6b6b'); sfx('boss');
+        for (const p of list) stSpawnAround(p, 4, true);
+      }
+    }
+  }
+  function stActivated(st, ev, o) {
+    sfx('magic');
+    if (ev.mod === 'order') {
+      if (o.sym !== st.seq[st.seqI]) {
+        for (const x of st.objs) { x.on = false; x.prog = 0; }
+        st.seqI = 0; stSpawnAround(o, 6); logMsg('順序錯了！潮水帶來了不速之客', '#ff6b6b'); return;
+      }
+      st.seqI++; logMsg(`機關「${o.sym}」啟動了`, '#4fb8c8'); return;
+    }
+    if (ev.mod === 'tombs') {
+      if (Math.random() < 0.5) {
+        logMsg('古墓裡是寶藏！', '#ffd34d');
+        dropAt(o.x, o.y, { kind: 'item', item: makeItem(lootDepth() + 1, atLeastRare(rollRarity(3))) });
+        for (let k = 0; k < 3; k++) dropAt(o.x, o.y, { kind: 'gold', amount: Math.round(ri(20, 35) * goldDepth(G.depth) * diffOf().gold) });
+      } else {
+        logMsg('是陷阱！', '#ff6b6b'); shockwave(o.x, o.y, 90, 'rgba(216,176,112,0.9)', 0.4, 6);
+        for (const p of tpTargets()) if (Math.hypot(p.x - o.x, p.y - o.y) < 90) awHurt(p, 0.3, true);
+        stSpawnAround(o, 4);
+      }
+      return;
+    }
+    logMsg(`${ev.obj[0]}（${st.objs.filter((x) => x.on).length}/${ev.n}）`, ev.obj[1]);
+    if (ev.wave) stSpawnAround(o, ev.wave);
+  }
+  // heat: outside the cooling pools a player gains a stack every second (1% of max life per second each)
+  function stPoolTick(st, dt, list) {
+    for (const q of st.pools) { q.a += 0.35 * dt; q.x = q.cx + Math.cos(q.a) * q.R; q.y = q.cy + Math.sin(q.a) * q.R * 0.7; q.off = Math.max(0, q.off - dt); }
+    for (const p of list) {
+      const cool = st.pools.some((q) => !q.off && Math.hypot(p.x - q.x, p.y - q.y) < q.r);
+      st.heat[p.id] = cool ? 0 : Math.min(10, (st.heat[p.id] || 0) + dt);
+    }
+    st.acc.heat = (st.acc.heat || 0) + dt;
+    if (st.acc.heat >= 0.5) { st.acc.heat -= 0.5; for (const p of list) { const h = Math.floor(st.heat[p.id] || 0); if (h > 0) awHurt(p, 0.005 * h, false); } }
+  }
+  function stSlowIn(st, zones, list, dt) {
+    st.acc.slow = (st.acc.slow || 0) + dt; if (st.acc.slow < 0.3) return; st.acc.slow = 0;
+    for (const p of list) {
+      if (zones && !zones.some((z) => Math.hypot(p.x - z.x, p.y - z.y) < z.r)) continue;
+      if (p.self) P.slowT = Math.max(P.slowT || 0, 0.6); else netSend(p.rp.id, { t: 'slow', s: 0.6 });
+    }
+  }
+  function stPull(p, x, y) { if (p.self) { P.pullT = 0.3; P.pullX = x; P.pullY = y; } else netSend(p.rp.id, { t: 'stPull', x: Math.round(x), y: Math.round(y) }); }
+  function stMirrorTick(dt, list) {
+    const st = G.st;
+    for (const e of G.enemies) {
+      if (e.type !== 'mirror' || e.dead) continue;
+      const t = list.find((p) => p.id === e.tid) || list[0]; if (!t) continue;
+      const dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy) || 1, want = e.cls === 'warrior' ? 45 : e.cls === 'mage' ? 190 : 230;
+      e.face = Math.atan2(dy, dx);
+      const sp = 150 * dt * (d > want + 20 ? 1 : d < want - 30 ? -0.8 : 0);
+      if (sp) moveEnt(e, dx / d * sp, dy / d * sp);
+      if ((e.dashCd -= dt) <= 0) { e.dashCd = 3 + Math.random() * 2; const a = e.face + (Math.random() < 0.5 ? 1.5 : -1.5); moveEnt(e, Math.cos(a) * 90, Math.sin(a) * 90); smoke(e.x, e.y, 4); }
+      if ((e.atk -= dt) <= 0) {
+        e.atk = 1.3;
+        if (e.cls === 'warrior') { if (d < 75) { shockwave(e.x + dx / d * 30, e.y + dy / d * 30, 40, 'rgba(180,180,200,0.8)', 0.25, 3); awHurt(t, 0.06, true); } }
+        else (st.shots = st.shots || []).push({ x: e.x, y: e.y, vx: dx / d * 380, vy: dy / d * 380, life: 1.6, tid: t.id });
+      }
+      if (!e.split && e.hp < e.maxHp * 0.5) {
+        e.split = true;
+        const tw = spawnEnemy('mirror', e.x + 40, e.y, false);
+        Object.assign(tw, { hp: e.hp / 2, maxHp: e.maxHp, tid: e.tid, cls: e.cls, look2: e.look2, aggro: true, atk: 1, dashCd: 2, split: true, face: 0 });
+        e.hp /= 2; logMsg('倒影分裂成兩個了！', '#a8a8b8');
+      }
+    }
+    if (st.shots) st.shots = st.shots.filter((s) => {
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      if (solidAt(s.x, s.y)) return false;
+      const t = list.find((p) => p.id === s.tid);
+      if (t && Math.hypot(t.x - s.x, t.y - s.y) < 20) { awHurt(t, 0.06, true); return false; }
+      return s.life > 0;
+    });
+  }
+  // story bosses: the floor's boss at floor-100 T1 strength, 1.5% of life per second at most, plus one mechanic
+  function stBossTick(b, st, dt, list) {
+    const cd = st.cd, ratio = b.hp / b.maxHp;
+    const every = (k, s, fn) => { if ((cd[k] = (cd[k] ?? s * 0.5) - dt) <= 0) { cd[k] = s; fn(); } };
+    let m = b.story;
+    if (m === 'crown') {
+      const ph = ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
+      if (ph !== (st.cph || 1)) {
+        st.cph = ph;
+        if (ph === 2) { st.pools = stMakePools(b.home); storySay(L('crown', '「你還記得熔爐的溫度嗎？」')); }
+        if (ph === 3) { st.pools = null; storySay(L('crown', '「最後一道試煉，是你自己。」')); stSpawnMirrors(list); }
+      }
+      m = ph === 2 ? 'pools' : 'rows';
+    }
+    if (m === 'rows') every('rows', 10, () => { summonAround(b, 'skeleton', 6, 90); logMsg('骷髏士兵列隊出現了！', '#ff8a3d'); });
+    if (m === 'cocoons') {
+      every('coc', 12, () => {
+        for (let k = 0; k < 2; k++) {
+          const a = Math.random() * 6.283, x = b.x + Math.cos(a) * 140, y = b.y + Math.sin(a) * 100;
+          if (solidAt(x, y)) continue;
+          const c = spawnEnemy('dragonEgg', x, y, false); c.hp = c.maxHp = Math.round(b.maxHp * 0.008); c.cocoon = true; c.hatch = 8; c.aggro = true;
+        }
+        logMsg('蜘蛛女后產下了蛛繭！8 秒內打破', '#b06ad0');
+      });
+      for (const c of G.enemies) if (c.cocoon && !c.dead && (c.hatch -= dt) <= 0) { c.dead = true; summonAround(c, 'spider', 4, 30); }
+      G.enemies = G.enemies.filter((e) => !e.dead || e === b);
+    }
+    if (m === 'pools') {
+      if (!st.pools) st.pools = stMakePools(b.home);
+      stPoolTick(st, dt, list);
+      if (b.story === 'pools') every('stomp', 15, () => {
+        const q = st.pools.filter((x) => !x.off).sort((a, c) => Math.hypot(a.x - b.x, a.y - b.y) - Math.hypot(c.x - b.x, c.y - b.y))[0];
+        if (q) { q.off = 10; shakeIt(10); sfx('boom'); logMsg('門衛踩碎了一個冷卻池！', '#ff8a3d'); }
+      });
+    }
+    if (m === 'dark') { every('dark', 15, () => { st.dark = 8; logMsg('四周陷入一片黑暗……', '#c22f96'); }); st.dark = Math.max(0, (st.dark || 0) - dt); }
+    if (m === 'frost') {
+      every('ice', 6, () => { for (const p of list) (st.ice = st.ice || []).push({ x: p.x, y: p.y, r: 80, t: 10 }); });
+      st.ice = (st.ice || []).filter((z) => (z.t -= dt) > 0); stSlowIn(st, st.ice, list, dt);
+    }
+    if (m === 'drones') every('dr', 12, () => { summonAround(b, 'archer', 3, 80); logMsg('哨兵呼叫了無人機！', '#ffd34d'); });
+    if (m === 'spores') {
+      every('sp', 5, () => { const p = pick(list); if (p) (st.clouds = st.clouds || []).push({ x: p.x, y: p.y, r: 60, t: 6 }); });
+      st.clouds = (st.clouds || []).filter((z) => (z.t -= dt) > 0);
+      st.acc.sp = (st.acc.sp || 0) + dt;
+      if (st.acc.sp >= 0.5) { st.acc.sp -= 0.5; for (const p of list) if (st.clouds.some((z) => Math.hypot(p.x - z.x, p.y - z.y) < z.r)) awHurt(p, 0.04, false); }
+    }
+    if (m === 'tide') {
+      every('tide', 10, () => { st.tide = { side: Math.random() < 0.5 ? -1 : 1, t: 10 }; logMsg('潮水漲起來了！', '#4fb8c8'); });
+      if (st.tide && (st.tide.t -= dt) > 0) stSlowIn(st, null, list.filter((p) => Math.sign(p.x - b.home.x) === st.tide.side), dt);
+    }
+    if (m === 'sand') {
+      every('sand', 12, () => { st.sand = 5; logMsg('流沙！地面往中間陷了下去', '#d8b070'); });
+      if (st.sand > 0) { st.sand -= dt; st.acc.pull = (st.acc.pull || 0) + dt; if (st.acc.pull >= 0.25) { st.acc.pull -= 0.25; for (const p of list) stPull(p, b.x, b.y); } }
+    }
+  }
+
+  // ---- completion, rewards and the ending
+  function stDone() {
+    const st = G.st; if (!st || st.done) return;
+    st.done = true; st.pools = null; st.dark = 0;
+    const s = stState(), d = st.d, ev = st.ev;
+    if (s.next === d) s.next = d + 1;
+    if (ev.mod === 'calm' && !st.alarm) { P.gold += 500000; logMsg('你沒有驚動任何一具骷髏：獲得 50 萬金幣', '#ffd34d'); }
+    if (ev.mod === 'stealth' && !st.alarm) { P.gold += 500000; logMsg('你沒有被哨兵發現：獲得 50 萬金幣', '#ffd34d'); }
+    if (P.stTrade) { P.stTrade = false; refreshStats(); }
+    if (d % 5 === 0) stChapterReward(d / 5);
+    if (NET.mode === 'host') netSend(null, { t: 'stDone', d, f: s.flags });
+    if (d === ST_LAST) stEnding();
+    else { logMsg('劇情完成，樓梯開放了', '#4fd18b'); storySay(stLinesOf(ev.end || [])); }
+    save();
+  }
+  function stRemoteDone(m) {
+    const s = stState(); Object.assign(s.flags, m.f || {});
+    if (P.stTrade) { P.stTrade = false; refreshStats(); }
+    if (s.started && s.next === m.d) { s.next = m.d + 1; if (m.d % 5 === 0) stChapterReward(m.d / 5); save(); }
+  }
+  function stTitle(t) { const c = coll(); if (!c.titles.includes(t)) { c.titles.push(t); logMsg(`獲得稱號「${t}」（按 H 設定）`, '#ffd34d'); } }
+  function stChapterReward(ch) {
+    const s = stState(); if (s.ch[ch]) return; s.ch[ch] = true;
+    const C = CHAPTERS[ch - 1], il = lootDepth() + 1;
+    for (let k = 0; k < 5; k++) dropAt(P.x, P.y, { kind: 'gold', amount: ch * 200000 });
+    for (let k = 0; k < 2; k++) dropAt(P.x, P.y, { kind: 'item', item: Math.random() < 0.5 ? guaranteedLegendary(il) : makeItem(il, 'set') });
+    dropAt(P.x, P.y, { kind: 'item', item: makeRStone(20) });
+    stTitle(C.title);
+    logMsg(`第 ${ch} 章「${C.name}」完成！`, '#ffd34d'); levelFx(); sfx('legend');
+  }
+  function stEnding() {
+    storySay(L('crown', '（冠冕從心臟裡浮了起來，落在你面前）', '「戴上我，你就擁有一切。」'),
+      { choices: [{ label: '戴上冠冕', v: 'wear' }, { label: '毀掉冠冕', v: 'destroy' }], onDone: (i) => stEnd(i === 1 ? 'destroy' : 'wear') });
+  }
+  function stEnd(k) {
+    const f = stState().flags, letters = Object.keys(coll().letters || {}).length;
+    if (NET.mode === 'host') netSend(null, { t: 'stEnd', k });
+    if (k === 'wear') storySay([...L('you', '你戴上了冠冕。地窟停止了呼吸，所有的怪物都向你低下了頭。'), ...L('keeper', '「……地窟不會再吞噬冒險者了。但你，再也離不開這裡。」')]);
+    else storySay([...L('you', '你舉起武器，冠冕碎成了千萬片。'), ...(f.purpose === 'glen' ? L('glen', '「你在哨兵面前說，要帶我回家。我聽見了。」') : []),
+      ...L('glen', '「……我可以回家了。艾琳在等我。」'), ...L('keeper', '「謝謝你。這一次，終於有人把燈帶到了最後。」'),
+      ...(letters >= 30 ? L('glen', '「你收集的每一封遺書，我都看見了。他們都可以休息了，朋友。」') : [])]);
+    stEndReward(k);
+  }
+  function stEndReward(k) {
+    const s = stState(), first = !s.endings[k], il = lootDepth() + 1;
+    s.endings[k] = true; s.ending = k;
+    if (first) {
+      if (k === 'wear') { const it = makeBossLegend(il, 'crownHunger'); dropAt(P.x, P.y, { kind: 'item', item: it }); logMsg(`獲得了${it.name}！`, RAR.legendary.color); }
+      else {
+        const it = makeBossLegend(il, 'hunterPromise'); dropAt(P.x, P.y, { kind: 'item', item: it }); logMsg(`獲得了${it.name}！`, RAR.legendary.color);
+        stTitle('破冠者'); P.soulLights = true; logMsg('解鎖外觀「靈魂光點」（可在設定裡關閉）', '#9cd4ff');
+        if (Object.keys(coll().letters || {}).length >= 30) stTitle('葛倫的朋友');
+      }
+    }
+    logMsg(k === 'wear' ? '結局：新的地窟之王' : '結局：破碎的冠冕', '#ffd34d'); levelFx(); save();
+  }
+
+  // ---- what the party sees: a list of drawables, packed into the snapshot
+  function stHint() {
+    const st = G.st, ev = st.ev, ch = stChOf(st.d);
+    if (st.done) return `故事・第 ${ch} 章：這一層的劇情完成了${st.d < ST_LAST ? '，走樓梯繼續' : ''}`;
+    let h = `故事・第 ${ch} 章「${CHAPTERS[ch - 1].name}」：${ev.hint}`;
+    if (ev.t === 'find') h += `（${st.items.filter((x) => x.got).length}/${ev.n}）`;
+    if (ev.t === 'activate') h += ev.mod === 'order' ? `・順序：${st.seq.join(' → ')}（已完成 ${st.seqI}）` : `（${st.objs.filter((o) => o.on).length}/${ev.n}）`;
+    if (st.left != null) h += `・剩 ${Math.max(0, Math.ceil(st.left))} 秒`;
+    if (st.npc && (ev.t === 'escort' || ev.t === 'defend')) h += `・${st.npc.name} ${Math.max(0, Math.round(st.npc.hp))}%`;
+    if (ev.mod === 'greed') h += `・怪物傷害 +${(st.greed || 0) * 5}%`;
+    if ((st.heat.host || 0) >= 1) h += `・高溫 ${Math.floor(st.heat.host)} 層`;
+    return h;
+  }
+  function stVis() {
+    const st = G.st, v = [], r = Math.round, ev = st.ev;
+    if (st.npc) v.push(['n', r(st.npc.x), r(st.npc.y), st.npc.name, st.npc.color, ev.t === 'escort' || ev.t === 'defend' ? r(st.npc.hp) : -1, ev.t === 'talk' && !st.talking && !st.done ? 1 : 0]);
+    for (const it of st.items || []) if (!it.got) v.push(['i', r(it.x), r(it.y), ev.item[1]]);
+    for (const o of st.objs || []) v.push(['o', r(o.x), r(o.y), o.on ? 1 : 0, o.sym || '', +(o.prog / ev.chan).toFixed(2), ev.obj[1]]);
+    for (const q of st.pools || []) v.push(['z', r(q.x), r(q.y), q.r, q.off ? '#555555' : '#4fb8ff', 0.25]);
+    for (const b of st.braziers || []) v.push(['f', r(b.x), r(b.y)]);
+    for (const z of st.ice || []) v.push(['z', r(z.x), r(z.y), z.r, '#bfe6ff', 0.3]);
+    for (const z of st.clouds || []) v.push(['z', r(z.x), r(z.y), z.r, '#7ac850', 0.3]);
+    for (const d of st.drones || []) v.push(['d', r(d.x), r(d.y), st.alarm ? 1 : 0]);
+    if (st.ghost) v.push(['g', r(st.ghost.x), r(st.ghost.y)]);
+    for (const s2 of st.shots || []) v.push(['s', r(s2.x), r(s2.y)]);
+    if (st.tide && st.tide.t > 0 && G.boss && G.boss.home) v.push(['t', r(G.boss.home.x), st.tide.side]);
+    for (const e of G.enemies) {
+      if (e.dead) continue;
+      if (e.stName) v.push(['l', r(e.x), r(e.y - e.r - 22), e.stName]);
+      if (e.type === 'mirror') v.push(['m', e.nid ?? -1, e.cls]);
+    }
+    st.vis = v; st.hintText = stHint();
+  }
+  const stPack = () => [G.st.d, G.st.hintText, G.st.done ? 1 : 0, G.st.vis, G.st.dark > 0 ? 1 : 0];
+  function stApply(a) {
+    const [d, hintText, done, vis, dark] = a;
+    G.st = { client: true, d, hintText, done: !!done, vis, dark };
+    for (const v of vis) if (v[0] === 'm') { const e = G.enemies.find((x) => x.nid === v[1]); if (e) e.cls = v[2]; }
+  }
+  function stDrawGhost(c, x, y, col, k, alpha = 0.85) {
+    c.save(); c.translate(x, y + Math.sin(G.time * 2 + k) * 2); c.globalAlpha = alpha;
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(0, 14, 12, 4, 0, 0, 6.283); c.fill();
+    const g = c.createLinearGradient(0, -26, 0, 14); g.addColorStop(0, col); g.addColorStop(1, hexA(col, 0.15));
+    c.fillStyle = g; c.beginPath(); c.moveTo(-11, 12); c.quadraticCurveTo(-13, -12, 0, -24); c.quadraticCurveTo(13, -12, 11, 12);
+    c.lineTo(5, 8); c.lineTo(0, 13); c.lineTo(-5, 8); c.closePath(); c.fill();
+    c.fillStyle = '#1b1720'; c.beginPath(); c.arc(-4, -10, 1.8, 0, 6.283); c.arc(4, -10, 1.8, 0, 6.283); c.fill();
+    c.restore();
+  }
+  function drawStory(c) {
+    const st = G.st; if (!st || !st.vis) return;
+    const t = G.time;
+    for (const a of st.vis) {
+      const k = a[0];
+      if (k === 'z') { c.fillStyle = hexA(a[4], a[5]); c.beginPath(); c.ellipse(a[1], a[2], a[3], a[3] * 0.6, 0, 0, 6.283); c.fill(); c.strokeStyle = hexA(a[4], 0.8); c.lineWidth = 2; c.stroke(); }
+      else if (k === 't') { c.fillStyle = 'rgba(60,140,200,0.18)'; if (a[2] > 0) c.fillRect(a[1], 0, MW * TILE - a[1], MH * TILE); else c.fillRect(0, 0, a[1], MH * TILE); }
+      else if (k === 'i') {
+        const y = a[2] - 6 + Math.sin(t * 3 + a[1]) * 3, g = c.createRadialGradient(a[1], y, 1, a[1], y, 16);
+        g.addColorStop(0, '#ffffff'); g.addColorStop(0.4, a[3]); g.addColorStop(1, hexA(a[3], 0)); c.fillStyle = g; c.beginPath(); c.arc(a[1], y, 16, 0, 6.283); c.fill();
+      } else if (k === 'o') {
+        c.fillStyle = a[3] ? hexA(a[6], 0.5) : 'rgba(40,34,48,0.85)'; c.beginPath(); c.ellipse(a[1], a[2], 22, 13, 0, 0, 6.283); c.fill();
+        c.strokeStyle = a[3] ? a[6] : '#8a7f96'; c.lineWidth = 2; c.stroke();
+        if (!a[3] && a[5] > 0) { c.strokeStyle = a[6]; c.lineWidth = 4; c.beginPath(); c.arc(a[1], a[2] - 22, 12, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, a[5])); c.stroke(); }
+        if (a[4]) { c.fillStyle = a[3] ? '#ffffff' : '#cfc6b8'; c.font = 'bold 14px sans-serif'; c.textAlign = 'center'; c.fillText(a[4], a[1], a[2] + 5); }
+      } else if (k === 'f') {
+        c.fillStyle = '#4a3a30'; c.fillRect(a[1] - 8, a[2] - 4, 16, 10);
+        const g = c.createRadialGradient(a[1], a[2] - 10, 2, a[1], a[2] - 10, 80); g.addColorStop(0, 'rgba(255,170,60,0.5)'); g.addColorStop(1, 'rgba(255,120,40,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(a[1], a[2] - 10, 80, 0, 6.283); c.fill();
+        c.fillStyle = '#ffb347'; c.beginPath(); c.ellipse(a[1], a[2] - 12 + Math.sin(t * 9) * 1.5, 6, 10, 0, 0, 6.283); c.fill();
+      } else if (k === 'n') stDrawGhost(c, a[1], a[2], a[4], a[1]);
+      else if (k === 'd') {
+        c.fillStyle = a[3] ? 'rgba(255,60,60,0.16)' : 'rgba(255,220,90,0.12)'; c.beginPath(); c.ellipse(a[1], a[2], 110, 66, 0, 0, 6.283); c.fill();
+        c.fillStyle = '#d8dde6'; c.beginPath(); c.arc(a[1], a[2] - 30, 9, 0, 6.283); c.fill(); c.fillStyle = a[3] ? '#ff3b3b' : '#ffd34d'; c.beginPath(); c.arc(a[1], a[2] - 30, 4, 0, 6.283); c.fill();
+      } else if (k === 'g') stDrawGhost(c, a[1], a[2], '#a8a8b8', 1, 0.45);
+      else if (k === 's') { c.fillStyle = '#c8c8d8'; c.beginPath(); c.arc(a[1], a[2], 6, 0, 6.283); c.fill(); }
+    }
+  }
+  function drawStoryTop(c) {
+    const st = G.st; if (!st || !st.vis) return;
+    c.save(); c.font = '600 12px "Noto Sans TC", sans-serif'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeStyle = '#000c';
+    for (const a of st.vis) {
+      if (a[0] === 'n') {
+        c.strokeText(a[3], a[1], a[2] - 34); c.fillStyle = a[4]; c.fillText(a[3], a[1], a[2] - 34);
+        if (a[6]) { c.fillStyle = '#ffd34d'; c.font = 'bold 18px sans-serif'; c.fillText('！', a[1], a[2] - 50 + Math.sin(G.time * 4) * 3); c.font = '600 12px "Noto Sans TC", sans-serif'; }
+        if (a[5] >= 0) { c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(a[1] - 20, a[2] - 30, 40, 4); c.fillStyle = '#6fd08c'; c.fillRect(a[1] - 20, a[2] - 30, 40 * Math.max(0, a[5]) / 100, 4); }
+      } else if (a[0] === 'l') { c.strokeText(a[3], a[1], a[2]); c.fillStyle = '#ffb347'; c.fillText(a[3], a[1], a[2]); }
+    }
+    c.restore();
+  }
+  function drawStoryScreen(c) {
+    if (!G.st || !(G.st.dark > 0)) return;
+    const x = (P.x - cam.x) * view.scale, y = (P.y - cam.y) * view.scale, r = 150 * view.scale;
+    const g = c.createRadialGradient(x, y, r * 0.5, x, y, r * 1.6); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.94)');
+    c.fillStyle = g; c.fillRect(0, 0, view.w, view.h);
+  }
+  function stDrawKeeper(c, n) {
+    stDrawGhost(c, n.x, n.y, '#8a7a5a', 0, 1);
+    const g = c.createRadialGradient(n.x + 12, n.y - 4, 1, n.x + 12, n.y - 4, 20); g.addColorStop(0, '#fff2b0'); g.addColorStop(0.4, 'rgba(255,200,80,0.7)'); g.addColorStop(1, 'rgba(255,200,80,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(n.x + 12, n.y - 4, 20, 0, 6.283); c.fill();
+  }
+  // the 故事 tab in the achievements window: chapters and their dialogue
+  function storyTabHtml() {
+    const s = stState();
+    let h = `<div class="sub">${s.started ? `目前進度：${s.next > ST_LAST ? '已通關' : `第 ${s.next} 層`}${s.ending ? `・結局：${s.ending === 'wear' ? '新的地窟之王' : '破碎的冠冕'}` : ''}` : '還沒開始：到營地和守墓人說話（需要先解鎖折磨 T1）'}。故事只在折磨 T1 以上難度推進。</div><div class="letter-list">`;
+    h += CHAPTERS.map((C, i) => {
+      const ch = i + 1, done = s.next > ch * 5, open = s.started && s.next > (ch - 1) * 5 + 1;
+      return `<button type="button" class="letter${done ? ' got' : ''}" data-stch="${ch}"${open ? '' : ' disabled'}><b>第 ${ch} 章・${open || done ? C.name : '？？？'}</b><small>${C.scene}・第 ${(ch - 1) * 5 + 1}～${ch * 5} 層${done ? '・完成' : ''}</small></button>`;
+    }).join('');
+    return h + '</div><div class="sub">點看過的章節，可以重看那一章的對話。</div>';
+  }
+  function bindStoryTab() { $('achBody').querySelectorAll('[data-stch]').forEach((b) => b.addEventListener('click', () => stReplay(+b.dataset.stch))); }
+  function stReplay(ch) {
+    const s = stState(), lines = [];
+    for (let d = (ch - 1) * 5 + 1; d <= ch * 5 && d < s.next; d++) {
+      const ev = SFL[d];
+      for (const k of ['intro', 'lines', 'each', 'end']) {
+        const v = ev[k]; if (!v || v === 'ending' || v === 'greed34') continue;
+        if (k === 'each') v.forEach((x) => lines.push(...x)); else lines.push(...stLinesOf(v));
+      }
+    }
+    if (lines.length) storySay(lines, { local: true });
+  }
+
   // ================= 日月神殿: a stage for exactly two players =================
   // the leader is 日 (sun) and the teammate 月 (moon); in the first hall the colours swap every 30 s
   const TEMPLE_DEPTH = 99, TEMPLE_SWAP = 30, TEMPLE_CAP = 0.02;
@@ -9543,7 +10350,7 @@
       LETTERS.map((L, i) => (c.letters[i] ? `<button type="button" class="letter got" data-letter="${i}"><b>${L.t}</b><small>${TIERS[L.s].name}</small></button>` : `<div class="letter"><b>？？？</b><small>${TIERS[L.s].name}</small></div>`)).join('') + '</div>';
     h += `<div class="ach-count">古代硬幣 ${coinN} / 100・收藏加成：金幣掉落與稀有度各 +${bonus}%（每 10 枚 +1%）</div><div class="coin-grid">` +
       Array.from({ length: 100 }, (_, i) => `<span class="coin${c.coins[i] ? ' got' : ''}" title="${c.coins[i] ? coinName(i) : `？？？（${TIERS[Math.floor(i / 5)].name}）`}"></span>`).join('') + '</div>';
-    const mobs = Object.keys(EDEF).filter((k) => k !== 'goblin' && k !== 'boss' && k !== 'dragonEgg');
+    const mobs = Object.keys(EDEF).filter((k) => k !== 'goblin' && k !== 'boss' && k !== 'dragonEgg' && k !== 'mirror');
     h += `<div class="ach-count">怪物標本 ${mobs.filter((k) => c.spec[k]).length} / ${mobs.length}・每種擊殺 100 隻得到標本，之後對牠的傷害 +5%</div><div class="spec-list">` +
       mobs.map((k) => `<div class="spec${c.spec[k] ? ' got' : ''}"><b>${EDEF[k].name}</b><small>${c.spec[k] ? '已收藏・傷害 +5%' : `擊殺 ${Math.min(100, c.kills[k] || 0)} / 100`}</small></div>`).join('') + '</div>';
     return h;
@@ -9723,7 +10530,7 @@
     if (NET.dotT <= 0) { NET.dotT = 0.3; for (const [id, a] of NET.dotAcc) if (a.amt > 0) netSend(id, { t: 'dot', a: a.amt, c: a.c }); NET.dotAcc.clear(); }
   }
   // the host keeps the world moving while its own menus are open
-  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); awakenTick(dt); templeTick(dt); enemyShots(dt); updateHazards(dt); }
+  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); awakenTick(dt); templeTick(dt); storyTick(dt); enemyShots(dt); updateHazards(dt); }
 
   // ---------- snapshots ----------
   function buildSnap() {
@@ -9736,6 +10543,7 @@
       hz: G.hazards.map((h) => [r(h.x), r(h.y), h.r, h.type, +h.life.toFixed(1), h.max]),
       aw: G.aw && !G.aw.client ? awPack() : null,
       tp: G.tp && !G.tp.client ? tpPack() : null,
+      stp: G.st && !G.st.client ? stPack() : null,
       p: [selfRow(), ...[...NET.players.values()].map((rp) => [rp.id, rp.name, rp.cls, r(rp.x), r(rp.y), r(rp.hp), rp.hpMax, rp.f, rp.m, rp.dead ? 1 : 0, rp.lvl, rp.seed, rp.look, rp.dps || 0, rp.tr || 0])],
     };
   }
@@ -9788,6 +10596,7 @@
     G.aw = s.aw ? awUnpack(s.aw) : (G.aw && G.aw.client && !G.boss ? G.aw : null);
     if (G.aw && G.boss) $('bossName').textContent = '覺醒火龍';
     if (s.tp) tpApply(s.tp);
+    if (s.stp) stApply(s.stp); else if (G.st && G.st.client) G.st = null;
   }
 
   // ---------- messages ----------
@@ -9843,6 +10652,12 @@
       if (hit && m.fx === 'frost') { P.slowT = 1.6; frostPuff(P.x, P.y); }
     } else if (m.t === 'pct') pctHurt(m.p, !!m.d);
     else if (m.t === 'tbuff') twinGot(m.k);
+    else if (m.t === 'stSay') storySay(m.l, { remote: true, choices: m.c ? m.c.map((label) => ({ label })) : null });
+    else if (m.t === 'stPick') { if (stDlg && stDlg.opt.remote && stDlg.opt.choices) storyClose(m.i); }
+    else if (m.t === 'stFlag') { stState().flags[m.k] = m.v; if (m.k === 'dragon' && m.v === 'trade') { P.stTrade = true; refreshStats(); } }
+    else if (m.t === 'stDone') stRemoteDone(m);
+    else if (m.t === 'stEnd') stEndReward(m.k);
+    else if (m.t === 'stPull') { P.pullT = 0.3; P.pullX = m.x; P.pullY = m.y; }
     else if (m.t === 'tpWin') { if (G.tp && !G.tp.won) { G.tp.won = true; templeReward(); } }
     else if (m.t === 'poison') poisonPlayer(m.s, m.dps);
     else if (m.t === 'slow') P.slowT = Math.max(P.slowT || 0, m.s);
