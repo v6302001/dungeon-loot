@@ -213,6 +213,7 @@
   .cell.empty { cursor: default; color: #ffffff22; font-size: 13px; font-family: var(--font-body); }
   .cell.sel { box-shadow: 0 0 0 2px var(--text); }
   .rng { color: var(--muted); font-size: 11px; margin-left: 4px; }
+  .cell .ench { position: absolute; right: 3px; top: 0; font-size: 10px; font-weight: 700; color: #c78bff; text-shadow: 0 0 3px #000; }
   .cell .anc { position: absolute; left: 3px; top: 0; font-size: 12px; color: #ffb347; text-shadow: 0 0 4px #000; }
   .cell.ancient { box-shadow: inset 0 0 0 1px #ffb347, 0 0 6px rgba(255, 179, 71, 0.55); }
   .cell .lv { position: absolute; right: 3px; bottom: 1px; font-size: 10px; font-family: var(--font-body); color: var(--muted); }
@@ -550,7 +551,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v108</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v109</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -651,6 +652,13 @@
     <div class="shop-head"><h3>競技場傳送門</h3><span class="sub">組隊後由隊長開啟，隊友之間可以互相攻擊。</span></div>
     <div id="pvpBody"></div>
     <div class="inv-actions"><button class="primary" type="button" data-close>離開（E）</button></div>
+  </div>
+</div>
+<div class="overlay" id="enchScreen" hidden>
+  <div class="panel scholar">
+    <div class="shop-head"><h3>流浪鐵匠・地窟附魔</h3><span class="sub">只有在地窟裡遇到他才能附魔。</span></div>
+    <div id="enchBody"></div>
+    <div class="inv-actions"><button class="primary" type="button" id="enchClose">離開（E）</button></div>
   </div>
 </div>
 <div class="overlay" id="altarScreen" hidden>
@@ -812,7 +820,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v108</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v109</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -990,8 +998,9 @@
   const canUse = (it) => !it || it.slot !== 'weapon' || weaponClass(it) === curCls();
   // gear needs a character level of half its item level
   // gems and scrolls live in the bag but are never worn
-  const isGear = (it) => !!it && it.slot !== 'gem' && it.slot !== 'scroll' && it.slot !== 'gmap' && it.slot !== 'rstone' && it.slot !== 'dcrystal';
-  const stacks = (it) => it.slot === 'gem' || it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal';
+  const isGear = (it) => !!it && it.slot !== 'gem' && it.slot !== 'scroll' && it.slot !== 'gmap' && it.slot !== 'rstone' && it.slot !== 'dcrystal' && it.slot !== 'essence';
+  const stacks = (it) => it.slot === 'gem' || it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence';
+  const makeEssence = (qty = 1) => ({ id: uid(), slot: 'essence', rarity: 'essence', base: '地窟精華', name: '地窟精華', ilvl: 1, aff: {}, qty });
   const makeDCrystal = (qty = 1) => ({ id: uid(), slot: 'dcrystal', rarity: 'dcrystal', base: '龍魂結晶', name: '龍魂結晶', ilvl: 1, aff: {}, qty });
   const makeRStone = (qty = 1) => ({ id: uid(), slot: 'rstone', rarity: 'rstone', base: '精煉石', name: '精煉石', ilvl: 1, aff: {}, qty });
   const makeGoldMap = (qty = 1) => ({ id: uid(), slot: 'gmap', rarity: 'gmap', base: '金幣秘境地圖', name: '金幣秘境地圖', ilvl: 1, aff: {}, qty });
@@ -1093,10 +1102,10 @@
     const metal = (x0, y0, x1, y1, a = '#f4f7fb', b = '#5d6574') => { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, a); g.addColorStop(0.5, shadeHex(a, 0.78)); g.addColorStop(1, b); return g; };
     const gold = '#d4a94a';
     c.save();
-    if (it.slot === 'rstone' || it.slot === 'dcrystal') {
-      const fire = it.slot === 'dcrystal';
+    if (it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence') {
+      const fire = it.slot === 'dcrystal', ess = it.slot === 'essence';
       c.translate(32, 33);
-      const g = c.createLinearGradient(-12, -18, 12, 18); g.addColorStop(0, fire ? '#fff1c8' : '#e6f6ff'); g.addColorStop(0.45, fire ? '#ff7a2a' : '#7cc8ff'); g.addColorStop(1, fire ? '#8a1a10' : '#2a5fa8');
+      const g = c.createLinearGradient(-12, -18, 12, 18); g.addColorStop(0, ess ? '#f3e6ff' : fire ? '#fff1c8' : '#e6f6ff'); g.addColorStop(0.45, ess ? '#b06ad0' : fire ? '#ff7a2a' : '#7cc8ff'); g.addColorStop(1, ess ? '#4a1a6a' : fire ? '#8a1a10' : '#2a5fa8');
       c.beginPath(); c.moveTo(0, -20); c.lineTo(13, -8); c.lineTo(10, 14); c.lineTo(0, 20); c.lineTo(-10, 14); c.lineTo(-13, -8); c.closePath();
       c.fillStyle = g; c.fill(); ol();
       c.strokeStyle = 'rgba(255,255,255,0.75)'; c.lineWidth = 1.3;
@@ -1381,6 +1390,7 @@
 
   function openChest(p) {
     p.opened = true; sfx('chest');
+    if (p.hidden) hiddenChestBonus(p);
     if (Math.random() < 0.2) dropAt(p.x, p.y, { kind: 'item', item: randomGem() });
     flash(p.x, p.y, 160, 'rgba(255,211,77,0.95)', 0.4);
     shockwave(p.x, p.y, 60, 'rgba(255,211,77,0.9)', 0.4, 4);
@@ -1731,7 +1741,7 @@
       const it = equip[slot]; if (!it) continue;
       if (slot === 'weapon') { s.min = it.min; s.max = it.max; s.speed = it.speed; s.range = it.range; s.arc = it.arc; }
       if (it.armor) s.armor += it.armor;
-      for (const [k, v] of Object.entries(it.aff)) s[k === 'move' ? 'movePct' : k] += v;
+      for (const [k, v] of Object.entries(it.aff)) s[k === 'move' ? 'movePct' : k] += v * (1 + 0.04 * (it.ench || 0));
       if (it.special) s.specials.add(it.special);
     }
     if (s.specials.has('greed')) s.goldFind += 100;
@@ -1847,7 +1857,7 @@
         runBest: P.runBest || 0, runKills: P.runKills || 0, runId: P.runId,
         talents: P.talents || {}, runes: P.runes || {}, diff: P.diff || 0, diffUnlock: P.diffUnlock || 0, stats: P.stats || {}, ach: P.ach || {},
         title: P.title || '', cape: P.cape || null, nick: P.nick || '', coll: P.coll || {}, codex: P.codex || {}, elix: P.elix || {}, campLv: P.campLv || {}, pet: P.pet || null,
-        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0, abyss: P.abyss || {}, templeClears: P.templeClears || 0, story: P.story || null, soulLights: !!P.soulLights, awakeOpen: !!P.awakeOpen, awakeKills: P.awakeKills || 0, fireSteps: !!P.fireSteps,
+        tsets: P.tsets, tslot: P.tslot || 0, para: P.para || {}, keyMax: P.keyMax || 1, keyLast: P.keyLast || 0, dragonKills: P.dragonKills || 0, rstone: P.rstone || 0, abyss: P.abyss || {}, templeClears: P.templeClears || 0, story: P.story || null, soulLights: !!P.soulLights, bless: P.bless || [], enchCharm: P.enchCharm || 0, awakeOpen: !!P.awakeOpen, awakeKills: P.awakeKills || 0, fireSteps: !!P.fireSteps,
       }));
     } catch (e) { /* storage unavailable: play continues without saving */ }
     try { cloudTouch(); } catch (e) { /* cloud sync not ready yet */ }
@@ -1949,8 +1959,10 @@
     const tier = tierOf(depth);
     $('floorName').textContent = `第 ${depth} 層 · ${tier.name}`;
     logMsg(bossFloor ? `第 ${depth} 層：魔王守著樓梯` : `第 ${depth} 層 · ${tier.name}`, bossFloor ? '#ff8a3d' : '#ece4d4');
+    hiddenRoom();
     sizeMinimap();
     storySetup();
+    dnSetup();
   }
 
   const tileAt = (tx, ty) => (tx < 0 || ty < 0 || tx >= MW || ty >= MH) ? 1 : (G.doorT && G.doorT.has(ty * MW + tx)) ? 1 : G.map[ty * MW + tx];
@@ -2182,6 +2194,8 @@
     if (G.tp && e.type === 'boss') { gainXp(e.xp); templeBossDown(e); return; }
     gainXp(e.xp);
     if (S.specials.has('crownHunger')) P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.03);
+    if (blessN('heal')) P.hp = Math.min(P.hpMax, P.hp + P.hpMax * 0.01 * blessN('heal'));
+    if (NET.mode !== 'client') dnOnKill(e);
     P.kills = (P.kills || 0) + 1; P.runKills = (P.runKills || 0) + 1;
     stat('kills'); sfx(e.type === 'boss' ? 'boom' : 'kill');
     G.souls = (G.souls || 0) + 1;
@@ -2209,6 +2223,9 @@
     if (Math.random() < 0.06) dropAt(e.x, e.y, { kind: 'potion' });
     if (Math.random() < (e.type === 'boss' ? 1 : e.elite ? 0.15 : 0.01)) dropAt(e.x, e.y, { kind: 'item', item: randomGem() });
     if (Math.random() < (e.elite ? 0.1 : 0.02)) dropAt(e.x, e.y, { kind: 'elixir', elixir: pick(Object.keys(ELIXIRS)) });
+    // essence for the dungeon's own upgrades
+    if (!G.camp && e.elite && Math.random() < 0.15) giveEss(1, e.x, e.y);
+    if (e.essBonus) giveEss(e.essBonus, e.x, e.y);
     // items
     if (e.type === 'boss' && G.st && !G.st.client && !G.st.done && G.st.ev.t === 'boss') stDone();
     if (e.type === 'boss') {
@@ -2218,6 +2235,9 @@
       // each boss keeps two legendaries of its own: 1.5% on a normal floor, 20% in its challenge
       { const own = BOSS_LEGS[e.variant && e.variant.look]; if (own && Math.random() < (G.challenge ? 0.2 : 0.015)) { dropAt(e.x, e.y, { kind: 'item', item: makeBossLegend(lootDepth() + 1, pick(own)) }); logMsg(`${e.variant.name}掉落了專屬傳說！`, RAR.legendary.color); sfx('legend'); } }
       if (G.abyss && G.depth % 10 === 0) abyssChest(e);
+      giveEss(ri(3, 5), e.x, e.y);
+      if (G.vault) { dropAt(e.x, e.y, { kind: 'item', item: guaranteedLegendary(lootDepth() + 1) }); giveEss(20, e.x, e.y); logMsg('寶庫之主倒下了！', '#ffd34d'); }
+      if (!G.realm && !G.challenge && !G.trialRealm && !G.tp && !G.goldRealm && !G.vault) { (G.altars = G.altars || []).push({ x: e.x, y: e.y + 40, r: 14, kind: 'dn', dk: 'altar', name: '精華祭壇', color: '#c78bff', verb: '在精華祭壇祈求祝福（5 顆精華）' }); logMsg('魔王倒下的地方出現了精華祭壇', '#c78bff'); }
       dropAt(e.x, e.y, { kind: 'item', item: makeRStone(ri(1, 3)) });
       dropAt(e.x, e.y, { kind: 'potion' }); dropAt(e.x, e.y, { kind: 'potion' });
       G.boss = null;
@@ -2226,6 +2246,7 @@
       logMsg(`${e.variant.name}倒下了！樓梯已經解鎖`, '#ff8a3d');
       shakeIt(14);
     } else if (e.elite) {
+      for (let i = 0; i < blessN('elite'); i++) if (Math.random() < 0.3) dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth(), atLeastRare(rollRarity(3))) });
       for (let i = 0; i < 2; i++) { let r = rollRarity(3); if (r === 'common') r = 'magic'; dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth(), r) }); }
     } else if (Math.random() < 0.2) {
       dropAt(e.x, e.y, { kind: 'item', item: makeItem(lootDepth(), rollRarity(1)) });
@@ -2316,6 +2337,7 @@
     if (G && (G.abyss || G.temple) && !force) { if (P.pvpDownT > 0) return; if (inParty() && visibleMates().length) { abyssDown(); return; } }
     if (mode === 'dead') return;
     mode = 'dead';
+    clearBless();
     const lost = Math.floor(P.gold * 0.3);
     P.gold -= lost;
     if (!G.abyss) P.best = Math.max(P.best, G.depth);
@@ -2541,6 +2563,8 @@
       if (e.code === 'Escape') closeSettings();
     } else if (mode === 'rank') {
       if (e.code === 'KeyE' || e.code === 'Escape') closeRank();
+    } else if (mode === 'ench') {
+      if (e.code === 'KeyE' || e.code === 'Escape') closeEnch();
     } else if (mode === 'forge' || mode === 'stash' || mode === 'portal' || mode === 'jeweler' || mode === 'scholar' || mode === 'altar' || mode === 'pvpmenu') {
       if (e.code === 'KeyE' || e.code === 'Escape') closeOverlay();
     }
@@ -2794,6 +2818,7 @@
     const prop = !usingMouse() && !aimOverride && !nearestEnemy(S.range + 120) && nearestProp(propReach());
     P.facing = prop ? Math.atan2(prop.y - P.y, prop.x - P.x) : aimAngle(S.range + 120);
     P.atkCd = S.period / ((P.dformT > 0 ? 1.3 : 1) * (P.hasteT > 0 ? 1.4 : 1) * (shrineOn('swift') ? 1.3 : 1) * (elixOn('haste') ? 1.4 : 1) * (P.buffT > 0 && P.buffKind === 'rage' ? 1.4 : 1));
+    crackHit();
     if (P.cls === 'mage') {
       const sm = P.surge ? 1.8 : 1; P.surge = 0;
       if (S.specials.has('split') || (P.arcaneT > 0 && S.specials.has('setArcane'))) [-0.18, 0, 0.18].forEach((o) => firePlayerShot(P.facing + o, { kind: 'bolt', speed: 430, r: 6, mult: o ? 0.6 : sm }));
@@ -3139,6 +3164,7 @@
     if (S.specials.has('setTornado') && !(P.setTornCd > 0)) P.setTornCd = 3, G.fields.push({ type: 'tornado', x: P.x, y: P.y, vx: P.dashDir.x * 150, vy: P.dashDir.y * 150, r: AR(42), life: 3, max: 3, tick: 0, mult: 0.6 });
     sfx('dash');
     P.dashHit = new Set();
+    if (blessN('dash')) for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - P.x, e.y - P.y) < 90 + e.r) { const r = rollDamage(blessN('dash')); hitEnemy(e, r.dmg, r.crit, P.x, P.y, 120, false); }
   }
 
   function drinkPotion() {
@@ -3172,6 +3198,7 @@
       logMsg('組隊中由隊長帶大家下樓', '#9cc7ff'); return;
     }
     if (G.pvp) { pvpFinish('隊長結束了對戰', true); return; }
+    if (G.vault) { G.vault = null; enterCamp('離開了失落的寶庫'); return; }
     if (G.boss) { logMsg('魔王還活著，樓梯被封住了', '#ff6b6b'); return; }
     if (G.trialRealm) { G.trialRealm = false; enterCamp('離開了試煉秘境，回到營地'); return; }
     if (G.goldRealm) { const got = G.goldRealm.earned; G.goldRealm = null; enterCamp(`離開了金幣秘境，共獲得 ${got.toLocaleString()} 金幣`); return; }
@@ -3236,7 +3263,8 @@
     updatePShots(dt);
 
     netEnemies(dt);
-    if (NET.mode !== 'client') { awakenTick(dt); templeTick(dt); storyTick(dt); }
+    if (NET.mode !== 'client') { awakenTick(dt); templeTick(dt); storyTick(dt); dnTick(dt); }
+    vaultTick(dt);
     separate();
     enemyShots(dt);
     updateProps(dt);
@@ -3536,6 +3564,7 @@
     drawAwaken(c);
     drawTemple(c);
     drawStory(c);
+    drawDn(c);
     drawStairs(c);
     for (const t of G.torches) if (G.seen[t.ty * MW + t.tx]) drawSconce(c, t);
     drawDrops(c);
@@ -3578,6 +3607,7 @@
     // readable overlays above the darkness
     drawLabels(c);
     drawStoryTop(c);
+    drawDnTop(c);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     drawStoryScreen(c);
     if (P.hurt > 0) {
@@ -4655,6 +4685,7 @@
       mctx.fillStyle = '#6d6278'; mctx.fillRect(x * px, y * px, px, px);
     }
     if (G.seen[G.stairs.y * MW + G.stairs.x]) { mctx.fillStyle = G.boss ? '#c8323c' : '#e9b949'; mctx.fillRect(G.stairs.x * px - px, G.stairs.y * px - px, px * 3, px * 3); }
+    if (G.dn && G.dn.npc && G.dn.state !== 'done') { mctx.fillStyle = '#e8dcc0'; mctx.fillRect(G.dn.npc.x / TILE * px - px, G.dn.npc.y / TILE * px - px, px * 3, px * 3); }
     if (G.st && G.st.vis) for (const a of G.st.vis) if (a[0] === 'n' || a[0] === 'i' || (a[0] === 'o' && !a[3])) { mctx.fillStyle = a[0] === 'n' ? '#c8b88a' : a[0] === 'i' ? '#ffd34d' : '#c22f96'; mctx.fillRect(a[1] / TILE * px - px, a[2] / TILE * px - px, px * 3, px * 3); }
     for (const d of G.drops) if (d.kind === 'item' && d.item.rarity !== 'common' && G.seen[Math.floor(d.y / TILE) * MW + Math.floor(d.x / TILE)]) { mctx.fillStyle = RAR[d.item.rarity].color; mctx.fillRect(d.x / TILE * px - 1, d.y / TILE * px - 1, 2, 2); }
     for (const p of G.props) {
@@ -4701,11 +4732,11 @@
     const st = mode === 'play' && !G.camp && onStairs();
     const fdName = fd ? (fd.kind === 'item' ? fd.item.name : '藥水') : '';
     $('stairPrompt').hidden = !(st || nm || fd) || isTouch;
-    $('stairBtn').textContent = nm ? `${NPC_INFO[npc.kind || 'merchant'].verb}（E）` : fd ? `撿起 ${fdName}（E）` : G.boss ? '樓梯被魔王封住了' : '走下樓梯（E）';
+    $('stairBtn').textContent = nm ? `${npc.verb || NPC_INFO[npc.kind || 'merchant'].verb}（E）` : fd ? `撿起 ${fdName}（E）` : G.boss ? '樓梯被魔王封住了' : '走下樓梯（E）';
     $('stairBtn').disabled = !nm && !fd && !!G.boss;
     $('tStair').disabled = !(nm || fd || (st && !G.boss));
     $('tStair').hidden = !(nm || st || fd);
-    $('tStair').textContent = nm ? NPC_INFO[npc.kind || 'merchant'].verb : fd ? `撿起 ${fdName}` : G.boss ? '魔王還活著' : '走下樓梯';
+    $('tStair').textContent = nm ? (npc.verb || NPC_INFO[npc.kind || 'merchant'].verb) : fd ? `撿起 ${fdName}` : G.boss ? '魔王還活著' : '走下樓梯';
     if (isTouch) {
       $('tPotN').textContent = P.potions; $('tPotCd').style.setProperty('--p', P.potCd > 0 ? P.potCd / (P.potCdMax || 0.8) : 0);
       const ex = P.elix || {}; $('tElixN').textContent = (ex.haste || 0) + (ex.shield || 0) + (ex.wisdom || 0);
@@ -4766,12 +4797,13 @@
   function cellHtml(it, sel) {
     if (!it) return '';
     const col = RAR[it.rarity].color;
-    return `<div class="cell${sel ? ' sel' : ''}${it.ancient ? ' ancient' : ''}" style="border-color:${col};background:radial-gradient(circle, ${hexA(col, 0.16)}, var(--panel-2) 70%)"><img src="${itemIcon(it).url}" alt="${it.name}">${it.ancient ? '<span class="anc">★</span>' : ''}${it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' ? '' : `<span class="lv">${it.ilvl}</span>`}${it.qty > 1 ? `<span class="qty">×${it.qty}</span>` : ''}</div>`;
+    return `<div class="cell${sel ? ' sel' : ''}${it.ancient ? ' ancient' : ''}" style="border-color:${col};background:radial-gradient(circle, ${hexA(col, 0.16)}, var(--panel-2) 70%)"><img src="${itemIcon(it).url}" alt="${it.name}">${it.ancient ? '<span class="anc">★</span>' : ''}${it.ench ? `<span class="ench">+${it.ench}</span>` : ''}${it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' ? '' : `<span class="lv">${it.ilvl}</span>`}${it.qty > 1 ? `<span class="qty">×${it.qty}</span>` : ''}</div>`;
   }
   const speedTag = (sp) => (sp < 0.31 ? '很快' : sp < 0.4 ? '快' : sp < 0.52 ? '中' : sp < 0.72 ? '慢' : '很慢');
   function itemLines(it) {
     const r = RAR[it.rarity];
-    let h = `<img class="dicon" src="${itemIcon(it).url}" alt="" style="border-color:${r.color}"><div class="nm" style="color:${r.color}">${it.name}</div><div class="sub">${it.slot === 'rstone' || it.slot === 'dcrystal' ? `材料${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` : it.slot === 'gmap' ? `秘境地圖${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'scroll' ? `消耗品${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'gem' ? `寶石 · 第 ${it.tier} 級${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` :`${r.name}${SLOT_NAME[it.slot]} · ${it.base} · 物品等級 ${it.ilvl}`}</div>`;
+    let h = `<img class="dicon" src="${itemIcon(it).url}" alt="" style="border-color:${r.color}"><div class="nm" style="color:${r.color}">${it.name}</div><div class="sub">${it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence' ? `材料${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` : it.slot === 'gmap' ? `秘境地圖${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'scroll' ? `消耗品${it.qty > 1 ? ` · 共 ${it.qty} 張` : ''}` : it.slot === 'gem' ? `寶石 · 第 ${it.tier} 級${it.qty > 1 ? ` · 共 ${it.qty} 顆` : ''}` :`${r.name}${SLOT_NAME[it.slot]} · ${it.base} · 物品等級 ${it.ilvl}`}</div>`;
+    if (it.ench) h += `<div style="color:#c78bff">地窟附魔 +${it.ench}：所有詞綴 +${it.ench * 4}%</div>`;
     if (it.ancient) h += '<div style="color:#ffb347">★ 太古：所有詞綴都是最高值，基礎數值 +30%</div>';
     if (isGear(it)) { const rq = reqLevel(it); h += `<div style="color:${levelOk(it) ? 'var(--muted)' : '#ff6b6b'}">需要等級 ${rq}${levelOk(it) ? '' : `（目前 ${P.lvl} 級）`}</div>`; }
     if (it.slot === 'weapon') { const wc = weaponClass(it); h += `<div style="color:${wc === curCls() ? CLASSES[wc].color : '#ff6b6b'}">${CLASSES[wc].name}武器${wc === curCls() ? '' : '（目前職業無法裝備）'}</div>`; }
@@ -4781,6 +4813,7 @@
     if (BELT_POT[it.base]) h += `<div>藥水上限 +${BELT_POT[it.base]}</div>`;
     for (const [k, v] of Object.entries(it.aff)) { const [lo, hi] = affRange(AFF[k], it.ilvl); h += `<div class="aff">${AFF[k].label(v)}<span class="rng">（${lo}–${hi}）</span></div>`; }
     if (it.special) h += `<div class="leg">${LEG[it.special].desc}</div>`;
+    if (it.slot === 'essence') h += '<div class="aff">菁英怪、魔王、住民任務和隱藏房間會掉落。在精華祭壇換地窟祝福，或找地窟裡的流浪鐵匠附魔裝備（要放在背包裡）。可以放進倉庫。</div>';
     if (it.slot === 'dcrystal') h += '<div class="aff">火龍必掉的材料。到營地的試煉秘境傳送門（龍魂祭壇）兌換或強化炎龍之魂套裝（要放在背包裡）。可以放進倉庫。</div>';
     if (it.slot === 'rstone') h += '<div class="aff">在營地的鐵匠精煉裝備詞綴時使用（要放在背包裡）。分解裝備或打倒魔王可以取得。可以放進倉庫。</div>';
     if (it.slot === 'gmap') h += '<div class="aff">回到營地，走進金色的「金幣秘境傳送門」就會用掉一張，進入 3 分鐘的金幣秘境。放在背包或倉庫都可以。</div>';
@@ -4865,7 +4898,7 @@
       const cur = !isGear(it) ? null : P.equip[targetSlot(it)];
       if (cur) h += `<div class="cmp"><div class="sub">目前裝備</div>${itemLines(cur)}</div>`;
       const twoRings = it.slot === 'ring' && P.equip.ring && P.equip.ring2;
-      h += it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal'
+      h += it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence'
         ? `<div class="inv-actions"><button id="sellBtn" type="button">賣出（${itemValue(it)} 金）</button></div>`
         : it.slot === 'scroll'
         ? `<div class="inv-actions"><button class="primary" id="useBtn" type="button"${G.camp || G.realm || G.challenge || G.goldRealm || G.trialRealm ? ' disabled' : ''}>使用</button><button id="sellBtn" type="button">賣出（${itemValue(it)} 金）</button></div>${G.camp ? '<div class="sub">傳送卷軸要在地窟裡使用。</div>' : G.realm || G.challenge || G.goldRealm || G.trialRealm ? '<div class="sub">秘境和魔王挑戰裡不能使用。</div>' : ''}`
@@ -4941,6 +4974,7 @@
     if (it.slot === 'scroll') { closeInv(); useScroll(); return; }
     if (it.slot === 'gmap') { logMsg('金幣秘境地圖要到營地，走進金幣秘境傳送門使用', '#ffd34d'); return; }
     if (it.slot === 'rstone') { logMsg('精煉石要到營地的鐵匠那裡精煉裝備時使用', '#9cd4ff'); return; }
+    if (it.slot === 'essence') { logMsg('地窟精華要在地窟裡的精華祭壇或流浪鐵匠那裡使用', '#c78bff'); return; }
     if (it.slot === 'dcrystal') { logMsg('龍魂結晶要到營地的龍魂祭壇（試煉秘境傳送門）使用', '#ff8a5a'); return; }
     if (!canUse(it)) { logMsg(`這是${CLASSES[weaponClass(it)].name}的武器，${CLASSES[P.cls].name}不能裝備`, '#ff6b6b'); return; }
     if (!levelOk(it)) { logMsg(`需要等級 ${reqLevel(it)} 才能裝備 ${it.name}`, '#ff6b6b'); return; }
@@ -4959,7 +4993,7 @@
     P.gold += itemValue(it); P.bag.splice(i, 1); selected = null; renderInv();
   }
   $('buyPotBtn').addEventListener('click', () => { if (P.gold >= 50 && P.potions < potMax()) { P.gold -= 50; P.potions++; renderInv(); } });
-  const RAR_ORDER = { lset: -1, legendary: 0, set: 1, rare: 2, magic: 3, common: 4, gem: 5, scroll: 6, gmap: 7, rstone: 8, dcrystal: 9 };
+  const RAR_ORDER = { lset: -1, legendary: 0, set: 1, rare: 2, magic: 3, common: 4, gem: 5, scroll: 6, gmap: 7, rstone: 8, dcrystal: 9, essence: 10 };
   // one filter shared by the bag and the stash
   function itemMatch(it, f) {
     if (!it) return false;
@@ -4971,12 +5005,12 @@
     if (f === 'ring') return it.slot === 'ring' || it.slot === 'ring2';
     return it.slot === f;
   }
-  const SORT_SLOTS = [...ITEM_SLOTS, 'gem', 'scroll', 'gmap', 'rstone', 'dcrystal'], CLS_ORDER = ['warrior', 'mage', 'archer'];
+  const SORT_SLOTS = [...ITEM_SLOTS, 'gem', 'scroll', 'gmap', 'rstone', 'dcrystal', 'essence'], CLS_ORDER = ['warrior', 'mage', 'archer'];
   const byQuality = (a, b) => (RAR_ORDER[a.rarity] ?? 9) - (RAR_ORDER[b.rarity] ?? 9) || (b.slot === 'gem' && a.slot === 'gem' ? a.gem.localeCompare(b.gem) || b.tier - a.tier : 0) || b.ilvl - a.ilvl;
   // by body part: weapons first (grouped by class), then armour pieces, jewellery and gems
   const sortBySlot = (a, b) => SORT_SLOTS.indexOf(a.slot) - SORT_SLOTS.indexOf(b.slot) || (a.slot === 'weapon' ? CLS_ORDER.indexOf(weaponClass(a)) - CLS_ORDER.indexOf(weaponClass(b)) : 0) || byQuality(a, b);
   // by class: each class's weapons, then gear anyone can wear, then gems
-  const clsGroup = (it) => (it.slot === 'weapon' ? CLS_ORDER.indexOf(weaponClass(it)) : it.slot === 'gem' ? 4 : it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' ? 5 : 3);
+  const clsGroup = (it) => (it.slot === 'weapon' ? CLS_ORDER.indexOf(weaponClass(it)) : it.slot === 'gem' ? 4 : it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence' ? 5 : 3);
   const sortByCls = (a, b) => clsGroup(a) - clsGroup(b) || SORT_SLOTS.indexOf(a.slot) - SORT_SLOTS.indexOf(b.slot) || byQuality(a, b);
   $('bagFilter').addEventListener('change', () => { selected = null; renderInv(); });
   // select everything the filter shows, then confirm the sale in the multi-sell panel
@@ -5175,6 +5209,7 @@
   function enterCamp(msg) {
     if (G && G.abyss) abyssRecord();
     if (P.stTrade) { P.stTrade = false; refreshStats(); }
+    clearBless();
     genCamp();
     mode = 'play';
     $('floorName').textContent = '營地';
@@ -5184,7 +5219,7 @@
     save();
   }
 
-  const npcList = () => (G ? (G.npcs || (G.merchant ? [G.merchant] : [])) : []);
+  const npcList = () => (G ? [...(G.npcs || (G.merchant ? [G.merchant] : [])), ...(G.xnpc || []), ...(G.dn && G.dn.npc ? [G.dn.npc] : []), ...(G.altars || [])] : []);
   function nearNpc() {
     let best = null, bd = 58;
     for (const n of npcList()) { const d = Math.hypot(P.x - n.x, P.y - n.y); if (d < bd) { bd = d; best = n; } }
@@ -5202,6 +5237,7 @@
     else if (k === 'jeweler') openJeweler();
     else if (k === 'scholar') openScholar();
     else if (k === 'keeper') openKeeper();
+    else if (k === 'dn') dnUse(n);
     else if (k === 'tpgate') returnThroughGate();
     else if (k === 'goldgate') startGoldRealm();
     else if (k === 'trialgate') openAltar();
@@ -5220,6 +5256,8 @@
   }
   ['forgeScreen', 'stashScreen', 'portalScreen', 'gemScreen', 'scholarScreen', 'altarScreen', 'pvpScreen'].forEach((id) => $(id).addEventListener('click', (e) => { if (e.target.id === id) closeOverlay(); }));
   document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeOverlay));
+  $('enchClose').addEventListener('click', () => closeEnch());
+  $('enchScreen').addEventListener('click', (e) => { if (e.target.id === 'enchScreen') closeEnch(); });
 
   // ---------- town portal scroll: camp and back to the very same spot, once ----------
   const TP_PRICE = 3000;
@@ -5227,7 +5265,7 @@
   function useScroll() {
     if (mode !== 'play' || partyBlocked('使用傳送卷軸')) return;
     if (G.camp) { logMsg(tpFloor ? '走進營地裡的藍色回程傳送門，就能回到剛才的位置' : '傳送卷軸要在地窟裡使用', '#7fb8ff'); return; }
-    if (G.realm || G.challenge || G.goldRealm || G.trialRealm || G.pvp || G.abyss || G.temple) { logMsg('秘境、魔王挑戰、無盡深淵和競技場裡不能使用傳送卷軸', '#ff6b6b'); return; }
+    if (G.realm || G.challenge || G.goldRealm || G.trialRealm || G.pvp || G.abyss || G.temple || G.vault) { logMsg('秘境、魔王挑戰、無盡深淵和競技場裡不能使用傳送卷軸', '#ff6b6b'); return; }
     const si = P.bag.findIndex((x) => x.slot === 'scroll');
     if (si < 0) { logMsg('背包裡沒有傳送卷軸：可以向商人購買', '#ff6b6b'); return; }
     const sc = P.bag[si]; if ((sc.qty || 1) > 1) sc.qty--; else P.bag.splice(si, 1);
@@ -5282,6 +5320,7 @@
     if (P.resume > 1) rows.push({ d: P.resume, label: `繼續冒險：第 ${P.resume} 層`, sub: tierOf(P.resume).name, primary: true });
     for (let d = 1; d <= P.checkpoint; d += 5) rows.push({ d, label: `第 ${d} 層`, sub: `${tierOf(d).name}・據點`, primary: !rows.length && d === P.checkpoint });
     if (inParty() && NET.mode === 'host') rows.push({ temple: true, label: '日月神殿（雙人關卡）', sub: templeReady() ? `兩人分別是「日」與「月」，三個房間加雙生魔王${P.templeClears ? `・已通關 ${P.templeClears} 次` : ''}` : '隊伍要剛好 2 人才能進入' });
+    if ((coll().seal || 0) >= 4 && NET.mode !== 'client') rows.push({ vault: true, label: '失落的寶庫', sub: `消耗 4 枚寶庫印記（持有 ${coll().seal} 枚）・限時 3 分鐘` });
     if (abyssOpen()) { const rec = P.abyss && P.abyss[inParty() ? 'party' : 'solo']; rows.push({ abyss: true, label: '無盡深淵', sub: `從第 ${ABYSS_START} 層開始，倒下就結束${rec ? `・紀錄：${DIFFS[rec.diff || 0].name} 第 ${rec.floor} 層` : ''}` }); }
     $('portalList').innerHTML = rows.map((r, i) => `<button class="way${r.primary ? ' primary' : ''}" type="button" data-i="${i}"><b>${r.label}</b><small>${r.sub}</small></button>`).join('');
     $('portalList').querySelectorAll('[data-i]').forEach((b) => b.addEventListener('click', () => {
@@ -5289,6 +5328,7 @@
       $('portalScreen').hidden = true; mode = 'play';
       if (tpFloor) { tpFloor = null; logMsg('回程傳送門關閉了', '#9a8fa6'); }
       if (r.abyss) { abyssGo(ABYSS_START, true); save(); return; }
+      if (r.vault) { startVault(); return; }
       if (r.temple) { if (templeReady()) startTemple(1); else logMsg('日月神殿需要剛好 2 人的隊伍', '#ff6b6b'); return; }
       genFloor(r.d); save();
     }));
@@ -5393,6 +5433,7 @@
     stat('forges'); sfx('forge');
     if (old.special && rarity === 'legendary') { it.special = old.special; it.name = old.name; }
     if (old.ancient) ancientize(it);
+    if (old.ench) it.ench = old.ench;
     return it;
   }
   function renderForge() {
@@ -5411,7 +5452,7 @@
     const det = $('forgeDetail'), it = forgeItem();
     // gems have no item level: show only gem actions, not the blacksmith's upgrade line about raising item level
     if (it && it.slot === 'gem') { det.innerHTML = itemLines(it) + forgeExtraHtml(it); bindForgeExtra(it); return; }
-    if (it && (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal')) { det.innerHTML = itemLines(it) + '<div class="sub">這個物品不能強化。</div>'; return; }
+    if (it && (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence')) { det.innerHTML = itemLines(it) + '<div class="sub">這個物品不能強化。</div>'; return; }
     if (!it) { det.innerHTML = salvageAllHtml() + upgradeHtml('smith') + '<div class="sub-h">寶石合成</div><span class="sub">寶石合成請找營地裡的<b>寶石商人</b>（傳送門左邊）。</span>' + '<div class="sub-h">鍛造</div><span class="sub">選一件裝備或寶石。<br><b>鑲嵌</b>：把寶石放進裝備的鑲孔。<br><b>打孔</b>：為魔法以上的裝備增加鑲孔，失敗只扣金幣。<br><b>提升等級</b>：把裝備升到目前樓層的物品等級。<br><b>重鑄</b>：保留稀有度，重新隨機所有詞綴。<br><b>強化</b>：普通變魔法、魔法變稀有，並重新產生詞綴。<br><b>精煉</b>：花精煉石重骰一條詞綴，三選一。<br><b>分解</b>：把背包裡的裝備拆成精煉石，可以依物品等級、顏色、傳說或套裝篩選。</span>'; bindUpgrade(det, renderForge); bindSalvageAll(); return; }
     const rc = rerollCost(it), next = NEXT_RAR[it.rarity], uc = next ? upgradeCost(it) : 0;
     let h = itemLines(it);
@@ -6190,6 +6231,7 @@
   RAR.gmap = { name: '秘境地圖', color: '#ffd34d', mult: 100 };
   RAR.rstone = { name: '精煉石', color: '#9cd4ff', mult: 5 };
   RAR.dcrystal = { name: '龍魂結晶', color: '#ff7a3a', mult: 20 };
+  RAR.essence = { name: '地窟精華', color: '#c78bff', mult: 10 };
   const SETS = [
     { id: 'frost', name: '冰霜之王', slots: ['helm', 'armor', 'gloves', 'boots'], b2: { fTaken: -10, lifePct: 10 }, b2d: '受到的傷害最終 −10%、生命 +10%',
       b3: 'setFrostNova', b3d: '受到攻擊時 25% 機率自動施放「冰霜新星」：120% 範圍傷害並冰凍 2 秒（6 秒冷卻）',
@@ -6269,7 +6311,7 @@
     return { id: uid(), slot: 'gem', gem: type, tier, rarity: 'gem', ilvl: tier, aff: {}, base: g.name, name: GEM_TIER[tier - 1] + g.name };
   }
   // gems of the same type and tier share one bag slot, counted by qty
-  function sameGem(a, b) { return a !== b && ((a.slot === 'gem' && b.slot === 'gem' && a.gem === b.gem && a.tier === b.tier) || (a.slot === 'scroll' && b.slot === 'scroll') || (a.slot === 'gmap' && b.slot === 'gmap') || (a.slot === 'rstone' && b.slot === 'rstone') || (a.slot === 'dcrystal' && b.slot === 'dcrystal')); }
+  function sameGem(a, b) { return a !== b && ((a.slot === 'gem' && b.slot === 'gem' && a.gem === b.gem && a.tier === b.tier) || (a.slot === 'scroll' && b.slot === 'scroll') || (a.slot === 'gmap' && b.slot === 'gmap') || (a.slot === 'rstone' && b.slot === 'rstone') || (a.slot === 'dcrystal' && b.slot === 'dcrystal') || (a.slot === 'essence' && b.slot === 'essence')); }
   function gemQty(g) { return g.qty || 1; }
   function canStash(arr, it, max) { return arr.length < max || (stacks(it) && arr.some((g) => sameGem(g, it))); }
   function stackInto(arr, it, max) {
@@ -6989,6 +7031,8 @@
   function eventBarText() {
     if (G && G.temple && G.tp) return templeBarText();
     if (G && G.st && G.st.hintText && !G.camp) return G.st.hintText;
+    if (G && G.vault) return `失落的寶庫：剩 ${fmtTime(G.vault.t)}${G.boss ? '・寶庫之主還在' : ''}・走樓梯可以隨時離開`;
+    if (G && G.dn && G.dn.hint && !G.camp) return G.dn.hint;
     if (G && G.trialRealm && G.aw && G.boss) return awBarText();
     if (G && G.trialRealm) return G.boss ? '試煉秘境：打倒火龍' : '試煉完成：走樓梯回營地';
     if (G && G.goldRealm) return `金幣秘境：剩下 ${Math.floor(G.goldRealm.t / 60)}:${String(Math.floor(G.goldRealm.t % 60)).padStart(2, '0')}・已獲得 ${G.goldRealm.earned.toLocaleString()} 金幣`;
@@ -7052,7 +7096,7 @@
     if (d.kind !== 'item') return true;
     const it = d.item;
     if (it.slot === 'gem') return CFG.pick.gem;
-    if (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal') return true;
+    if (it.slot === 'scroll' || it.slot === 'gmap' || it.slot === 'rstone' || it.slot === 'dcrystal' || it.slot === 'essence') return true;
     if (it.ancient) return true;
     if (it.slot === 'weapon' && !CFG.pick.otherCls && weaponClass(it) !== curCls()) return false;
     return CFG.pick[it.rarity] !== false;
@@ -7732,6 +7776,10 @@
     if (ks('ksFort')) { s.fTaken *= 0.8; s.fMove = (s.fMove || 1) * 0.85; }
     if (ks('ksGlass')) { s.fDmg *= 1.3; s.fLife *= 0.8; }
     if (P && P.stTrade) s.fLife *= 0.8;
+    for (const k of (P && P.bless) || []) {
+      if (k === 'dmg') s.fDmg *= 1.15; else if (k === 'atk') s.fAtk *= 1.1; else if (k === 'life') s.fLife *= 1.15;
+      else if (k === 'gold') s.goldFind += 50; else if (k === 'cdr') s.cdr += 10;
+    }
     if (ks('ksSniper')) { s.fAtk *= 0.7; s.fDmg *= 1.6; s.rangePct += 20; }
   }
   const liveTakenMul = () => (ks('ksGlacier') && P.shield > 0 ? 0.85 : 1) * (P.dodgeT > 0 ? 0.6 : 1) * (P.coreT > 0 ? 0.8 : 1) * (P.dformT > 0 ? 0.6 : 1);
@@ -9733,6 +9781,365 @@
     if (lines.length) storySay(lines, { local: true });
   }
 
+  // ================= 地窟住民、地窟精華、隱藏房間、失落的寶庫 =================
+  Object.assign(SPK, {
+    lost: ['迷路的冒險者', '#e8dcc0'], hunter: ['受傷的獵人', '#c9a070'], collector: ['古董收藏家', '#d8b070'], gambler: ['賭徒', '#ffd34d'],
+    dsmith: ['流浪鐵匠', '#ff8a3d'], prayer: ['祈禱者', '#c78bff'], hmerchant: ['隱藏商人', '#7fd6ff'],
+  });
+  const essCount = () => P.bag.reduce((n, x) => n + (x.slot === 'essence' ? x.qty || 1 : 0), 0);
+  function takeEss(n) {
+    if (essCount() < n) return false;
+    for (let i = P.bag.length - 1; i >= 0 && n > 0; i--) {
+      const x = P.bag[i]; if (x.slot !== 'essence') continue;
+      const k = Math.min(n, x.qty || 1); n -= k; x.qty = (x.qty || 1) - k;
+      if (x.qty <= 0) P.bag.splice(i, 1);
+    }
+    return true;
+  }
+  const giveEss = (n, x, y) => { if (n > 0) dropAt(x ?? P.x, y ?? P.y, { kind: 'item', item: makeEssence(n) }); };
+  function giveSeal(n = 1) { const c = coll(); c.seal = (c.seal || 0) + n; logMsg(`獲得寶庫印記（${c.seal} 枚，集滿 4 枚可以開啟失落的寶庫）`, '#ffd34d'); sfx('pickup'); }
+
+  // ---- 地窟祝福: picked three at a time, gone when the adventure ends (camp or death)
+  const BLESS = {
+    dmg: { name: '狂熱', desc: '傷害 +15%' }, atk: { name: '迅捷', desc: '攻擊速度 +10%' }, life: { name: '堅韌', desc: '最大生命 +15%' },
+    heal: { name: '嗜血', desc: '擊殺回復 1% 生命' }, gold: { name: '貪婪', desc: '金幣掉落 +50%' }, elite: { name: '獵手', desc: '菁英怪 30% 機率多掉一件裝備' },
+    cdr: { name: '專注', desc: '技能冷卻 −10%' }, dash: { name: '衝鋒', desc: '衝刺時對周圍造成 100% 傷害' },
+  };
+  const BLESS_MAX = 10;
+  const blessN = (k) => (P && P.bless ? P.bless.filter((x) => x === k).length : 0);
+  function offerBless(cost, src, onGot) {
+    P.bless = P.bless || [];
+    if (P.bless.length >= BLESS_MAX) { logMsg(`地窟祝福已經疊滿 ${BLESS_MAX} 個了`, '#9a8fa6'); return; }
+    if (cost && essCount() < cost) { logMsg(`需要 ${cost} 顆地窟精華（背包裡有 ${essCount()} 顆）`, '#ff6b6b'); return; }
+    const keys = Object.keys(BLESS).sort(() => Math.random() - 0.5).slice(0, 3);
+    storySay([['you', `${src}：選一個地窟祝福${cost ? `（花 ${cost} 顆精華）` : ''}。目前 ${P.bless.length}/${BLESS_MAX} 個，回營地或倒下就會消失。`]], {
+      local: true,
+      choices: [...keys.map((k) => ({ label: `${BLESS[k].name}：${BLESS[k].desc}${blessN(k) ? `（已有 ${blessN(k)} 層）` : ''}` })), { label: '先不要' }],
+      onDone: (i) => {
+        const k = keys[i]; if (!k) return;
+        if (cost && !takeEss(cost)) return;
+        P.bless.push(k); refreshStats(); if (onGot) onGot();
+        logMsg(`獲得地窟祝福「${BLESS[k].name}」：${BLESS[k].desc}`, '#c78bff'); sfx('level'); save();
+      },
+    });
+  }
+  function clearBless() { if (P.bless && P.bless.length) { P.bless = []; refreshStats(); logMsg('地窟祝福消散了', '#9a8fa6'); } }
+
+  // ---- 地窟附魔: only the wandering smith inside the dungeon can do it
+  const ENCH_MAX = 5, enchLv = (it) => it.ench || 0;
+  const enchCost = (it) => { const n = enchLv(it) + 1; return { ess: n * 10, gold: Math.round(it.ilvl * 2000 * n), ok: n <= 3 ? 1 : 0.7 }; };
+  let enchList = [];
+  function openEnch() { mode = 'ench'; mouse.down = false; renderEnch(); $('enchScreen').hidden = false; }
+  function renderEnch() {
+    enchList = [...SLOTS.filter((s) => P.equip[s]).map((s) => ({ it: P.equip[s], where: '身上' })), ...P.bag.filter(isGear).map((it) => ({ it, where: '背包' }))];
+    let h = `<div class="sub">地窟精華 <b>${essCount()}</b> 顆・附魔保護符 <b>${P.enchCharm || 0}</b> 個・金幣 ${fmtN(P.gold)}<br>每級讓裝備的所有詞綴 +4%，最多 +5。第 4、5 級成功率 70%：失敗不會降級，但會扣掉精華（有保護符時改成消耗保護符）。</div><div class="gem-list">`;
+    h += enchList.map(({ it, where }, i) => {
+      const n = enchLv(it), c = enchCost(it), can = n < ENCH_MAX && essCount() >= c.ess && P.gold >= c.gold;
+      return `<div class="gem-row"><img src="${itemIcon(it).url}" alt=""><span class="gname" style="color:${RAR[it.rarity].color}">${it.name}${n ? ` +${n}` : ''}<br><small class="sub">${where}・物品等級 ${it.ilvl}</small></span>`
+        + `<button type="button" data-en="${i}"${can ? '' : ' disabled'}>${n >= ENCH_MAX ? '附魔已滿' : `附魔 +${n + 1}（${c.ess} 精華・${fmtN(c.gold)} 金${c.ok < 1 ? '・70%' : ''}）`}</button></div>`;
+    }).join('') || '<div class="sub">沒有可以附魔的裝備。</div>';
+    $('enchBody').innerHTML = h + '</div>';
+    $('enchBody').querySelectorAll('[data-en]').forEach((b) => b.addEventListener('click', () => doEnch(enchList[+b.dataset.en].it)));
+  }
+  function doEnch(it) {
+    const c = enchCost(it);
+    if (enchLv(it) >= ENCH_MAX || essCount() < c.ess || P.gold < c.gold) return;
+    P.gold -= c.gold;
+    if (Math.random() < c.ok) { takeEss(c.ess); it.ench = enchLv(it) + 1; logMsg(`附魔成功：${it.name} +${it.ench}`, '#c78bff'); sfx('forge'); }
+    else if (P.enchCharm > 0) { P.enchCharm--; logMsg('附魔失敗了，保護符碎裂，精華沒有損失', '#9a8fa6'); sfx('hurt'); }
+    else { takeEss(c.ess); logMsg('附魔失敗了，精華消散……', '#ff6b6b'); sfx('hurt'); }
+    refreshStats(); save(); renderEnch();
+  }
+  function closeEnch() { $('enchScreen').hidden = true; if (mode === 'ench') { mode = 'play'; save(); } }
+
+  // ---- floor NPCs (30% of ordinary floors from floor 2); the leader runs their tasks
+  const DN = {
+    lost: { name: '迷路的冒險者', color: '#e8dcc0' }, hunter: { name: '受傷的獵人', color: '#c9a070' }, collector: { name: '古董收藏家', color: '#d8b070' },
+    gambler: { name: '賭徒', color: '#ffd34d' }, smith: { name: '流浪鐵匠', color: '#ff8a3d' }, prayer: { name: '祈禱者', color: '#c78bff' },
+  };
+  const dnNpc = (k, x, y) => ({ x, y, r: 12, kind: 'dn', dk: k, name: DN[k].name, color: DN[k].color, verb: k === 'gambler' ? '和賭徒擲骰子' : k === 'smith' ? '找流浪鐵匠附魔' : `和${DN[k].name}說話` });
+  function dnSetup() {
+    if (mode === 'title') return;
+    if (NET.mode === 'client' || NET.floorKind || !G || G.camp || G.st || G.bossFloor || G.depth < 2 || Math.random() > 0.3) return;
+    const k = pick(Object.keys(DN)), p = stSpots(1)[0];
+    G.dn = { k, state: 'idle', npc: dnNpc(k, p.x, p.y), hp: 100, relics: [], got: 0, dropped: 0, miss: 0, cnt: 0, need: 0, t: 0 };
+    logMsg(`這一層有一位${DN[k].name}（小地圖上的米色點）`, DN[k].color);
+  }
+  function dnUse(n) {
+    if (n.dk === 'hmerchant') { hiddenShop(); return; }
+    if (n.dk === 'altar') { if (n.used) { logMsg('這座祭壇的力量已經被你用掉了', '#9a8fa6'); return; } offerBless(5, '精華祭壇', () => { n.used = true; }); return; }
+    const dn = G.dn; if (!dn) return;
+    if (dn.k === 'gambler') { gamble(); return; }
+    if (dn.k === 'smith') { openEnch(); return; }
+    if (NET.mode === 'client') { netSend(null, { t: 'dnAct' }); return; }
+    dnAct();
+  }
+  function dnAct() {
+    const dn = G.dn; if (!dn || dn.client || stDlg) return;
+    const k = dn.k;
+    if (dn.state === 'idle') {
+      if (k === 'hunter') {
+        const counts = {};
+        for (const e of G.enemies) if (!e.dead && e.type !== 'boss' && !e.minion) counts[e.type] = (counts[e.type] || 0) + 1;
+        const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+        dn.mode = !top || Math.random() < 0.5 ? 'elite' : 'count';
+        if (dn.mode === 'count') { dn.type = top[0]; dn.need = clamp(Math.floor(top[1] * 0.8), 5, 25); }
+      }
+      // built per NPC: the hunter's line reads the bounty, which only the hunter has
+      const intro = k === 'lost' ? [['lost', '「謝天謝地，終於有人來了！我在這層迷路好幾天了。」'], ['lost', '「帶我走到樓梯好嗎？我會跟著你，別讓怪物靠近我。」']]
+        : k === 'hunter' ? [['hunter', '「我的腿傷了，追不動了……」'], ['hunter', dn.mode === 'elite' ? '「這層有一隻特別兇的傢伙，替我收拾牠，報酬不會少。」' : `「這層的${EDEF[dn.type].name}太多了，替我清掉 ${dn.need} 隻。」`]]
+        : k === 'collector' ? [['collector', '「這一層的怪物身上藏著古老的遺物。」'], ['collector', '「替我找三件回來，我會好好報答你。」']]
+        : [['prayer', '「我必須在這裡完成祈禱，但怪物不會讓我安靜……」'], ['prayer', '「守護我 30 秒，我會把祝福分給每一個人。」']];
+      storySay(intro, { onDone: () => dnStart(dn) });
+    } else if (dn.state === 'turnin') {
+      storySay([['collector', '「就是這些！挑一樣報酬吧。」']], { choices: [{ label: '2 顆 4 級寶石' }, { label: '10 顆精煉石' }, { label: '1 枚寶庫印記' }],
+        onDone: (i) => { dn.state = 'done'; dnGive(['gem', 'stone', 'seal'][Math.max(0, i)]); } });
+    } else if (dn.state === 'active') storySay([[k === 'hunter' ? 'hunter' : k, '「拜託了，我需要你的幫忙！」']]);
+    else if (dn.state === 'done') storySay([[k, '「謝謝你，路上小心。」']]);
+    else storySay([[k, '「……」']]);
+  }
+  function dnStart(dn) {
+    dn.state = 'active'; dn.t = 0; dn.wave = 0;
+    if (dn.k === 'hunter' && dn.mode === 'elite') {
+      const p = stSpots(1)[0], e = spawnEnemy(pick(['skeleton', 'archer', 'assassin', 'spider']), p.x, p.y, true);
+      e.hp = e.maxHp = e.maxHp * 6; e.stName = '懸賞目標'; dn.target = e;
+    }
+    if (dn.k === 'prayer') dn.left = 30;
+    logMsg(`任務開始：${dnHint(dn)}`, DN[dn.k].color);
+  }
+  function dnFinish(dn, rk, line) {
+    dn.state = 'done'; dnGive(rk);
+    if (line) storySay([[dn.k, line]]);
+  }
+  // rewards go to every player; each rolls their own loot
+  function dnGive(rk) {
+    if (NET.mode === 'host') netSend(null, { t: 'dnReward', k: rk });
+    dnReward(rk);
+  }
+  function dnReward(rk) {
+    const il = lootDepth() + 1, gold = () => Math.round(ri(20, 35) * goldDepth(G.depth) * diffOf().gold);
+    if (rk === 'lost') { dropAt(P.x, P.y, { kind: 'item', item: makeItem(il, atLeastRare(rollRarity(3))) }); for (let k = 0; k < 3; k++) dropAt(P.x, P.y, { kind: 'gold', amount: gold() }); giveEss(5); }
+    if (rk === 'bounty') { for (let k = 0; k < 2; k++) dropAt(P.x, P.y, { kind: 'item', item: makeItem(il, atLeastRare(rollRarity(4))) }); giveEss(3); }
+    if (rk === 'gem') for (let k = 0; k < 2; k++) dropAt(P.x, P.y, { kind: 'item', item: makeGem(pick(Object.keys(GEMS)), 4) });
+    if (rk === 'stone') dropAt(P.x, P.y, { kind: 'item', item: makeRStone(10) });
+    if (rk === 'seal') giveSeal(1);
+    if (rk === 'bless') offerBless(0, '祈禱者的祝福');
+    logMsg('得到了住民的報酬！', '#ffd34d'); sfx('chest');
+  }
+  function dnHint(dn) {
+    const k = dn.k;
+    if (dn.state === 'idle') return '';
+    if (dn.state === 'done') return `${DN[k].name}：任務完成`;
+    if (dn.state === 'fail') return `${DN[k].name}：任務失敗了`;
+    if (dn.state === 'turnin') return '把遺物交給古董收藏家（按 E）';
+    if (k === 'lost') return `護送迷路的冒險者走到樓梯・生命 ${Math.max(0, Math.round(dn.hp))}%`;
+    if (k === 'hunter') return dn.mode === 'elite' ? '懸賞：打倒「懸賞目標」（地圖上標成橘色）' : `懸賞：擊殺${EDEF[dn.type].name}（${dn.cnt}/${dn.need}）`;
+    if (k === 'collector') return `收集地窟遺物（${dn.got}/3，打倒怪物有機會掉落）`;
+    if (k === 'prayer') return `守護祈禱者・剩 ${Math.max(0, Math.ceil(dn.left))} 秒・生命 ${Math.max(0, Math.round(dn.hp))}%`;
+    return '';
+  }
+  function dnTick(dt) {
+    const dn = G.dn; if (!dn || dn.client) return;
+    if (dn.state === 'active') {
+      const list = tpTargets(), n = dn.npc;
+      const hurt = () => { let c = 0; for (const e of G.enemies) if (!e.dead && Math.hypot(e.x - n.x, e.y - n.y) < 46) c++; dn.hp -= c * 5 * dt; };
+      dn.t += dt;
+      if (dn.k === 'lost') {
+        // the adventurer walks the leader's footsteps, so corners never trap them
+        const tgt = list.slice().sort((a, b) => Math.hypot(a.x - n.x, a.y - n.y) - Math.hypot(b.x - n.x, b.y - n.y))[0];
+        dn.trail = dn.trail || [];
+        if (tgt) {
+          const last = dn.trail[dn.trail.length - 1];
+          if (!last || Math.hypot(tgt.x - last.x, tgt.y - last.y) > 16) dn.trail.push({ x: tgt.x, y: tgt.y });
+          if (dn.trail.length > 400) dn.trail.shift();
+          const far = Math.hypot(tgt.x - n.x, tgt.y - n.y);
+          while (dn.trail.length && Math.hypot(dn.trail[0].x - n.x, dn.trail[0].y - n.y) < 8) dn.trail.shift();
+          if (far > 50 && far < 420 && dn.trail.length) { const w = dn.trail[0], dx = w.x - n.x, dy = w.y - n.y, d = Math.hypot(dx, dy) || 1, st = Math.min(d, 150 * dt); n.x += dx / d * st; n.y += dy / d * st; }
+        }
+        hurt();
+        if (dn.hp <= 0) { dn.state = 'fail'; logMsg('迷路的冒險者倒下了……任務失敗', '#ff6b6b'); }
+        else if (Math.hypot(n.x - (G.stairs.x + 0.5) * TILE, n.y - (G.stairs.y + 0.5) * TILE) < 3.5 * TILE) dnFinish(dn, 'lost', '「到了！謝謝你，這些東西你拿去吧。」');
+      } else if (dn.k === 'hunter') {
+        if (dn.mode === 'elite' && (!dn.target || dn.target.dead || !G.enemies.includes(dn.target))) dnFinish(dn, 'bounty', '「漂亮！這是說好的報酬。」');
+        if (dn.mode === 'count' && dn.cnt >= dn.need) dnFinish(dn, 'bounty', '「清乾淨了！這是說好的報酬。」');
+      } else if (dn.k === 'collector') {
+        for (const r of dn.relics) if (!r.got && list.some((p) => Math.hypot(p.x - r.x, p.y - r.y) < 30)) { r.got = true; dn.got++; logMsg(`撿到地窟遺物（${dn.got}/3）`, '#d8b070'); sfx('pickup'); }
+        if (dn.got >= 3) { dn.state = 'turnin'; logMsg('遺物收齊了，回去找古董收藏家', '#d8b070'); }
+      } else if (dn.k === 'prayer') {
+        hurt();
+        if ((dn.wave -= dt) <= 0) { dn.wave = 8; stSpawnAround(n, 5); }
+        if (dn.hp <= 0) { dn.hp = 100; dn.left = 30; logMsg('祈禱被打斷了，要重新開始！', '#ff6b6b'); }
+        else if ((dn.left -= dt) <= 0) dnFinish(dn, 'bless', '「祈禱完成了。願光照亮你們的路。」');
+      }
+    }
+    dn.hint = dnHint(dn);
+  }
+  // host: count kills for the bounty and roll relics for the collector
+  function dnOnKill(e) {
+    const dn = G.dn; if (!dn || dn.client || dn.state !== 'active') return;
+    if (dn.k === 'hunter' && dn.mode === 'count' && e.type === dn.type) dn.cnt++;
+    if (dn.k === 'collector' && dn.dropped < 3 && !e.minion) {
+      if (Math.random() < 0.15 + dn.miss * 0.05) { dn.relics.push({ x: e.x, y: e.y, got: false }); dn.dropped++; dn.miss = 0; logMsg('怪物掉出了一件地窟遺物！', '#d8b070'); } else dn.miss++;
+    }
+  }
+  const dnPack = () => { const dn = G.dn, r = Math.round, t = dn.target && !dn.target.dead ? dn.target : null; return [dn.k, r(dn.npc.x), r(dn.npc.y), dn.state, r(dn.hp), dn.relics.filter((x) => !x.got).map((x) => [r(x.x), r(x.y)]), t ? [r(t.x), r(t.y - t.r - 22)] : 0, dn.hint || '']; };
+  function dnApply(a) {
+    const [k, x, y, state, hp, relics, lbl, hint] = a;
+    if (!G.dn || !G.dn.client || G.dn.k !== k) { G.dn = { client: true, k }; logMsg(`這一層有一位${DN[k].name}`, DN[k].color); }
+    Object.assign(G.dn, { npc: dnNpc(k, x, y), state, hp, relics: relics.map(([rx, ry]) => ({ x: rx, y: ry })), lbl, hint });
+  }
+  function gamble() {
+    const cost = Math.round(goldDepth(G.depth) * 80 * diffOf().gold);
+    G.bets = G.bets || 0;
+    if (G.bets >= 3) { storySay([['gambler', '「今天就到這裡吧，朋友。」']], { local: true }); return; }
+    storySay([['gambler', `「來賭一把？${fmtN(cost)} 金幣擲一次，贏了有好東西。」（今天還能擲 ${3 - G.bets} 次）`]], { local: true, choices: [{ label: `擲骰子（${fmtN(cost)} 金）` }, { label: '不了' }],
+      onDone: (i) => {
+        if (i !== 0) return;
+        if (P.gold < cost) { logMsg('金幣不夠', '#ff6b6b'); return; }
+        P.gold -= cost; G.bets++;
+        if (Math.random() >= 0.45) { logMsg('骰子是 1 點……什麼都沒有', '#9a8fa6'); sfx('hurt'); return; }
+        const r = Math.random();
+        if (r < 0.25) { const k = pick(Object.keys(SHRINES)); P.shrine = { type: k, t: 30 }; logMsg(`贏了！獲得 ${SHRINES[k].name}的效果 30 秒`, SHRINES[k].color); }
+        else if (r < 0.5) { dropAt(P.x, P.y, { kind: 'elixir', elixir: pick(Object.keys(ELIXIRS)) }); logMsg('贏了！獲得一瓶藥劑', '#6fd08c'); }
+        else if (r < 0.8) { dropAt(P.x, P.y, { kind: 'item', item: Math.random() < 0.15 ? guaranteedLegendary(lootDepth()) : makeItem(lootDepth(), 'rare') }); logMsg('贏了！獲得一件裝備', '#ffd34d'); }
+        else { giveEss(5); logMsg('贏了！獲得 5 顆地窟精華', '#c78bff'); }
+        sfx('level'); save();
+      } });
+  }
+  function hiddenShop() {
+    const base = goldDepth(G.depth) * diffOf().gold, price = { bless: Math.round(base * 300), charm: Math.round(base * 500), ess: Math.round(base * 400) };
+    storySay([['hmerchant', '「嘿，能找到這裡的人不多。看看我的貨吧。」']], { local: true,
+      choices: [{ label: `祝福卷軸：立刻選一個祝福（${fmtN(price.bless)} 金）` }, { label: `附魔保護符（${fmtN(price.charm)} 金）` }, { label: `10 顆地窟精華（${fmtN(price.ess)} 金）` }, { label: '離開' }],
+      onDone: (i) => {
+        const k = ['bless', 'charm', 'ess'][i]; if (!k) return;
+        if (P.gold < price[k]) { logMsg('金幣不夠', '#ff6b6b'); return; }
+        if (k === 'bless' && (P.bless || []).length >= BLESS_MAX) { logMsg(`地窟祝福已經疊滿 ${BLESS_MAX} 個了`, '#9a8fa6'); return; }
+        P.gold -= price[k];
+        if (k === 'bless') offerBless(0, '祝福卷軸');
+        if (k === 'charm') { P.enchCharm = (P.enchCharm || 0) + 1; logMsg(`買了附魔保護符（持有 ${P.enchCharm} 個）`, '#7fd6ff'); }
+        if (k === 'ess') giveEss(10);
+        sfx('coin'); save();
+      } });
+  }
+
+  // ---- hidden rooms: 15% of floors carve a small sealed room behind a cracked wall (same on every party member's map)
+  function hiddenRoom() {
+    G.crack = null;
+    if (G.depth < 2 || Math.random() > 0.15) return;
+    const rooms = G.rooms.filter((r) => r !== G.start && r !== G.stairRoom);
+    if (!rooms.length) return;
+    const w = 5, h = 4;
+    for (let t = 0; t < 30; t++) {
+      const r = pick(rooms), side = ri(0, 3);
+      let wx, wy, rx, ry;
+      if (side === 0) { wx = r.x + r.w; wy = r.y + ri(1, Math.max(1, r.h - 2)); rx = wx + 1; ry = wy - 1; }
+      else if (side === 1) { wx = r.x - 1; wy = r.y + ri(1, Math.max(1, r.h - 2)); rx = wx - w; ry = wy - 1; }
+      else if (side === 2) { wx = r.x + ri(1, Math.max(1, r.w - 2)); wy = r.y + r.h; rx = wx - 2; ry = wy + 1; }
+      else { wx = r.x + ri(1, Math.max(1, r.w - 2)); wy = r.y - 1; rx = wx - 2; ry = wy - h; }
+      if (rx < 2 || ry < 2 || rx + w > MW - 2 || ry + h > MH - 2 || G.map[wy * MW + wx] !== 1) continue;
+      let ok = true;
+      for (let y = ry - 1; ok && y <= ry + h; y++) for (let x = rx - 1; ok && x <= rx + w; x++) if (G.map[y * MW + x] !== 1) ok = false;
+      // the wall tile must touch the room on one side and the new room on the other
+      if (!ok) continue;
+      for (let y = ry; y < ry + h; y++) for (let x = rx; x < rx + w; x++) G.map[y * MW + x] = 0;
+      const kind = pick(['chest', 'guards', 'merchant']), cx = rx + 2, cy = ry + 2;
+      G.crack = { tx: wx, ty: wy, x: (wx + 0.5) * TILE, y: (wy + 0.5) * TILE, hits: 0, open: false, kind, cx, cy };
+      if (kind === 'chest') G.props.push({ prop: true, type: 'chest', big: true, hidden: true, tx: cx, ty: cy, x: (cx + 0.5) * TILE, y: (cy + 0.5) * TILE + 4, r: 12, opened: false });
+      if (kind === 'merchant') G.xnpc = [{ x: (cx + 0.5) * TILE, y: (cy + 0.5) * TILE, kind: 'dn', dk: 'hmerchant', name: '隱藏商人', color: '#7fd6ff', verb: '和隱藏商人交易' }];
+      return;
+    }
+  }
+  function crackHit() {
+    const k = G.crack; if (!k || k.open) return;
+    if (Math.hypot(P.x - k.x, P.y - k.y) > Math.max(90, S.range + 40)) return;
+    k.hits++; sparks(k.x, k.y, '#c8b88a', 8, 140); smoke(k.x, k.y, 3); shakeIt(2);
+    if (k.hits >= 3) { if (NET.mode === 'client') netSend(null, { t: 'dnCrack' }); else crackOpen(); }
+  }
+  function crackOpen() {
+    const k = G.crack; if (!k || k.open) return;
+    k.open = true; G.map[k.ty * MW + k.tx] = 0; G.tileCv = null;
+    shockwave(k.x, k.y, 70, 'rgba(200,184,138,0.9)', 0.4, 5); smoke(k.x, k.y, 12); sfx('boom');
+    logMsg(k.kind === 'guards' ? '牆後面是守衛的密室！' : k.kind === 'merchant' ? '牆後面藏著一位商人！' : '牆後面藏著一個寶箱！', '#ffd34d');
+    if (NET.mode === 'host') netSend(null, { t: 'dnCrack' });
+    if (k.kind === 'guards' && NET.mode !== 'client') for (let i = 0; i < 3; i++) {
+      const e = spawnEnemy(pick(['skeleton', 'assassin', 'archer']), (k.cx + i - 1 + 0.5) * TILE, (k.cy + 0.5) * TILE, true);
+      e.hp = e.maxHp = e.maxHp * 2; e.essBonus = 3; e.aggro = true;
+    }
+  }
+  function hiddenChestBonus(p) { giveEss(ri(5, 10), p.x, p.y); if (Math.random() < 0.5) giveSeal(1); }
+
+  // ---- 失落的寶庫: four seals open a three-minute treasure floor
+  const VAULT_T = 180;
+  function startVault() {
+    const c = coll();
+    if (NET.mode === 'client' || (c.seal || 0) < 4) return;
+    c.seal -= 4; closeOverlay(); tpFloor = null;
+    let d = Math.max(2, Math.min(P.best || 2, 99)); if (d % 5 === 0) d--;
+    NET.floorKind = 'vault'; genFloor(d); NET.floorKind = null;
+    buildArena(); $('log').innerHTML = '';
+    vaultSetup(true); save();
+  }
+  function vaultSetup(host) {
+    G.boss = null; $('bossBox').hidden = true; G.vault = { t: VAULT_T };
+    $('floorName').textContent = '失落的寶庫';
+    const spot = () => { for (let k = 0; k < 60; k++) { const x = (ri(3, MW - 4) + 0.5) * TILE, y = (ri(3, MH - 4) + 0.5) * TILE; if (!solidAt(x, y)) return { x, y }; } return { x: P.x, y: P.y }; };
+    for (let i = 0; i < 30; i++) { const p = spot(); dropAt(p.x, p.y, { kind: 'gold', amount: Math.round(ri(30, 60) * goldDepth(G.depth) * diffOf().gold) }); }
+    for (let i = 0; i < 8; i++) { const p = spot(), tx = Math.floor(p.x / TILE), ty = Math.floor(p.y / TILE); G.props.push({ prop: true, type: 'chest', big: true, tx, ty, x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE + 4, r: 12, opened: false }); }
+    if (host) {
+      for (let i = 0; i < 8; i++) { const p = spot(), e = spawnEnemy(pick(['skeleton', 'assassin', 'archer']), p.x, p.y, true); e.stName = '寶庫守衛'; e.vguard = true; }
+      const B = BOSSES[2], b = G.boss = spawnEnemy('boss', (MW / 2 + 0.5) * TILE, (Math.round(MH * 0.3) + 0.5) * TILE, false);
+      b.variant = { ...B, name: '寶庫之主' }; b.look = B.look; b.r = B.r; b.hp = b.maxHp = b.maxHp * 4; b.ringCd = 3; b.specCd = 5; b.summoned = true;
+      $('bossName').textContent = '寶庫之主';
+    }
+    logMsg('進入失落的寶庫！3 分鐘內盡量搜刮。守衛發現你會呼叫援軍，打倒寶庫之主必掉傳說', '#ffd34d');
+  }
+  function vaultTick(dt) {
+    if (!G.vault) return;
+    G.vault.t -= dt;
+    if (NET.mode === 'client') return;
+    for (const e of G.enemies) if (e.vguard && e.aggro && !e.called && !e.dead) { e.called = true; summonAround(e, 'skeleton', 3, 60); logMsg('寶庫守衛呼叫了援軍！', '#ff6b6b'); }
+    if (G.vault.t <= 0) { G.vault = null; enterCamp('寶庫的大門關上了，你帶著戰利品回到營地'); }
+  }
+
+  // ---- drawing
+  function drawDn(c) {
+    const t = G.time, k = G.crack;
+    if (k && !k.open && G.seen[k.ty * MW + k.tx]) {
+      c.save(); c.strokeStyle = 'rgba(30,24,20,0.85)'; c.lineWidth = 1.5; c.beginPath();
+      c.moveTo(k.x - 10, k.y - 14); c.lineTo(k.x - 2, k.y - 4); c.lineTo(k.x - 8, k.y + 4); c.lineTo(k.x + 2, k.y + 14);
+      c.moveTo(k.x - 2, k.y - 4); c.lineTo(k.x + 9, k.y - 8); c.stroke(); c.restore();
+      if (Math.hypot(P.x - k.x, P.y - k.y) < 160 && Math.random() < 0.05) embers(k.x + rnd(-8, 8), k.y + rnd(-8, 8), '#a89878', 1, 15, 10);
+    }
+    for (const a of G.altars || []) {
+      c.fillStyle = 'rgba(40,30,50,0.9)'; c.beginPath(); c.ellipse(a.x, a.y, 20, 11, 0, 0, 6.283); c.fill();
+      const g = c.createRadialGradient(a.x, a.y - 14, 2, a.x, a.y - 14, 26); g.addColorStop(0, a.used ? 'rgba(120,110,130,0.5)' : '#f3e6ff'); g.addColorStop(1, 'rgba(199,139,255,0)');
+      c.fillStyle = g; c.beginPath(); c.arc(a.x, a.y - 14 + Math.sin(t * 3) * 2, 26, 0, 6.283); c.fill();
+    }
+    const dn = G.dn;
+    if (dn && dn.npc) {
+      for (const r of dn.relics || []) if (!r.got) { const g = c.createRadialGradient(r.x, r.y - 6, 1, r.x, r.y - 6, 14); g.addColorStop(0, '#fff2c8'); g.addColorStop(0.5, '#d8b070'); g.addColorStop(1, 'rgba(216,176,112,0)'); c.fillStyle = g; c.beginPath(); c.arc(r.x, r.y - 6 + Math.sin(t * 4 + r.x) * 2, 14, 0, 6.283); c.fill(); }
+      stDrawGhost(c, dn.npc.x, dn.npc.y, dn.npc.color, 0, dn.state === 'fail' ? 0.35 : 1);
+    }
+    for (const n of G.xnpc || []) stDrawGhost(c, n.x, n.y, n.color, 1, 1);
+  }
+  function drawDnTop(c) {
+    const dn = G.dn, labels = [];
+    if (dn && dn.npc) labels.push([dn.npc.x, dn.npc.y - 34, dn.npc.name, dn.npc.color, dn.state === 'idle' || dn.state === 'turnin']);
+    for (const n of G.xnpc || []) labels.push([n.x, n.y - 34, n.name, n.color, false]);
+    for (const a of G.altars || []) labels.push([a.x, a.y - 44, a.used ? '精華祭壇（已使用）' : '精華祭壇', '#c78bff', false]);
+    if (dn && !dn.client && dn.target && !dn.target.dead) labels.push([dn.target.x, dn.target.y - dn.target.r - 22, '懸賞目標', '#ffb347', false]);
+    else if (dn && dn.client && dn.lbl) labels.push([dn.lbl[0], dn.lbl[1], '懸賞目標', '#ffb347', false]);
+    for (const e of G.enemies) if (e.vguard && !e.dead) labels.push([e.x, e.y - e.r - 20, '寶庫守衛', '#ffb347', false]);
+    if (!labels.length) return;
+    c.save(); c.font = '600 12px "Noto Sans TC", sans-serif'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeStyle = '#000c';
+    for (const [x, y, s, col, mark] of labels) {
+      c.strokeText(s, x, y); c.fillStyle = col; c.fillText(s, x, y);
+      if (mark) { c.fillStyle = '#ffd34d'; c.font = 'bold 18px sans-serif'; c.fillText('！', x, y - 16 + Math.sin(G.time * 4) * 3); c.font = '600 12px "Noto Sans TC", sans-serif'; }
+    }
+    if (dn && dn.npc && (dn.k === 'lost' || dn.k === 'prayer') && dn.state === 'active') { c.fillStyle = 'rgba(0,0,0,0.7)'; c.fillRect(dn.npc.x - 20, dn.npc.y - 30, 40, 4); c.fillStyle = '#6fd08c'; c.fillRect(dn.npc.x - 20, dn.npc.y - 30, 40 * Math.max(0, dn.hp) / 100, 4); }
+    c.restore();
+  }
+
   // ================= 日月神殿: a stage for exactly two players =================
   // the leader is 日 (sun) and the teammate 月 (moon); in the first hall the colours swap every 30 s
   const TEMPLE_DEPTH = 99, TEMPLE_SWAP = 30, TEMPLE_CAP = 0.02;
@@ -10012,7 +10419,7 @@
     Object.assign(G, {
       map, rooms: [room], start: room, stairRoom: room, stairs: { x: cx, y: Math.round(cy - ry) + 2 },
       enemies: [], traps: [], event: null, merchant: null, npcs: [], hazards: [], props: [], torches: [], pillars: [], decals: [],
-      seen: new Uint8Array(MW * MH).fill(1), tileCv: null,
+      seen: new Uint8Array(MW * MH).fill(1), tileCv: null, crack: null, xnpc: [], dn: null, altars: [],
     });
     placeTorches();
     P.x = (cx + 0.5) * TILE; P.y = (Math.round(cy + ry) - 3 + 0.5) * TILE;
@@ -10329,7 +10736,7 @@
     }).join('') + '</div><div class="sub">挑戰：強化版魔王生命與攻擊 ×2，保證掉落傳說或套裝和一顆符文石。</div>';
     h += `<div class="sub-h">地圖殘頁 → 藏寶圖</div><div class="inv-actions"><button type="button" data-act="map"${c.page >= 4 ? '' : ' disabled'}>4 張殘頁合成藏寶圖（持有 ${c.page} 張）</button></div>` +
       `<div class="sub">${c.maps.length ? `持有的藏寶圖：${c.maps.map((d) => `第 ${d} 層`).join('、')}。到那一層時，大地圖上會出現紅色 X。` : '還沒有藏寶圖。'}</div>`;
-    h += `<div class="sub-h">其他收集品</div><div class="sub">生鏽的鑰匙 ${c.keys} 把：打開地城裡上鎖的寶庫。<br>符文石 ${c.stones} 顆：在天賦畫面（N）解鎖技能的第 3 種符文。</div>`;
+    h += `<div class="sub-h">其他收集品</div><div class="sub">寶庫印記 ${c.seal || 0} 枚：集滿 4 枚，從營地傳送門進入失落的寶庫。<br>生鏽的鑰匙 ${c.keys} 把：打開地城裡上鎖的寶庫。<br>符文石 ${c.stones} 顆：在天賦畫面（N）解鎖技能的第 3 種符文。</div>`;
     $('scholarBody').innerHTML = h;
     const body = $('scholarBody');
     body.querySelector('[data-act="frag"]').addEventListener('click', () => { if (!c.frag.every((n) => n > 0)) return; c.frag = c.frag.map((n) => n - 1); c.realm++; sfx('magic'); logMsg('合成了一張秘境卷軸', '#b79cff'); save(); renderScholar(); });
@@ -10433,14 +10840,16 @@
     if (mode !== 'dead') mode = 'play';
     const keepRun = P.runBest;
     NET.nextSeed = f.seed; genFloor(f.depth); G.netDiff = f.diff;
-    if (f.kind === 'temple') { P.runBest = keepRun; templeSetup((f.tm && f.tm.st) || 1); save(); return; }
     if (f.kind === 'abyss') {
       P.runBest = keepRun;
       if (!ABY.on) Object.assign(ABY, { on: true, deep: 0, party: true, diff: f.diff || 0 });
       ABY.start = Date.now() - ((f.ab && f.ab.el) || 0) * 1000;
       abyssSetup(); save(); return;
     }
-    if (f.kind === 'gold' || f.kind === 'trial' || f.kind === 'pvp' || f.kind === 'temple') { buildArena(); $('log').innerHTML = ''; G.boss = null; $('bossBox').hidden = true; }
+    if (f.kind === 'gold' || f.kind === 'trial' || f.kind === 'pvp' || f.kind === 'temple' || f.kind === 'vault') { buildArena(); $('log').innerHTML = ''; G.boss = null; $('bossBox').hidden = true; }
+    // arena floors are rebuilt above first, so the teammate's map matches the leader's
+    if (f.kind === 'vault') { P.runBest = keepRun; vaultSetup(false); save(); return; }
+    if (f.kind === 'temple') { P.runBest = keepRun; templeSetup((f.tm && f.tm.st) || 1); save(); return; }
     if (f.kind === 'gold') {
       // teammates mirror the realm; the leader spawns the crowd, each player collects their own gold
       G.goldRealm = { t: f.t || GOLD_REALM_T, depth: Math.max(1, P.best), earned: 0, spawnT: Infinity, types: [] };
@@ -10530,7 +10939,7 @@
     if (NET.dotT <= 0) { NET.dotT = 0.3; for (const [id, a] of NET.dotAcc) if (a.amt > 0) netSend(id, { t: 'dot', a: a.amt, c: a.c }); NET.dotAcc.clear(); }
   }
   // the host keeps the world moving while its own menus are open
-  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); awakenTick(dt); templeTick(dt); storyTick(dt); enemyShots(dt); updateHazards(dt); }
+  function hostWorldTick(dt) { G.time += dt; netEnemies(dt); awakenTick(dt); templeTick(dt); storyTick(dt); dnTick(dt); vaultTick(dt); enemyShots(dt); updateHazards(dt); }
 
   // ---------- snapshots ----------
   function buildSnap() {
@@ -10544,6 +10953,7 @@
       aw: G.aw && !G.aw.client ? awPack() : null,
       tp: G.tp && !G.tp.client ? tpPack() : null,
       stp: G.st && !G.st.client ? stPack() : null,
+      dnp: G.dn && !G.dn.client ? dnPack() : null,
       p: [selfRow(), ...[...NET.players.values()].map((rp) => [rp.id, rp.name, rp.cls, r(rp.x), r(rp.y), r(rp.hp), rp.hpMax, rp.f, rp.m, rp.dead ? 1 : 0, rp.lvl, rp.seed, rp.look, rp.dps || 0, rp.tr || 0])],
     };
   }
@@ -10597,6 +11007,7 @@
     if (G.aw && G.boss) $('bossName').textContent = '覺醒火龍';
     if (s.tp) tpApply(s.tp);
     if (s.stp) stApply(s.stp); else if (G.st && G.st.client) G.st = null;
+    if (s.dnp) dnApply(s.dnp);
   }
 
   // ---------- messages ----------
@@ -10620,6 +11031,8 @@
       NET.remoteHit = true;
       try { hitEnemy(e, m.d, !!m.c, m.x, m.y, m.kb || 0, false); } finally { NET.remoteHit = false; }
     } else if (m.t === 'tbuff') twinGot(m.k);
+    else if (m.t === 'dnAct') dnAct();
+    else if (m.t === 'dnCrack') crackOpen();
     else if (m.t === 'abyssStairs') {
       if (G.abyss && mode === 'play' && !G.boss) abyssNext();
     } else if (m.t === 'pvp') {
@@ -10658,6 +11071,8 @@
     else if (m.t === 'stDone') stRemoteDone(m);
     else if (m.t === 'stEnd') stEndReward(m.k);
     else if (m.t === 'stPull') { P.pullT = 0.3; P.pullX = m.x; P.pullY = m.y; }
+    else if (m.t === 'dnReward') dnReward(m.k);
+    else if (m.t === 'dnCrack') crackOpen();
     else if (m.t === 'tpWin') { if (G.tp && !G.tp.won) { G.tp.won = true; templeReward(); } }
     else if (m.t === 'poison') poisonPlayer(m.s, m.dps);
     else if (m.t === 'slow') P.slowT = Math.max(P.slowT || 0, m.s);
