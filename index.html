@@ -195,6 +195,8 @@
   .card p { line-height: 1.7; color: var(--text); margin: 10px 0; }
   .card .muted { color: var(--muted); font-size: 13px; }
   .rar-line { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; margin: 12px 0; }
+  .keybind button { min-width: 74px; padding: 3px 8px; font-family: var(--font-body); font-size: 12px; text-align: left; }
+  .keybind button.wait { border-color: var(--gold); color: var(--gold); }
   .keys { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 13px; margin: 14px 0 18px; color: var(--muted); }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
@@ -524,9 +526,9 @@
 <div class="big-map" id="bigMap" hidden><div class="big-map-in"><div class="bm-title" id="bigMapTitle"></div><canvas id="bigMapCv"></canvas><div class="sub">白點是你，金色是樓梯或寶箱，橘色是事件，紫色是商人。點一下或按 M 關閉。</div></div></div>
 <div class="log" id="log"></div>
 <div class="boss" id="bossBox" hidden><div class="name" id="bossName">骷髏王</div><div class="bar"><i id="bossFill"></i></div></div>
-<div class="hud hud-bl" id="hudBL" hidden>
+<div class="hud hud-bl" id="hudBL" hidden><span id="hudKeys">
   <kbd>WASD</kbd> 移動　<kbd>左鍵</kbd>/<kbd>J</kbd> 攻擊　<kbd>1</kbd><kbd>2</kbd><kbd>3</kbd>/<kbd>右鍵</kbd> 技能　<kbd>空白</kbd> 衝刺<br><kbd>Q</kbd> 藥水　<kbd>4</kbd><kbd>5</kbd><kbd>6</kbd> 藥劑　<kbd>I</kbd> 背包　<kbd>N</kbd> 天賦　<kbd>H</kbd> 成就　<kbd>M</kbd> 地圖　<kbd>E</kbd> 互動　<kbd>T</kbd> 回營地
-</div>
+</span></div>
 <div class="skillbar" id="skillBar" hidden></div>
 <div class="prompt" id="stairPrompt" hidden><button class="primary" id="stairBtn" type="button">走下樓梯（E）</button></div>
 
@@ -551,7 +553,7 @@
 
 <div class="overlay" id="titleScreen">
   <div class="panel card">
-    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v111</small></h1>
+    <h1>地窟獵寶 <small style="font-size:14px;color:var(--muted)">v112</small></h1>
     <p>從營地出發，往下走，打怪，撿寶。倒下時會失去背包裡的物品和 30% 身上的金幣，但穿在身上的裝備、等級和經驗都會保留；存進倉庫的東西也不會掉。每一層都是隨機生成的地窟：打破陶罐、打開寶箱、碰觸神龕拿到暫時的力量，找商人買裝備或賭一把神秘物品。地窟一共 100 層、20 種場景，每 5 層有一隻魔王守著樓梯，一共六種魔王輪流出現；越深的地圖越大。</p>
     <div class="rar-line">
       <span style="color:var(--common)">普通</span>
@@ -820,7 +822,7 @@
 
 <div class="overlay" id="settingsScreen" hidden>
   <div class="panel card">
-    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v111</small></h2>
+    <h2 class="pick-title">設定 <small style="font-size:13px;color:var(--muted)">遊戲版本 v112</small></h2>
     <div class="set-grid">
       <label for="setMusic">背景音樂</label><input type="range" id="setMusic" min="0" max="1" step="0.05">
       <label for="setSfx">音效</label><input type="range" id="setSfx" min="0" max="1" step="0.05">
@@ -835,11 +837,9 @@
     </div>
     <div class="sub-h">自動撿取（沒勾的東西會留在地上，站在旁邊按 E 才會撿）</div>
     <div class="pickup-grid" id="pickGrid"></div>
-    <div class="keys">
-      <kbd>WASD</kbd><span>移動</span><kbd>左鍵 / J</kbd><span>攻擊</span><kbd>1 2 3 / 右鍵</kbd><span>技能</span><kbd>空白</kbd><span>衝刺</span>
-      <kbd>Q</kbd><span>藥水</span><kbd>4 5 6 / Z X C</kbd><span>藥劑</span><kbd>I</kbd><span>背包</span><kbd>N</kbd><span>天賦與符文</span>
-      <kbd>H</kbd><span>成就與圖鑑</span><kbd>M</kbd><span>大地圖</span><kbd>E</kbd><span>互動</span><kbd>T</kbd><span>回營地</span>
-    </div>
+    <div class="sub-h">按鍵設定（點一下按鍵，再按想要的新按鍵；Esc 取消）</div>
+    <div class="keys keybind" id="keyBind"></div>
+    <div class="inv-actions"><button type="button" id="keyReset">恢復預設按鍵</button></div>
     <div class="row"><button class="primary" id="settingsClose" type="button">關閉</button></div>
   </div>
 </div>
@@ -2521,7 +2521,30 @@
   const mouse = { x: 0, y: 0, down: false, last: -10 };
   const touch = { id: null, ox: 0, oy: 0, x: 0, y: 0, atk: false, auto: false, drag: null };
   let aimOverride = null; // set while a dragged skill button is released, so the skill fires where the player dragged
-  addEventListener('keydown', (e) => {
+  // ---- rebindable keys: each action keeps its default code inside the game, the player's key is translated to it
+  const KEY_ACTIONS = [
+    ['up', '上移', 'KeyW'], ['down', '下移', 'KeyS'], ['left', '左移', 'KeyA'], ['right', '右移', 'KeyD'],
+    ['atk', '攻擊（滑鼠左鍵也可以）', 'KeyJ'], ['s1', '技能 1（滑鼠右鍵也可以）', 'Digit1'], ['s2', '技能 2', 'Digit2'], ['s3', '技能 3', 'Digit3'],
+    ['dash', '衝刺', 'Space'], ['pot', '藥水', 'KeyQ'], ['e1', '疾速藥劑', 'Digit4'], ['e2', '無敵藥劑', 'Digit5'], ['e3', '智慧藥劑', 'Digit6'],
+    ['bag', '背包', 'KeyI'], ['tal', '天賦與符文', 'KeyN'], ['ach', '成就與圖鑑', 'KeyH'], ['map', '大地圖', 'KeyM'], ['use', '互動・下樓', 'KeyE'], ['recall', '回營地', 'KeyT'],
+  ];
+  let keyRev = {}, keyBlocked = new Set(), keyCapture = null;
+  const keyOf = (id) => { const a = KEY_ACTIONS.find((x) => x[0] === id); return ((typeof CFG !== 'undefined' && CFG.keys) || {})[id] || a[2]; };
+  function rebuildKeys() {
+    keyRev = {}; keyBlocked = new Set();
+    const map = (typeof CFG !== 'undefined' && CFG.keys) || {};
+    for (const [id, , def] of KEY_ACTIONS) { const k = map[id]; if (k && k !== def) { keyRev[k] = def; keyBlocked.add(def); } }
+  }
+  const keyRemap = (code) => (code in keyRev ? keyRev[code] : keyBlocked.has(code) ? '' : code);
+  const codeName = (c) => (!c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : c.startsWith('Numpad') ? `數字鍵 ${c.slice(6)}` : ({
+    Space: '空白', ShiftLeft: '左 Shift', ShiftRight: '右 Shift', ControlLeft: '左 Ctrl', ControlRight: '右 Ctrl', AltLeft: '左 Alt', AltRight: '右 Alt',
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Tab: 'Tab', Enter: 'Enter', Backquote: '`', Minus: '-', Equal: '=', Comma: ',', Period: '.', Slash: '/', Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']', Backslash: '\\',
+  })[c] || c);
+  addEventListener('keydown', (ev) => {
+    if (keyCapture) return; // the settings window is waiting for a new key
+    if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(ev.code)) ev.preventDefault();
+    const e = { code: keyRemap(ev.code), repeat: ev.repeat, preventDefault: () => ev.preventDefault() };
+    if (!e.code) return;
     if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
     if (e.repeat) { keys.add(e.code); return; }
     keys.add(e.code);
@@ -2569,7 +2592,7 @@
       if (e.code === 'KeyE' || e.code === 'Escape') closeOverlay();
     }
   });
-  addEventListener('keyup', (e) => keys.delete(e.code));
+  addEventListener('keyup', (e) => { const c = keyRemap(e.code); keys.delete(c); if (c !== e.code) keys.delete(e.code); });
   addEventListener('blur', () => { keys.clear(); mouse.down = false; touch.atk = false; });
   canvas.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; mouse.last = performance.now(); });
   canvas.addEventListener('mousedown', (e) => {
@@ -6433,7 +6456,7 @@
 
   // ================= pets =================
   const PETS = {
-    owl: { name: '貓頭鷹', desc: '自動把附近的金幣、藥水和寶石叼回來', color: '#c8a070' },
+    owl: { name: '貓頭鷹', desc: '自動把附近地上的東西叼回來：金幣、裝備、寶石、藥水、藥劑、卷軸和材料（會照設定裡的自動撿取篩選）', color: '#c8a070' },
     wolf: { name: '戰狼', desc: '自動攻擊附近的敵人，造成武器傷害 35%', color: '#8a8f9a' },
     sprite: { name: '治癒精靈', desc: '每秒回復 1.2% 生命', color: '#9ff0b8' },
   };
@@ -6463,7 +6486,8 @@
     }
     if (P.pet === 'owl') {
       for (const d of G.drops) {
-        if (d.kind === 'item' && d.item.slot !== 'gem') continue;
+        // everything on the ground, except what the player chose not to auto-collect
+        if (d.taken || !wantPick(d)) continue;
         const dist = Math.hypot(d.x - P.x, d.y - P.y);
         if (dist < 200 && dist > 18 && los(P, d)) { d.x += (P.x - d.x) * Math.min(1, dt * 3); d.y += (P.y - d.y) * Math.min(1, dt * 3); }
       }
@@ -7418,9 +7442,14 @@
   let setPrev = null;
   function openSettings() {
     setPrev = mode; if (mode === 'play') mode = 'settings';
-    $('setMusic').value = CFG.music; $('setSfx').value = CFG.sfx; $('setShake').checked = CFG.shake; $('setNums').checked = CFG.dmgNums; $('setShort').checked = CFG.shortNum !== false; $('setSteps').checked = CFG.fireSteps !== false; $('setSteps').disabled = !P || !P.fireSteps; $('setSoul').checked = CFG.soulLights !== false; $('setSoul').disabled = !P || !P.soulLights;
+    $('setMusic').value = CFG.music; $('setSfx').value = CFG.sfx; $('setShake').checked = CFG.shake; $('setNums').checked = CFG.dmgNums; $('setShort').checked = CFG.shortNum !== false; { const st = !!(P && P.fireSteps), so = !!(P && P.soulLights);
+      $('setSteps').checked = st && CFG.fireSteps !== false; $('setSteps').disabled = !st;
+      $('setSoul').checked = so && CFG.soulLights !== false; $('setSoul').disabled = !so;
+      document.querySelector('label[for="setSteps"]').textContent = st ? '火焰足跡（覺醒屠龍者外觀）' : '火焰足跡（未解鎖：打倒覺醒火龍）';
+      document.querySelector('label[for="setSoul"]').textContent = so ? '靈魂光點（故事結局外觀）' : '靈魂光點（未解鎖：故事選「毀掉冠冕」）'; }
     $('setTSize').value = String(CFG.tSize || 1); $('setLefty').checked = !!CFG.lefty; $('setHaptic').checked = CFG.haptic !== false;
     renderPickGrid();
+    renderKeyBind();
     $('settingsScreen').hidden = false; mouse.down = false;
   }
   function closeSettings() { $('settingsScreen').hidden = true; if (mode === 'settings') mode = setPrev === 'title' ? 'title' : 'play'; }
@@ -7429,7 +7458,36 @@
   $('setShake').addEventListener('change', (e) => { CFG.shake = e.target.checked; saveCfg(); });
   $('setNums').addEventListener('change', (e) => { CFG.dmgNums = e.target.checked; saveCfg(); });
   $('setShort').addEventListener('change', (e) => { CFG.shortNum = e.target.checked; saveCfg(); });
+  $('settingsClose').addEventListener('click', () => { if (keyCapture) { keyCapture = null; } });
   $('setSteps').addEventListener('change', (e) => { CFG.fireSteps = e.target.checked; saveCfg(); });
+  function renderKeyBind() {
+    $('keyBind').innerHTML = KEY_ACTIONS.map(([id, label]) => `<button type="button" data-kb="${id}" class="${keyCapture === id ? 'wait' : ''}">${keyCapture === id ? '按新按鍵…' : codeName(keyOf(id))}</button><span>${label}</span>`).join('');
+    $('keyBind').querySelectorAll('[data-kb]').forEach((b) => b.addEventListener('click', () => { keyCapture = keyCapture === b.dataset.kb ? null : b.dataset.kb; renderKeyBind(); }));
+  }
+  // while waiting, the next key press is taken here before the game sees it
+  addEventListener('keydown', (ev) => {
+    if (!keyCapture) return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    const id = keyCapture; keyCapture = null;
+    if (ev.code !== 'Escape') {
+      CFG.keys = CFG.keys || {};
+      const old = keyOf(id), other = KEY_ACTIONS.find(([o]) => o !== id && keyOf(o) === ev.code);
+      if (other) CFG.keys[other[0]] = old; // the action that had this key takes the old one, so nothing is lost
+      CFG.keys[id] = ev.code;
+      for (const [o, , def] of KEY_ACTIONS) if (CFG.keys[o] === def) delete CFG.keys[o];
+      rebuildKeys(); saveCfg(); updateKeyHints();
+      logMsg(`${KEY_ACTIONS.find((x) => x[0] === id)[1]}改成 ${codeName(ev.code)}${other ? `（${other[1]}換成 ${codeName(old)}）` : ''}`, '#e9b949');
+    }
+    renderKeyBind();
+  }, true);
+  $('keyReset').addEventListener('click', () => { CFG.keys = {}; keyCapture = null; rebuildKeys(); saveCfg(); updateKeyHints(); renderKeyBind(); logMsg('按鍵恢復成預設值', '#e9b949'); });
+  // the hint line at the bottom left follows the bindings
+  function updateKeyHints() {
+    const k = (id) => `<kbd>${codeName(keyOf(id))}</kbd>`;
+    const mv = ['up', 'left', 'down', 'right'].map((id) => codeName(keyOf(id))).join('');
+    $('hudKeys').innerHTML = `<kbd>${mv === 'WASD' ? 'WASD' : mv}</kbd> 移動　<kbd>左鍵</kbd>/${k('atk')} 攻擊　${k('s1')}${k('s2')}${k('s3')}/<kbd>右鍵</kbd> 技能　${k('dash')} 衝刺<br>${k('pot')} 藥水　${k('e1')}${k('e2')}${k('e3')} 藥劑　${k('bag')} 背包　${k('tal')} 天賦　${k('ach')} 成就　${k('map')} 地圖　${k('use')} 互動　${k('recall')} 回營地`;
+  }
+  rebuildKeys(); updateKeyHints();
   $('setSoul').addEventListener('change', (e) => { CFG.soulLights = e.target.checked; saveCfg(); });
   $('setTSize').addEventListener('change', (e) => { CFG.tSize = +e.target.value; saveCfg(); layoutTouch(); resize(); });
   $('setLefty').addEventListener('change', (e) => { CFG.lefty = e.target.checked; saveCfg(); layoutTouch(); });
